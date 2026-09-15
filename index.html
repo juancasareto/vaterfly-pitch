@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaterfly — Carpeta de Proyecto</title>
+<style>
+  :root{
+    --bg:#F0EEE9; --ink:#111; --sub:#5a5a5a; --line:#d8d5cd;
+    --orange:#E8552C; --purple:#5B5FEF; --navy:#0B0E1A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+  }
+  .mono{font-family:'Courier New', monospace; letter-spacing:.03em;}
+  section{
+    max-width:1000px; margin:0 auto; padding:90px 40px;
+    border-bottom:1px solid var(--line);
+    display:grid; grid-template-columns:60px 1fr; gap:30px;
+  }
+  section .rail{
+    writing-mode:vertical-rl; text-transform:uppercase;
+    font-size:11px; letter-spacing:.15em; color:var(--sub);
+    display:flex; align-items:flex-start; justify-content:flex-end;
+  }
+  .eyebrow{
+    font-size:12px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--purple); margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:"◆"; font-size:10px;}
+  h1{font-size:44px; font-weight:800; text-transform:uppercase; letter-spacing:-.01em; margin-bottom:20px; line-height:1.05;}
+  h2{font-size:16px; font-weight:700; margin-bottom:6px;}
+  p{font-size:16px; color:#333; max-width:640px;}
+  .lead{font-size:19px; max-width:640px; margin-bottom:36px;}
+  img{width:100%; display:block; border-radius:2px;}
+  .hero-img{margin:36px 0;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:0; margin:36px 0; overflow:hidden;}
+  .two-col img{height:100%; object-fit:cover;}
+  .two-col .panel{background:var(--navy); color:#e8e8e8; padding:32px; display:flex; flex-direction:column; justify-content:center;}
+  .two-col .panel h3{font-size:15px; margin-bottom:12px; color:#fff;}
+  .two-col .panel p{color:#b8b8c0; font-size:14px; max-width:none;}
+  .divider{border:none; border-top:1px solid var(--line); margin:32px 0;}
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); margin:32px 0;}
+  .card{background:#e5e2db; padding:22px 24px; border-left:3px solid var(--orange);}
+  .card:nth-child(2n){border-left-color:var(--purple);}
+  .card h3{font-size:14px; margin-bottom:8px;}
+  .card p{font-size:13px; color:#444;}
+  .pillars{margin:32px 0;}
+  .pillar{display:flex; gap:16px; margin-bottom:22px;}
+  .pillar .num{
+    background:var(--orange); color:#fff; font-weight:700; font-size:12px;
+    width:26px; height:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  }
+  .pillar h3{font-size:15px; margin-bottom:4px;}
+  .pillar p{font-size:14px;}
+  .timeline{margin:32px 0;}
+  .tstep{display:flex; gap:16px; margin-bottom:22px;}
+  .tstep .letter{
+    background:var(--navy); color:#fff; font-weight:700; font-size:12px;
+    width:26px; height:26px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  }
+  .tstep h3{font-size:15px; margin-bottom:4px;}
+  .tstep p{font-size:14px;}
+  .callout{background:var(--navy); color:#e8e8e8; padding:32px; margin:32px 0;}
+  .callout .eyebrow{color:var(--orange);}
+  .callout h3{color:#fff; font-size:20px; text-transform:uppercase; margin-bottom:14px; font-weight:800;}
+  .callout p{color:#b8b8c0; margin-bottom:12px; font-size:14px; max-width:none;}
+  .tags{display:flex; flex-wrap:wrap; gap:10px; margin-top:28px;}
+  .tag{border:1px solid var(--ink); padding:6px 14px; font-size:12px; text-transform:uppercase; letter-spacing:.05em;}
+  table{width:100%; border-collapse:collapse; margin:24px 0;}
+  table th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); padding:10px 0; border-bottom:1px solid var(--ink);}
+  table td{padding:14px 0; border-bottom:1px solid var(--line); font-size:14px; vertical-align:top;}
+  table td:first-child{font-weight:700; width:200px;}
+  ul.checklist{list-style:none; margin:20px 0;}
+  ul.checklist li{font-size:14px; padding:6px 0 6px 20px; position:relative; color:#333;}
+  ul.checklist li::before{content:"•"; position:absolute; left:0; color:var(--orange);}
+  .box{border:1px solid var(--line); padding:24px; background:#e5e2db; margin:24px 0;}
+  .box-title{font-size:15px; font-weight:700; margin-bottom:4px;}
+  .box-right{text-align:right; font-weight:400; color:var(--sub);}
+  footer.page-footer{
+    display:flex; justify-content:space-between; font-size:11px; color:var(--sub);
+    text-transform:uppercase; letter-spacing:.05em; margin-top:40px; grid-column:2;
+  }
+  .cover{
+    max-width:1000px; margin:0 auto; padding:60px 40px 90px; border-bottom:1px solid var(--line);
+  }
+  .cover .kicker{font-size:12px; text-transform:uppercase; color:var(--purple); letter-spacing:.1em; margin-bottom:8px;}
+  .cover .co{font-size:14px; font-weight:700; letter-spacing:.02em; margin-bottom:28px;}
+  .logo-wrap{margin-bottom:24px;}
+  .logo-wrap img{width:100%; max-width:640px;}
+  .cover .lead{margin-top:20px;}
+  .cover .cover-img{margin-top:40px;}
+  .info-table{border:1px solid var(--ink); margin-top:50px;}
+  .info-table .row{display:flex; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--line); font-size:14px;}
+  .info-table .row:last-child{border-bottom:none;}
+  .info-table .row span:first-child{color:var(--sub); text-transform:uppercase; font-size:11px; letter-spacing:.05em; align-self:center;}
+  .info-table .row span:last-child{font-weight:700; text-align:right;}
+  .cover-footer{display:flex; justify-content:space-between; font-size:11px; color:var(--sub); margin-top:32px; padding-top:20px; border-top:1px solid var(--line);}
+  @media (max-width:700px){
+    section{grid-template-columns:1fr; padding:60px 24px;}
+    section .rail{display:none;}
+    .two-col{grid-template-columns:1fr;}
+    .cards{grid-template-columns:1fr;}
+    h1{font-size:30px;}
+    table td:first-child{width:auto; display:block; padding-bottom:2px;}
+    .cover{padding:40px 24px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== COVER ===================== -->
+<div class="cover">
+  <div class="kicker mono">Carpeta de proyecto · Propuesta de producción integral</div>
+  <div class="co mono">Absoluto — Compañía Teatral</div>
+  <div class="logo-wrap"><img src="assets/img/logo-vaterfly.png" alt="Vaterfly"></div>
+  <p class="lead">Una fiesta escénica de alto impacto: performance aéreo, riesgo en vivo y participación total del público.</p>
+  <div class="cover-img">
+    <img src="assets/img/hero-01-intro.jpg" alt="Performer aéreo Vaterfly">
+  </div>
+  <div class="info-table">
+    <div class="row"><span>Compañía</span><span>Absoluto</span></div>
+    <div class="row"><span>Proyecto</span><span>Vaterfly</span></div>
+    <div class="row"><span>Obra anterior</span><span>Ego</span></div>
+    <div class="row"><span>Se presenta a</span><span>Club Media</span></div>
+    <div class="row"><span>Se solicita</span><span>Producción integral</span></div>
+  </div>
+  <div class="cover-footer mono">
+    <span>Absoluto · Compañía Teatral</span>
+    <span>contacto@absoluto.com · +54 9 11 0000 0000</span>
+  </div>
+</div>
+
+<!-- ===================== 01 QUIÉNES SOMOS ===================== -->
+<section>
+  <div class="rail mono">Absoluto</div>
+  <div>
+    <div class="eyebrow mono">01 / Quiénes somos</div>
+    <h1>Absoluto</h1>
+    <p class="lead">Somos una compañía de teatro que trabaja sobre la experiencia física del espectador: hacemos obras que no se miran desde una butaca, se atraviesan. Nos interesa el cuerpo en riesgo, la energía colectiva y el momento en que el público deja de ser público.</p>
+
+    <div class="two-col">
+      <img src="assets/img/hero-02-silueta.jpg" alt="Performer aéreo, silueta">
+      <div class="panel">
+        <h3>Nuestro recorrido</h3>
+        <p>Absoluto nace de la necesidad de hacer un teatro que se sienta en el cuerpo antes que se entienda con la cabeza. Nuestro primer proyecto, <strong>Ego</strong>, fue el laboratorio donde probamos ese lenguaje: una obra que nos sirvió para entender qué funciona cuando se saca al espectador de su rol pasivo.</p>
+        <p style="margin-top:14px;">De esa experiencia nos llevamos algo más valioso que un resultado de taquilla: un método de trabajo y la certeza de que hay una audiencia buscando exactamente este tipo de experiencia.</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <h2 style="font-size:18px; margin-bottom:16px;">Lo que aprendimos con Ego</h2>
+    <ul class="checklist">
+      <li>El público responde mejor cuando se le da permiso explícito para participar, no cuando se lo obliga.</li>
+      <li>La energía colectiva sostiene la obra tanto como la dramaturgia.</li>
+      <li>Un equipo técnico y actoral estable es lo que permite escalar de una sala pequeña a un formato mayor sin perder identidad.</li>
+    </ul>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>02</span></footer>
+  </div>
+</section>
+
+<!-- ===================== 02 EL PROYECTO ===================== -->
+<section>
+  <div class="rail mono">El proyecto</div>
+  <div>
+    <div class="eyebrow mono">02 / El proyecto</div>
+    <h1>Vaterfly no se mira. Se vive.</h1>
+    <p class="lead">Vaterfly es una fiesta escénica: una experiencia nocturna estructurada en escenas y performances de alto impacto, con intervención aérea y momentos de riesgo real, donde el público no tiene butaca — tiene un lugar dentro de la acción.</p>
+
+    <div class="cards">
+      <div class="card">
+        <h3>Formato</h3>
+        <p>Evento inmersivo tipo fiesta, con escenas y performances encadenadas a lo largo de la noche, en un mismo espacio compartido con el público.</p>
+      </div>
+      <div class="card">
+        <h3>Referencia de lenguaje</h3>
+        <p>Se ubica en la tradición de Fuerza Bruta y el teatro de riesgo: imagen de alto impacto, cuerpo expuesto, música en vivo o en capas, y nada de cuarta pared.</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <h2 style="font-size:18px; margin-bottom:20px;">Los tres pilares de la experiencia</h2>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="num">01</div>
+        <div>
+          <h3>Performance aérea y de riesgo</h3>
+          <p>Escenas suspendidas y de riesgo físico real, con dirección técnica profesional de rigging y seguridad.</p>
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="num">02</div>
+        <div>
+          <h3>Participación total del público</h3>
+          <p>La audiencia no observa desde afuera: se mueve, decide y en ciertos momentos se vuelve parte de la escena.</p>
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="num">03</div>
+        <div>
+          <h3>Lo lúdico como motor</h3>
+          <p>El juego y el permiso para soltarse son tan centrales a la experiencia como la performance en sí.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>03</span></footer>
+  </div>
+</section>
+
+<!-- ===================== 03 LA EXPERIENCIA ===================== -->
+<section>
+  <div class="rail mono">La experiencia</div>
+  <div>
+    <div class="eyebrow mono">03 / La experiencia</div>
+    <h1>El recorrido de una noche</h1>
+    <p class="lead">No compartimos el guion escena por escena en esta etapa — es parte de lo que hace que Vaterfly funcione. Sí podemos compartir la forma del recorrido: el arco emocional que atraviesa el público de principio a fin.</p>
+
+    <div class="timeline">
+      <div class="tstep">
+        <div class="letter">A</div>
+        <div>
+          <h3>Entrada / activación</h3>
+          <p>El público ingresa a un espacio ya en movimiento. Desde el primer minuto deja de ser espectador pasivo.</p>
+        </div>
+      </div>
+      <div class="tstep">
+        <div class="letter">B</div>
+        <div>
+          <h3>Escenas encadenadas</h3>
+          <p>Una sucesión de momentos performáticos de distinta intensidad, que alternan tensión, juego y sorpresa.</p>
+        </div>
+      </div>
+      <div class="tstep">
+        <div class="letter">C</div>
+        <div>
+          <h3>Clímax aéreo</h3>
+          <p>El punto de mayor riesgo e impacto visual de la noche, con el público directamente alrededor de la acción.</p>
+        </div>
+      </div>
+      <div class="tstep">
+        <div class="letter">D</div>
+        <div>
+          <h3>Cierre colectivo</h3>
+          <p>La fiesta se abre del todo: la frontera entre elenco y público termina de disolverse.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="eyebrow mono">Sobre el guion</div>
+      <h3>Por qué no está en esta carpeta</h3>
+      <p>El guion completo, el desglose escena por escena y las coreografías específicas se comparten en una segunda instancia, bajo acuerdo de confidencialidad, una vez que hay interés concreto de producción. Es una práctica estándar en proyectos inmersivos y de riesgo: proteger el efecto sorpresa es parte del producto.</p>
+      <p>Lo que sí podemos ampliar en la reunión, sin spoilear nada: referencias visuales, tono, y ejemplos de mecánicas de participación ya probadas en Ego.</p>
+    </div>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>04</span></footer>
+  </div>
+</section>
+
+<!-- ===================== 04 IDENTIDAD VISUAL ===================== -->
+<section>
+  <div class="rail mono">Referencias</div>
+  <div>
+    <div class="eyebrow mono">04 / Identidad visual</div>
+    <h1>Tono, estética e impacto</h1>
+    <p class="lead">Vaterfly se apoya en imágenes fuertes: cuerpos en el aire, luz cruda, texturas de fiesta y de riesgo real. Material real de la edición de Seúl.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:36px 0;">
+      <img src="assets/img/thumb-05-culo-inflable.jpg" alt="Inflable Vaterfly">
+      <img src="assets/img/thumb-05-cubos.jpg" alt="Público con cubos">
+      <img src="assets/img/thumb-05-criatura.jpg" alt="Criatura escénica">
+    </div>
+    <div class="hero-img">
+      <img src="assets/img/hero-05-crowd-wide.jpg" alt="Elenco y público en escena">
+    </div>
+
+    <hr class="divider">
+    <h2 style="font-size:18px; margin-bottom:16px;">Palabras que definen el tono</h2>
+    <div class="tags">
+      <div class="tag">Riesgo real</div>
+      <div class="tag">Aéreo</div>
+      <div class="tag">Lúdico</div>
+      <div class="tag">Colectivo</div>
+      <div class="tag">Sin cuarta pared</div>
+      <div class="tag">Alto impacto</div>
+      <div class="tag">Nocturno</div>
+    </div>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>05</span></footer>
+  </div>
+</section>
+
+<!-- ===================== 05 FICHA TÉCNICA ===================== -->
+<section>
+  <div class="rail mono">Producción</div>
+  <div>
+    <div class="eyebrow mono">05 / Lo que se necesita</div>
+    <h1>Ficha técnica preliminar</h1>
+    <p class="lead">Le pedimos a Club Media una producción integral: financiamiento, espacio y estructura de producción completa. Esta es una primera aproximación a lo que el proyecto requiere; se termina de cerrar junto al equipo técnico de Club Media.</p>
+
+    <div class="hero-img">
+      <img src="assets/img/hero-06-rigging.jpg" alt="Estructura de rigging aéreo">
+    </div>
+
+    <table>
+      <tr><th>Ítem</th><th>Requerimiento preliminar</th></tr>
+      <tr><td>Espacio</td><td>Nave o galpón con altura libre suficiente para rigging aéreo (a confirmar con dirección técnica)</td></tr>
+      <tr><td>Rigging y seguridad aérea</td><td>Estructura de anclaje certificada, técnico de rigging y protocolo de seguridad en vivo</td></tr>
+      <tr><td>Capacidad de público</td><td>A definir según venue — pensado para audiencia de pie, con circulación libre</td></tr>
+      <tr><td>Elenco y equipo técnico</td><td>Elenco performático, coordinación aérea, sonido, iluminación y producción general</td></tr>
+      <tr><td>Duración de la experiencia</td><td>A definir en desarrollo — formato de noche completa</td></tr>
+      <tr><td>Temporada propuesta</td><td>A acordar según disponibilidad de sala y calendario de Club Media</td></tr>
+    </table>
+
+    <hr class="divider">
+    <h2 style="font-size:18px; margin-bottom:16px;">Qué aporta Absoluto</h2>
+    <ul class="checklist">
+      <li>El proyecto: concepto, dramaturgia, dirección artística y elenco.</li>
+      <li>El método de trabajo validado en Ego.</li>
+      <li>Coordinación creativa del componente aéreo y performático.</li>
+    </ul>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>06</span></footer>
+  </div>
+</section>
+
+<!-- ===================== 06 EQUIPO ===================== -->
+<section>
+  <div class="rail mono">Equipo</div>
+  <div>
+    <div class="eyebrow mono">06 / Equipo creativo</div>
+    <h1>Quién sostiene Vaterfly</h1>
+    <div class="hero-img">
+      <img src="assets/img/hero-07-equipo.jpg" alt="Elenco Vaterfly">
+    </div>
+    <p class="lead" style="font-size:16px;">Elenco y equipo técnico completo en la edición de Seúl. Roles clave a confirmar para esta nueva producción:</p>
+
+    <div class="cards">
+      <div class="card">
+        <h3>Dirección general — Absoluto</h3>
+        <p>Visión artística y dramatúrgica del proyecto.</p>
+      </div>
+      <div class="card">
+        <h3>Coordinación aérea y de riesgo</h3>
+        <p>Rigging, seguridad y dirección técnica de las escenas aéreas.</p>
+      </div>
+      <div class="card">
+        <h3>Elenco y músicos</h3>
+        <p>Actuación, acrobacia y danza aérea, más banda en vivo.</p>
+      </div>
+      <div class="card">
+        <h3>Producción ejecutiva</h3>
+        <p>Interlocutor directo con Club Media durante todo el proceso.</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <h2 style="font-size:18px; margin-bottom:8px;">Escala de referencia (edición Seúl)</h2>
+    <p style="font-size:14px; color:var(--sub); margin-bottom:16px;">Composición del equipo en la edición anterior de Vaterfly, como referencia de escala — se ajusta al espacio y presupuesto de esta producción.</p>
+    <ul class="checklist">
+      <li>Producción y dirección: productor + directores</li>
+      <li>Elenco: 10 actores, 3 músicos en vivo</li>
+      <li>Vestuario: 1 vestuarista</li>
+      <li>Rigging y seguridad: 3 técnicos escaladores</li>
+      <li>Piso y montaje: 4 técnicos de piso</li>
+      <li>Técnica: operador de luces, sonidista, ingeniero</li>
+    </ul>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>07</span></footer>
+  </div>
+</section>
+
+<!-- ===================== 07 CONTACTO ===================== -->
+<section style="border-bottom:none;">
+  <div class="rail mono">Contacto</div>
+  <div>
+    <div class="eyebrow mono">07 / Próximos pasos</div>
+    <h1>Queremos hacer esto<br>con Club Media.</h1>
+    <p class="lead">Esta carpeta es la primera puerta de entrada al proyecto. El guion completo, el desglose técnico definitivo y el presupuesto detallado se comparten en la siguiente instancia, una vez que haya interés confirmado.</p>
+
+    <div class="timeline">
+      <div class="tstep">
+        <div class="letter" style="background:var(--orange);">01</div>
+        <div>
+          <h3>Reunión de presentación</h3>
+          <p>Mostramos referencias visuales y ampliamos el proyecto en profundidad, sin spoilear el guion.</p>
+        </div>
+      </div>
+      <div class="tstep">
+        <div class="letter" style="background:var(--orange);">02</div>
+        <div>
+          <h3>Acuerdo de confidencialidad</h3>
+          <p>Compartimos guion, desglose escena por escena y ficha técnica definitiva.</p>
+        </div>
+      </div>
+      <div class="tstep">
+        <div class="letter" style="background:var(--orange);">03</div>
+        <div>
+          <h3>Presupuesto y cronograma</h3>
+          <p>Absoluto y Club Media cierran juntos el plan de producción integral.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="eyebrow mono">Contacto</div>
+      <h3 class="mono">Absoluto</h3>
+      <p>Nombre de contacto — Dirección general</p>
+      <p>contacto@absoluto.com · +54 9 11 0000 0000</p>
+      <p>@absoluto · absoluto.com</p>
+    </div>
+
+    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>08</span></footer>
+  </div>
+</section>
+
+</body>
+</html>
