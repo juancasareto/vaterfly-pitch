@@ -47,7 +47,7 @@
   p{font-size:16px; color:#b4b4b8; max-width:640px; font-weight:400;}
   .lead{font-size:20px; max-width:660px; margin-bottom:40px; color:#d4d4d8; font-weight:400; letter-spacing:-.01em;}
   .lead.centered{margin-left:auto; margin-right:auto; text-align:center; max-width:780px;}
-  .trailer-cta-wrap{display:flex; justify-content:center; margin:8px 0 72px;}
+  .trailer-cta-wrap{display:flex; justify-content:center; margin:48px 0 8px;}
   .pillars-heading{
     font-family:'Barlow Condensed', 'Oswald', sans-serif; font-weight:800;
     text-transform:uppercase; letter-spacing:.02em;
@@ -65,11 +65,12 @@
   }
   .stack-card .cover{
     position:absolute; inset:0;
-    background:linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 55%, rgba(0,0,0,.92) 100%);
+    background:linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.35) 50%, rgba(0,0,0,.75) 100%);
   }
   .stack-card .stack-content{
-    position:absolute; left:0; right:0; bottom:0;
-    padding:44px 44px 48px; color:#fff;
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:44px 48px; color:#fff;
   }
   .stack-card .stack-num{
     font-family:'JetBrains Mono', monospace; font-size:12px;
@@ -87,7 +88,7 @@
   }
   @media (max-width:820px){
     .stack-card{ height:66vh; min-height:420px; }
-    .stack-card .stack-content{ padding:26px 22px 30px; }
+    .stack-card .stack-content{ padding:26px 24px; }
     .stack-card p{ font-size:14px; }
   }
   img{width:100%; display:block; border-radius:2px;}
@@ -177,6 +178,13 @@
     content:""; position:absolute; inset:0;
     background:linear-gradient(180deg, rgba(10,10,10,.35) 0%, rgba(10,10,10,0) 30%, rgba(10,10,10,0) 70%, rgba(10,10,10,.5) 100%);
     pointer-events:none;
+  }
+  .video-break .brand-logo{
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%, -50%);
+    width:min(70%, 720px); max-width:80vw;
+    z-index:2; pointer-events:none;
+    filter:drop-shadow(0 6px 24px rgba(0,0,0,.5));
   }
   .video-break .caption{
     position:absolute; left:0; right:0; bottom:36px;
@@ -553,10 +561,6 @@
   <div>
     <p class="lead centered">Vaterfly es una fiesta escénica e inmersiva: una experiencia nocturna estructurada en escenas y performances de alto impacto, con intervención aérea y momentos de riesgo real, donde el público no tiene butaca, tiene un lugar dentro de la acción.</p>
 
-    <div class="trailer-cta-wrap">
-      <button class="cta" data-video="eIZZXl7PTWI">Trailer Vaterfly Corea</button>
-    </div>
-
     <h2 class="pillars-heading">Los tres pilares de la experiencia</h2>
     <div class="stack-pillars">
       <div class="stack-card" style="background-image:url('assets/img/hero-06-rigging.jpg')">
@@ -585,6 +589,10 @@
       </div>
     </div>
 
+    <div class="trailer-cta-wrap">
+      <button class="cta" data-video="eIZZXl7PTWI">Trailer Vaterfly Corea</button>
+    </div>
+
     <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>03</span></footer>
   </div>
 </section>
@@ -592,6 +600,7 @@
 <!-- Video breaker 2 · después de El Proyecto (franja angosta) -->
 <div class="video-break strip" data-parallax="1">
   <video src="assets/video/circulos-multicolor-strip.mp4" muted loop playsinline preload="metadata" autoplay></video>
+  <img class="brand-logo" src="assets/img/logo-vaterfly.png" alt="Vaterfly">
 </div>
 
 <!-- ===================== 03 LA EXPERIENCIA ===================== -->
