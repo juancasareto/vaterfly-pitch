@@ -6,6 +6,9 @@
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <link rel="preconnect" href="https://rsms.me/">
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
 <title>Vaterfly — Carpeta de Proyecto</title>
 <style>
   :root{
@@ -43,6 +46,50 @@
   h2{font-size:16px; font-weight:600; margin-bottom:6px; color:var(--ink); letter-spacing:-.01em;}
   p{font-size:16px; color:#b4b4b8; max-width:640px; font-weight:400;}
   .lead{font-size:20px; max-width:660px; margin-bottom:40px; color:#d4d4d8; font-weight:400; letter-spacing:-.01em;}
+  .lead.centered{margin-left:auto; margin-right:auto; text-align:center; max-width:780px;}
+  .trailer-cta-wrap{display:flex; justify-content:center; margin:8px 0 72px;}
+  .pillars-heading{
+    font-family:'Barlow Condensed', 'Oswald', sans-serif; font-weight:800;
+    text-transform:uppercase; letter-spacing:.02em;
+    font-size:clamp(22px, 2.6vw, 30px); margin:0 0 28px; color:var(--ink);
+  }
+  .stack-pillars{ position:relative; margin:0 0 40px; }
+  .stack-card{
+    position:sticky; top:40px;
+    height:min(72vh, 640px); min-height:460px;
+    border-radius:14px; overflow:hidden;
+    background:#111 no-repeat center/cover;
+    margin-bottom:28px;
+    box-shadow:0 -30px 60px -20px rgba(0,0,0,.9);
+    border:1px solid rgba(255,255,255,.05);
+  }
+  .stack-card .cover{
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 55%, rgba(0,0,0,.92) 100%);
+  }
+  .stack-card .stack-content{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:44px 44px 48px; color:#fff;
+  }
+  .stack-card .stack-num{
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    letter-spacing:.2em; color:#c0c0c8;
+  }
+  .stack-card h3{
+    font-family:'Barlow Condensed', 'Oswald', sans-serif;
+    text-transform:uppercase; font-weight:800;
+    font-size:clamp(30px, 4.6vw, 56px); line-height:1;
+    margin:10px 0 16px; color:#fff; letter-spacing:.01em;
+  }
+  .stack-card p{
+    font-size:16px; max-width:680px; color:#e8e8ec; line-height:1.55;
+    max-width:680px;
+  }
+  @media (max-width:820px){
+    .stack-card{ height:66vh; min-height:420px; }
+    .stack-card .stack-content{ padding:26px 22px 30px; }
+    .stack-card p{ font-size:14px; }
+  }
   img{width:100%; display:block; border-radius:2px;}
   .hero-img{margin:44px 0;}
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:0; margin:44px 0; overflow:hidden; border-radius:2px;}
@@ -90,10 +137,7 @@
   .box{border:1px solid var(--line); padding:28px; background:var(--panel); margin:28px 0;}
   .box-title{font-size:15px; font-weight:700; margin-bottom:4px; color:var(--ink);}
   .box-right{text-align:right; font-weight:400; color:var(--sub);}
-  footer.page-footer{
-    display:flex; justify-content:space-between; font-size:11px; color:var(--sub);
-    text-transform:uppercase; letter-spacing:.08em; margin-top:48px; grid-column:2;
-  }
+  footer.page-footer{ display:none; }
   .cover{
     position:relative;
     max-width:1000px; margin:0 auto; padding:80px 40px 120px; border-bottom:1px solid var(--line);
@@ -119,6 +163,7 @@
     border-top:1px solid var(--line);
     border-bottom:1px solid var(--line);
   }
+  .video-break.strip{ height:35vh; min-height:220px; max-height:340px; }
   .video-break video{
     position:absolute; top:50%; left:50%;
     min-width:100%; min-height:100%;
@@ -145,6 +190,212 @@
   h1 br{display:none;}
   h1.two-line br{display:block;}
 
+  /* ===== Header fijo (oculto por ahora) ===== */
+  .site-header, .mobile-nav{ display:none !important; }
+  .site-header{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 40px;
+    background:rgba(10,10,10,.6);
+    backdrop-filter:blur(14px) saturate(1.2);
+    -webkit-backdrop-filter:blur(14px) saturate(1.2);
+    border-bottom:1px solid rgba(255,255,255,.06);
+    transition:transform .35s cubic-bezier(.16,.68,.43,.99);
+  }
+  .site-header.hidden{ transform:translateY(-100%); }
+  .site-header .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    text-transform:uppercase; letter-spacing:.15em; color:var(--ink);
+  }
+  .site-header .brand img{ height:22px; width:auto; display:block; }
+  .site-header nav{ display:flex; gap:28px; }
+  .site-header nav a{
+    color:#a0a0a8; text-decoration:none;
+    font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+    font-family:'JetBrains Mono', monospace;
+    transition:color .2s;
+  }
+  .site-header nav a:hover{ color:var(--ink); }
+  @media (max-width:820px){
+    .site-header{ padding:14px 20px; }
+    .site-header nav{ display:none; }
+    .site-header .menu-btn{ display:flex; }
+  }
+  .site-header .menu-btn{
+    display:none; background:none; border:1px solid var(--line);
+    color:var(--ink); padding:8px 14px; font-size:11px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.1em;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .mobile-nav{
+    position:fixed; top:0; right:0; bottom:0; width:280px; z-index:99;
+    background:#0a0a0a; border-left:1px solid var(--line);
+    padding:80px 30px 30px;
+    transform:translateX(100%); transition:transform .35s;
+    display:flex; flex-direction:column; gap:20px;
+  }
+  .mobile-nav.open{ transform:translateX(0); }
+  .mobile-nav a{
+    color:var(--ink); text-decoration:none; font-size:14px;
+    text-transform:uppercase; letter-spacing:.1em;
+    font-family:'JetBrains Mono', monospace;
+    padding-bottom:14px; border-bottom:1px solid var(--line);
+  }
+
+  /* ===== Loading splash ===== */
+  .splash{
+    position:fixed; inset:0; z-index:200;
+    background:#0a0a0a;
+    display:flex; align-items:center; justify-content:center;
+    transition:opacity .5s ease;
+  }
+  .splash img{ width:60%; max-width:520px; opacity:0; animation:fadeInLogo .8s ease .1s forwards; }
+  .splash.done{ opacity:0; pointer-events:none; }
+  @keyframes fadeInLogo{ to{ opacity:1; } }
+
+  /* ===== Home hero (nueva portada) ===== */
+  .home-hero{
+    position:relative; width:100%; height:100vh; min-height:640px;
+    overflow:hidden; background:#000;
+  }
+  .home-hero .bg-video{
+    position:absolute; top:50%; left:50%;
+    min-width:100%; min-height:100%; width:auto; height:auto;
+    transform:translate(-50%, -50%) scale(1.05);
+    object-fit:cover;
+    filter:brightness(.55) contrast(1.05);
+  }
+  .home-hero::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(10,10,10,.5) 0%, rgba(10,10,10,0) 25%, rgba(10,10,10,0) 60%, rgba(10,10,10,.85) 100%);
+    pointer-events:none; z-index:1;
+  }
+  .home-hero .content{
+    position:relative; z-index:2;
+    height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:8vh 40px 0;
+    text-align:center;
+  }
+  .home-hero .logo{
+    width:min(70%, 640px); margin-top:0;
+    opacity:0; transform:translateY(-10px);
+    animation:heroLogoIn .8s cubic-bezier(.16,.68,.43,.99) .2s forwards;
+  }
+  @keyframes heroLogoIn{ to{ opacity:1; transform:translateY(0); } }
+  .home-hero .tagline{
+    margin-top:40px; max-width:900px;
+    font-family:'Barlow Condensed', 'Oswald', 'Inter', sans-serif;
+    font-weight:800; font-size:clamp(24px, 3.6vw, 44px);
+    text-transform:uppercase; letter-spacing:.01em; line-height:1.15;
+    color:#fff;
+    min-height:calc(1.15em * 3);
+  }
+  .home-hero .tagline .line{ display:block; }
+  .home-hero .tagline .caret{
+    display:inline-block; width:.5em; height:1em; vertical-align:-.15em;
+    background:#fff; margin-left:4px;
+    animation:blink 1s steps(2) infinite;
+    opacity:0;
+  }
+  .home-hero .tagline.done .caret{ opacity:0; animation:none; display:none; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .home-hero .scroll-hint{
+    position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
+    z-index:2;
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    text-transform:uppercase; letter-spacing:.25em; color:#a0a0a8;
+    opacity:0; animation:fadeIn 1s ease 2s forwards;
+  }
+  @keyframes fadeIn{ to{ opacity:.7; } }
+
+  /* ===== Sección estándar sin sobretítulo, título gigante izquierda ===== */
+  section.mod{
+    display:block;
+    padding:140px 40px;
+    max-width:1200px;
+  }
+  section.mod .num-title{
+    display:flex; align-items:baseline; gap:24px; margin-bottom:48px;
+    font-family:'Barlow Condensed', 'Oswald', 'Inter', sans-serif;
+    text-transform:uppercase; line-height:.95;
+  }
+  section.mod .num-title .n{
+    font-size:22px; font-weight:600; color:var(--sub);
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:.05em;
+  }
+  section.mod .num-title .t{
+    font-size:clamp(48px, 7vw, 88px); font-weight:800;
+    color:var(--ink); letter-spacing:-.02em;
+  }
+
+  /* ===== Slider imágenes derecha con fade gradient ===== */
+  .split{
+    display:grid; grid-template-columns:1fr 1fr; gap:60px;
+    align-items:start;
+  }
+  .split .col-text{ max-width:520px; }
+  .split .col-slider{
+    position:relative; aspect-ratio:4/5; overflow:hidden;
+    border-radius:2px;
+  }
+  .split .col-slider .slide{
+    position:absolute; inset:0;
+    background-size:cover; background-position:center;
+    opacity:0; transition:opacity 1s ease;
+  }
+  .split .col-slider .slide.active{ opacity:1; }
+  .split .col-slider::before{
+    content:""; position:absolute; inset:0; z-index:2;
+    background:linear-gradient(90deg, #0a0a0a 0%, rgba(10,10,10,.7) 20%, rgba(10,10,10,0) 50%);
+    pointer-events:none;
+  }
+  .cta-row{ display:flex; gap:14px; flex-wrap:wrap; margin-top:32px; }
+  .cta{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:14px 22px; border:1px solid var(--ink); background:transparent;
+    color:var(--ink); cursor:pointer;
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    text-transform:uppercase; letter-spacing:.12em;
+    transition:background .2s, color .2s;
+  }
+  .cta:hover{ background:var(--ink); color:#0a0a0a; }
+  .cta::before{ content:"▶"; font-size:9px; }
+
+  /* ===== Modal video ===== */
+  .modal{
+    position:fixed; inset:0; z-index:300;
+    background:rgba(0,0,0,.9); display:none;
+    align-items:center; justify-content:center; padding:40px;
+  }
+  .modal.open{ display:flex; }
+  .modal .box{
+    position:relative; width:100%; max-width:1080px;
+    aspect-ratio:16/9; background:#000; margin:0;
+    border:1px solid var(--line);
+  }
+  .modal .box iframe{ position:absolute; inset:0; width:100%; height:100%; }
+  .reveal-init .modal .box, .modal .box{ opacity:1 !important; transform:none !important; transition:none !important; }
+  .modal .close{
+    position:absolute; top:-40px; right:0;
+    background:none; border:none; color:#fff; cursor:pointer;
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    text-transform:uppercase; letter-spacing:.12em;
+  }
+
+  @media (max-width:820px){
+    .split{ grid-template-columns:1fr; gap:30px; }
+    .split .col-slider{ aspect-ratio:16/10; order:2; }
+    .split .col-slider::before{
+      background:linear-gradient(180deg, rgba(10,10,10,0) 0%, rgba(10,10,10,0) 60%, rgba(10,10,10,.85) 100%);
+    }
+    section.mod{ padding:80px 24px; }
+    .cta-row{ justify-content:center; align-items:center; flex-direction:column; }
+    .cta-row .cta{ width:100%; max-width:320px; justify-content:center; }
+  }
+
   @media (max-width:700px){
     section{grid-template-columns:1fr; padding:80px 24px;}
     section .rail{display:none;}
@@ -157,6 +408,7 @@
   }
 
   /* ===== Animación · Capa 1: reveals ligados al scroll ===== */
+  .reveal-init .num-title,
   .reveal-init h1,
   .reveal-init h2,
   .reveal-init .eyebrow,
@@ -174,13 +426,15 @@
   .reveal-init .thumb-grid,
   .reveal-init .card,
   .reveal-init .pillar,
-  .reveal-init .tstep{
+  .reveal-init .tstep,
+  .reveal-init .split .col-slider,
+  .reveal-init .cta-row{
     opacity:0;
     transform:translateY(24px);
   }
-  h1, h2, .eyebrow, .lead, .logo-wrap, .cover-img, .hero-img, .two-col,
+  .num-title, h1, h2, .eyebrow, .lead, .logo-wrap, .cover-img, .hero-img, .two-col,
   .info-table, .callout, table, .checklist, .tags, .box, .thumb-grid,
-  .card, .pillar, .tstep{
+  .card, .pillar, .tstep, .split .col-slider, .cta-row{
     transition:opacity .7s cubic-bezier(.16,.68,.43,.99),
                transform .7s cubic-bezier(.16,.68,.43,.99);
   }
@@ -202,102 +456,129 @@
 </head>
 <body>
 
-<!-- ===================== COVER ===================== -->
-<div class="cover">
-  <div class="kicker mono">Carpeta de proyecto · Propuesta de producción integral</div>
-  <div class="co mono">Absoluto — Compañía Teatral</div>
-  <div class="logo-wrap"><img src="assets/img/logo-vaterfly.png" alt="Vaterfly"></div>
-  <p class="lead">Una fiesta escénica de alto impacto: performance aéreo, riesgo en vivo y participación total del público.</p>
-  <div class="cover-img">
-    <img src="assets/img/hero-01-intro.jpg" alt="Performer aéreo Vaterfly">
-  </div>
-  <div class="info-table">
-    <div class="row"><span>Compañía</span><span>Absoluto</span></div>
-    <div class="row"><span>Proyecto</span><span>Vaterfly</span></div>
-    <div class="row"><span>Obra anterior</span><span>Ego</span></div>
-    <div class="row"><span>Se presenta a</span><span>Club Media</span></div>
-    <div class="row"><span>Se solicita</span><span>Producción integral</span></div>
-  </div>
-  <div class="cover-footer mono">
-    <span>Absoluto · Compañía Teatral</span>
-    <span>contacto@absoluto.com · +54 9 11 0000 0000</span>
-  </div>
+<!-- Loading splash -->
+<div class="splash" id="splash">
+  <img src="assets/img/logo-vaterfly.png" alt="Vaterfly">
 </div>
 
-<!-- Video breaker 1 · después de cover -->
-<div class="video-break" data-parallax="1">
-  <video src="assets/video/loop-ilusion-optica.mp4" muted loop playsinline preload="metadata"></video>
-  <div class="caption">Absoluto · Compañía Teatral</div>
+<!-- Header fijo -->
+<header class="site-header" id="header">
+  <a href="#home" class="brand">
+    <img src="assets/img/logo-vaterfly.png" alt="Vaterfly">
+  </a>
+  <nav>
+    <a href="#quienes">Quiénes somos</a>
+    <a href="#proyecto">El proyecto</a>
+    <a href="#experiencia">La experiencia</a>
+    <a href="#identidad">Identidad visual</a>
+    <a href="#ficha">Ficha técnica</a>
+    <a href="#equipo">Equipo</a>
+    <a href="#contacto">Contacto</a>
+  </nav>
+  <button class="menu-btn" id="menuBtn">Menú</button>
+</header>
+<nav class="mobile-nav" id="mobileNav">
+  <a href="#quienes">Quiénes somos</a>
+  <a href="#proyecto">El proyecto</a>
+  <a href="#experiencia">La experiencia</a>
+  <a href="#identidad">Identidad visual</a>
+  <a href="#ficha">Ficha técnica</a>
+  <a href="#equipo">Equipo</a>
+  <a href="#contacto">Contacto</a>
+</nav>
+
+<!-- ===================== HOME HERO ===================== -->
+<div class="home-hero" id="home">
+  <video class="bg-video" id="heroVideo"
+    src="assets/video/vaterfly-hero.mp4"
+    autoplay muted loop playsinline preload="auto"
+    disablepictureinpicture disableremoteplayback></video>
+  <div class="content">
+    <img class="logo" src="assets/img/logo-vaterfly.png" alt="Vaterfly">
+    <div class="tagline" id="tagline">
+      <span class="line" data-text="UNA FIESTA ESCÉNICA DE ALTO IMPACTO."></span>
+      <span class="line" data-text="PERFORMANCE AÉREO, ADRENALINA"></span>
+      <span class="line" data-text="Y PARTICIPACIÓN PLENA DEL PÚBLICO."></span>
+      <span class="caret"></span>
+    </div>
+  </div>
+  <div class="scroll-hint">Scroll ↓</div>
 </div>
 
 <!-- ===================== 01 QUIÉNES SOMOS ===================== -->
-<section>
-  <div class="rail mono">Absoluto</div>
-  <div>
-    <div class="eyebrow mono">01 / Quiénes somos</div>
-    <h1>Absoluto</h1>
-    <p class="lead">Somos una compañía de teatro que trabaja sobre la experiencia física del espectador: hacemos obras que no se miran desde una butaca, se atraviesan. Nos interesa el cuerpo en riesgo, la energía colectiva y el momento en que el público deja de ser público.</p>
+<section class="mod" id="quienes">
+  <div class="num-title">
+    <span class="n">01</span>
+    <span class="t">Quiénes somos</span>
+  </div>
 
-    <div class="two-col">
-      <img src="assets/img/hero-02-silueta.jpg" alt="Performer aéreo, silueta">
-      <div class="panel">
-        <h3>Nuestro recorrido</h3>
-        <p>Absoluto nace de la necesidad de hacer un teatro que se sienta en el cuerpo antes que se entienda con la cabeza. Nuestro primer proyecto, <strong>Ego</strong>, fue el laboratorio donde probamos ese lenguaje: una obra que nos sirvió para entender qué funciona cuando se saca al espectador de su rol pasivo.</p>
-        <p style="margin-top:14px;">De esa experiencia nos llevamos algo más valioso que un resultado de taquilla: un método de trabajo y la certeza de que hay una audiencia buscando exactamente este tipo de experiencia.</p>
+  <div class="split">
+    <div class="col-text">
+      <p class="lead">Somos una compañía de teatro que trabaja sobre la experiencia física del espectador: hacemos obras que no se miran desde una butaca, se atraviesan. Nos interesa el cuerpo en riesgo, la energía colectiva y el momento en que el público deja de ser público.</p>
+
+      <h2 style="font-size:15px; margin-top:24px; margin-bottom:12px; color:#fff;">Nuestro recorrido</h2>
+      <p>Absoluto nace de la necesidad de hacer un teatro que se sienta en el cuerpo antes que se entienda con la cabeza. Nuestro primer proyecto, <strong>Ego</strong>, fue el laboratorio donde probamos ese lenguaje: una obra que nos sirvió para entender qué funciona cuando se saca al espectador de su rol pasivo.</p>
+      <p style="margin-top:14px;">De esa experiencia nos llevamos algo más valioso que un resultado de taquilla: un método de trabajo y la certeza de que hay una audiencia buscando exactamente este tipo de experiencia.</p>
+
+      <h2 style="font-size:15px; margin-top:32px; margin-bottom:12px; color:#fff;">Lo que aprendimos con Ego</h2>
+      <ul class="checklist">
+        <li>El público responde mejor cuando se le da permiso explícito para participar, no cuando se lo obliga.</li>
+        <li>La energía colectiva sostiene la obra tanto como la dramaturgia.</li>
+        <li>Un equipo técnico y actoral estable es lo que permite escalar de una sala pequeña a un formato mayor sin perder identidad.</li>
+      </ul>
+
+      <div class="cta-row">
+        <button class="cta" data-video="1uAQ1VdyMjQ">Absoluto TRAILER</button>
+        <button class="cta" data-video="Qm8ujxE22Ic">EGO SPOT</button>
       </div>
     </div>
 
-    <hr class="divider">
-    <h2 style="font-size:18px; margin-bottom:16px;">Lo que aprendimos con Ego</h2>
-    <ul class="checklist">
-      <li>El público responde mejor cuando se le da permiso explícito para participar, no cuando se lo obliga.</li>
-      <li>La energía colectiva sostiene la obra tanto como la dramaturgia.</li>
-      <li>Un equipo técnico y actoral estable es lo que permite escalar de una sala pequeña a un formato mayor sin perder identidad.</li>
-    </ul>
-
-    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>02</span></footer>
+    <div class="col-slider" id="absolutoSlider">
+      <!-- Placeholders hasta que subas /assets/img/absoluto/ -->
+      <div class="slide active" style="background-image:url('assets/img/hero-02-silueta.jpg')"></div>
+      <div class="slide" style="background-image:url('assets/img/hero-06-rigging.jpg')"></div>
+      <div class="slide" style="background-image:url('assets/img/hero-05-crowd-wide.jpg')"></div>
+      <div class="slide" style="background-image:url('assets/img/thumb-05-criatura.jpg')"></div>
+      <div class="slide" style="background-image:url('assets/img/hero-07-equipo.jpg')"></div>
+    </div>
   </div>
 </section>
 
 <!-- ===================== 02 EL PROYECTO ===================== -->
-<section>
-  <div class="rail mono">El proyecto</div>
+<section class="mod" id="proyecto">
+  <div class="num-title">
+    <span class="n">02</span>
+    <span class="t">El proyecto</span>
+  </div>
   <div>
-    <div class="eyebrow mono">02 / El proyecto</div>
-    <h1>Vaterfly no se mira. Se vive.</h1>
-    <p class="lead">Vaterfly es una fiesta escénica: una experiencia nocturna estructurada en escenas y performances de alto impacto, con intervención aérea y momentos de riesgo real, donde el público no tiene butaca — tiene un lugar dentro de la acción.</p>
+    <p class="lead centered">Vaterfly es una fiesta escénica e inmersiva: una experiencia nocturna estructurada en escenas y performances de alto impacto, con intervención aérea y momentos de riesgo real, donde el público no tiene butaca, tiene un lugar dentro de la acción.</p>
 
-    <div class="cards">
-      <div class="card">
-        <h3>Formato</h3>
-        <p>Evento inmersivo tipo fiesta, con escenas y performances encadenadas a lo largo de la noche, en un mismo espacio compartido con el público.</p>
-      </div>
-      <div class="card">
-        <h3>Referencia de lenguaje</h3>
-        <p>Se ubica en la tradición de Fuerza Bruta y el teatro de riesgo: imagen de alto impacto, cuerpo expuesto, música en vivo o en capas, y nada de cuarta pared.</p>
-      </div>
+    <div class="trailer-cta-wrap">
+      <button class="cta" data-video="eIZZXl7PTWI">Trailer Vaterfly Corea</button>
     </div>
 
-    <hr class="divider">
-    <h2 style="font-size:18px; margin-bottom:20px;">Los tres pilares de la experiencia</h2>
-    <div class="pillars">
-      <div class="pillar">
-        <div class="num">01</div>
-        <div>
+    <h2 class="pillars-heading">Los tres pilares de la experiencia</h2>
+    <div class="stack-pillars">
+      <div class="stack-card" style="background-image:url('assets/img/hero-06-rigging.jpg')">
+        <div class="cover"></div>
+        <div class="stack-content">
+          <div class="stack-num">01</div>
           <h3>Performance aérea y de riesgo</h3>
           <p>Escenas suspendidas y de riesgo físico real, con dirección técnica profesional de rigging y seguridad.</p>
         </div>
       </div>
-      <div class="pillar">
-        <div class="num">02</div>
-        <div>
+      <div class="stack-card" style="background-image:url('assets/img/hero-05-crowd-wide.jpg')">
+        <div class="cover"></div>
+        <div class="stack-content">
+          <div class="stack-num">02</div>
           <h3>Participación total del público</h3>
           <p>La audiencia no observa desde afuera: se mueve, decide y en ciertos momentos se vuelve parte de la escena.</p>
         </div>
       </div>
-      <div class="pillar">
-        <div class="num">03</div>
-        <div>
+      <div class="stack-card" style="background-image:url('assets/img/hero-02-silueta.jpg')">
+        <div class="cover"></div>
+        <div class="stack-content">
+          <div class="stack-num">03</div>
           <h3>Lo lúdico como motor</h3>
           <p>El juego y el permiso para soltarse son tan centrales a la experiencia como la performance en sí.</p>
         </div>
@@ -308,18 +589,18 @@
   </div>
 </section>
 
-<!-- Video breaker 2 · después de El Proyecto -->
-<div class="video-break" data-parallax="1">
-  <video src="assets/video/circulos-multicolor.mp4" muted loop playsinline preload="metadata" autoplay></video>
-  <div class="caption">Vaterfly · No se mira, se vive</div>
+<!-- Video breaker 2 · después de El Proyecto (franja angosta) -->
+<div class="video-break strip" data-parallax="1">
+  <video src="assets/video/circulos-multicolor-strip.mp4" muted loop playsinline preload="metadata" autoplay></video>
 </div>
 
 <!-- ===================== 03 LA EXPERIENCIA ===================== -->
-<section>
-  <div class="rail mono">La experiencia</div>
+<section class="mod" id="experiencia">
+  <div class="num-title">
+    <span class="n">03</span>
+    <span class="t">La experiencia</span>
+  </div>
   <div>
-    <div class="eyebrow mono">03 / La experiencia</div>
-    <h1>El recorrido de una noche</h1>
     <p class="lead">No compartimos el guion escena por escena en esta etapa — es parte de lo que hace que Vaterfly funcione. Sí podemos compartir la forma del recorrido: el arco emocional que atraviesa el público de principio a fin.</p>
 
     <div class="timeline">
@@ -365,11 +646,12 @@
 </section>
 
 <!-- ===================== 04 IDENTIDAD VISUAL ===================== -->
-<section>
-  <div class="rail mono">Referencias</div>
+<section class="mod" id="identidad">
+  <div class="num-title">
+    <span class="n">04</span>
+    <span class="t">Identidad visual</span>
+  </div>
   <div>
-    <div class="eyebrow mono">04 / Identidad visual</div>
-    <h1>Tono, estética e impacto</h1>
     <p class="lead">Vaterfly se apoya en imágenes fuertes: cuerpos en el aire, luz cruda, texturas de fiesta y de riesgo real. Material real de la edición de Seúl.</p>
 
     <div class="thumb-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:36px 0;">
@@ -398,11 +680,12 @@
 </section>
 
 <!-- ===================== 05 FICHA TÉCNICA ===================== -->
-<section>
-  <div class="rail mono">Producción</div>
+<section class="mod" id="ficha">
+  <div class="num-title">
+    <span class="n">05</span>
+    <span class="t">Ficha técnica</span>
+  </div>
   <div>
-    <div class="eyebrow mono">05 / Lo que se necesita</div>
-    <h1>Ficha técnica preliminar</h1>
     <p class="lead">Le pedimos a Club Media una producción integral: financiamiento, espacio y estructura de producción completa. Esta es una primera aproximación a lo que el proyecto requiere; se termina de cerrar junto al equipo técnico de Club Media.</p>
 
     <div class="hero-img">
@@ -432,11 +715,12 @@
 </section>
 
 <!-- ===================== 06 EQUIPO ===================== -->
-<section>
-  <div class="rail mono">Equipo</div>
+<section class="mod" id="equipo">
+  <div class="num-title">
+    <span class="n">06</span>
+    <span class="t">Equipo</span>
+  </div>
   <div>
-    <div class="eyebrow mono">06 / Equipo creativo</div>
-    <h1>Quién sostiene Vaterfly</h1>
     <div class="hero-img">
       <img src="assets/img/hero-07-equipo.jpg" alt="Elenco Vaterfly">
     </div>
@@ -478,11 +762,13 @@
 </section>
 
 <!-- ===================== 07 CONTACTO ===================== -->
-<section style="border-bottom:none;">
-  <div class="rail mono">Contacto</div>
+<section class="mod" id="contacto" style="border-bottom:none;">
+  <div class="num-title">
+    <span class="n">07</span>
+    <span class="t">Contacto · Próximos pasos</span>
+  </div>
   <div>
-    <div class="eyebrow mono">07 / Próximos pasos</div>
-    <h1>Queremos hacer esto<br>con Club Media.</h1>
+    <h1 style="font-size:clamp(32px,4.5vw,52px); margin-bottom:24px;">Queremos hacer esto<br>con Club Media.</h1>
     <p class="lead">Esta carpeta es la primera puerta de entrada al proyecto. El guion completo, el desglose técnico definitivo y el presupuesto detallado se comparten en la siguiente instancia, una vez que haya interés confirmado.</p>
 
     <div class="timeline">
@@ -521,14 +807,162 @@
   </div>
 </section>
 
+<!-- Modal video -->
+<div class="modal" id="videoModal">
+  <div class="box">
+    <button class="close" id="modalClose" aria-label="Cerrar">Cerrar ✕</button>
+    <iframe id="modalFrame" src="" title="Video" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+  </div>
+</div>
+
 <script>
 (function(){
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // ===== Splash: apagar cuando carguen los assets críticos =====
+  var splash = document.getElementById('splash');
+  var heroVideo = document.getElementById('heroVideo');
+  var logoImg = document.querySelector('.home-hero .logo');
+  function tryPlayHero(){
+    if(!heroVideo) return;
+    if(!heroVideo.paused) return;
+    var p = heroVideo.play();
+    if(p && typeof p.catch === 'function'){ p.catch(function(){ /* autoplay bloqueado, ignoramos */ }); }
+  }
+  function dismissSplash(){
+    if(!splash || splash.classList.contains('done')) return;
+    splash.classList.add('done');
+    tryPlayHero();
+    setTimeout(function(){
+      splash.remove();
+      tryPlayHero();
+      startTagline();
+    }, 500);
+  }
+  if(heroVideo){
+    heroVideo.addEventListener('canplay', tryPlayHero);
+    heroVideo.addEventListener('loadedmetadata', tryPlayHero);
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) tryPlayHero();
+  });
+  ['click','scroll','touchstart','keydown'].forEach(function(ev){
+    window.addEventListener(ev, tryPlayHero, {once:false, passive:true});
+  });
+  var readyCount = 0, need = 2;
+  function tick(){
+    readyCount++;
+    if(readyCount >= need) dismissSplash();
+  }
+  if(logoImg){
+    if(logoImg.complete) tick();
+    else logoImg.addEventListener('load', tick, {once:true});
+  } else { tick(); }
+  if(heroVideo){
+    // consideramos "listo" cuando podamos empezar a reproducir
+    if(heroVideo.readyState >= 3) tick();
+    else heroVideo.addEventListener('canplay', tick, {once:true});
+    // fallback: máximo 4s de splash
+    setTimeout(function(){ tick(); }, 4000);
+  } else { tick(); }
+
+  // ===== Tagline typing =====
+  function startTagline(){
+    var tagline = document.getElementById('tagline');
+    if(!tagline) return;
+    var lines = tagline.querySelectorAll('.line');
+    var caret = tagline.querySelector('.caret');
+    if(caret) caret.style.opacity = '1';
+
+    var lineIdx = 0, charIdx = 0;
+    var full = Array.prototype.map.call(lines, function(l){ return l.getAttribute('data-text') || ''; });
+    lines.forEach(function(l){ l.textContent = ''; });
+
+    function type(){
+      if(lineIdx >= full.length){
+        tagline.classList.add('done');
+        if(caret){ caret.style.opacity = '0'; caret.style.animation = 'none'; caret.remove && caret.remove(); }
+        return;
+      }
+      var current = full[lineIdx];
+      if(charIdx <= current.length){
+        lines[lineIdx].textContent = current.slice(0, charIdx);
+        charIdx++;
+        setTimeout(type, 14);
+      } else {
+        lineIdx++; charIdx = 0;
+        setTimeout(type, 130);
+      }
+    }
+    setTimeout(type, 500);
+  }
+
+  // ===== Header hide on scroll down, show on scroll up =====
+  var header = document.getElementById('header');
+  var lastY = 0;
+  window.addEventListener('scroll', function(){
+    var y = window.pageYOffset || document.documentElement.scrollTop;
+    if(y < 60){ header.classList.remove('hidden'); }
+    else if(y > lastY + 8){ header.classList.add('hidden'); }
+    else if(y < lastY - 8){ header.classList.remove('hidden'); }
+    lastY = y;
+  }, { passive:true });
+
+  // ===== Mobile menu =====
+  var menuBtn = document.getElementById('menuBtn');
+  var mobileNav = document.getElementById('mobileNav');
+  if(menuBtn){
+    menuBtn.addEventListener('click', function(){
+      mobileNav.classList.toggle('open');
+    });
+    mobileNav.querySelectorAll('a').forEach(function(a){
+      a.addEventListener('click', function(){ mobileNav.classList.remove('open'); });
+    });
+  }
+
+  // ===== Slider Absoluto =====
+  var slider = document.getElementById('absolutoSlider');
+  if(slider){
+    var slides = slider.querySelectorAll('.slide');
+    var cur = 0;
+    setInterval(function(){
+      slides[cur].classList.remove('active');
+      cur = (cur + 1) % slides.length;
+      slides[cur].classList.add('active');
+    }, 3000);
+  }
+
+  // ===== Modal videos YouTube =====
+  var modal = document.getElementById('videoModal');
+  var modalFrame = document.getElementById('modalFrame');
+  var modalClose = document.getElementById('modalClose');
+  function openModal(id){
+    modalFrame.src = 'https://www.youtube.com/embed/' + id + '?autoplay=1&rel=0&modestbranding=1';
+    modal.classList.add('open');
+  }
+  function closeModal(){
+    modal.classList.remove('open');
+    modalFrame.src = '';
+  }
+  document.querySelectorAll('.cta[data-video]').forEach(function(b){
+    b.addEventListener('click', function(){ openModal(b.dataset.video); });
+  });
+  modalClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeModal();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
   // ===== Reveals ligados al scroll =====
-  var revealSelector = 'h1, h2, .eyebrow, .lead, .logo-wrap, .cover-img, .hero-img, '
-    + '.two-col, .info-table, .callout, table, .checklist, .tags, .box, '
-    + '.thumb-grid, .card, .pillar, .tstep, .video-break';
+  var revealSelector = 'section.mod .num-title, section.mod h1, section.mod h2, '
+    + 'section.mod .eyebrow, section.mod .lead, section.mod .hero-img, '
+    + 'section.mod .two-col, section.mod .info-table, section.mod .callout, '
+    + 'section.mod table, section.mod .checklist, section.mod .tags, '
+    + 'section.mod .box, section.mod .thumb-grid, section.mod .card, '
+    + 'section.mod .pillar, section.mod .tstep, '
+    + 'section.mod .split .col-slider, section.mod .cta-row, .video-break';
   var revealEls = document.querySelectorAll(revealSelector);
 
   if(reduce || !('IntersectionObserver' in window)){
