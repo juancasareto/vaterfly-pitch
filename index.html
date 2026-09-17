@@ -444,7 +444,10 @@
     transform:translate(-50%, -50%);
     width:min(70%, 720px); max-width:80vw;
     z-index:2; pointer-events:none;
-    filter:drop-shadow(0 6px 24px rgba(0,0,0,.5));
+    filter:
+      drop-shadow(0 4px 12px rgba(0,0,0,.6))
+      drop-shadow(0 14px 40px rgba(0,0,0,.55))
+      drop-shadow(0 0 80px rgba(0,0,0,.4));
   }
   .video-break .caption{
     position:absolute; left:0; right:0; bottom:36px;
@@ -550,6 +553,10 @@
     width:min(70%, 640px); margin-top:0;
     opacity:0; transform:translateY(-10px);
     animation:heroLogoIn .8s cubic-bezier(.16,.68,.43,.99) .2s forwards;
+    filter:
+      drop-shadow(0 4px 12px rgba(0,0,0,.6))
+      drop-shadow(0 12px 40px rgba(0,0,0,.55))
+      drop-shadow(0 0 80px rgba(0,0,0,.35));
   }
   @keyframes heroLogoIn{ to{ opacity:1; transform:translateY(0); } }
   .home-hero .tagline{
