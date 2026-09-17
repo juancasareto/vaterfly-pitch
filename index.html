@@ -152,6 +152,205 @@
     .hpanel .hp-content{ padding:0 24px; }
     .hpanel .hp-progress{ left:24px; right:24px; top:22px; }
   }
+
+  /* ===== Sección 04: collage disperso con parallax + lightbox ===== */
+  .collage-wrap{
+    position:relative; width:100%; padding:60px 4vw 80px;
+    box-sizing:border-box; overflow:hidden;
+    background:#000;
+  }
+  .collage-bg{
+    position:absolute; inset:0; z-index:0;
+    overflow:hidden; pointer-events:none;
+  }
+  .collage-bg video{
+    position:absolute; top:50%; left:50%;
+    min-width:100%; min-height:100%; width:auto; height:auto;
+    transform:translate(-50%, -50%) scale(1.1);
+    object-fit:cover;
+    opacity:.35;
+    filter:saturate(1.1) contrast(1.05) blur(0.5px);
+  }
+  .collage-bg::after{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,.3) 0%, rgba(0,0,0,.85) 90%);
+  }
+  .collage{
+    position:relative; width:100%;
+    height:280vh; margin:0; z-index:1;
+  }
+  .collage-item{
+    position:absolute; overflow:visible;
+    background:#fff;
+    padding:10px 10px 34px;
+    box-shadow:0 30px 60px -10px rgba(0,0,0,.7);
+    will-change:transform;
+    cursor:zoom-in;
+    transform:translate3d(0, var(--ty, 0px), 0) rotate(var(--rot, 0deg));
+    transition:box-shadow .35s ease, filter .35s ease;
+    filter:saturate(1.05) contrast(1.02);
+  }
+  .collage-item:hover{ z-index:5; box-shadow:0 44px 80px -10px rgba(0,0,0,.85); filter:saturate(1.1) contrast(1.05) brightness(1.05); }
+  .collage-item img{ width:100%; display:block; user-select:none; -webkit-user-drag:none; }
+  .collage-item .cap{
+    position:absolute; left:0; right:0; bottom:10px;
+    text-align:center;
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:#111; letter-spacing:.2em;
+    text-transform:uppercase; z-index:2;
+    pointer-events:none;
+  }
+  @media (max-width:820px){
+    .collage{ height:auto; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:36px 0 0; }
+    .collage-item{
+      position:relative !important; top:auto !important; left:auto !important; width:100% !important;
+      transform:none !important;
+    }
+    .collage-item:nth-child(odd){ transform:rotate(-2deg) !important; }
+    .collage-item:nth-child(even){ transform:rotate(2deg) !important; }
+  }
+
+  /* ===== Lightbox de imagen ===== */
+  .img-lightbox{
+    position:fixed; inset:0; z-index:310;
+    background:rgba(0,0,0,.94); display:none;
+    align-items:center; justify-content:center; padding:40px;
+  }
+  .img-lightbox.open{ display:flex; }
+  .img-lightbox .lb-frame{
+    background:#fff; padding:18px 18px 54px;
+    box-shadow:0 40px 80px rgba(0,0,0,.6);
+    animation:lbIn .35s cubic-bezier(.16,.68,.43,.99);
+    position:relative;
+    max-width:min(100%, 1200px);
+  }
+  .img-lightbox img{
+    max-width:100%; max-height:80vh; width:auto; height:auto;
+    display:block;
+  }
+  .img-lightbox .lb-cap{
+    position:absolute; left:0; right:0; bottom:18px;
+    text-align:center;
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    color:#111; letter-spacing:.22em;
+    text-transform:uppercase;
+  }
+  .img-lightbox .close{
+    position:absolute; top:24px; right:32px;
+    background:none; border:none; color:#fff; cursor:pointer;
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    text-transform:uppercase; letter-spacing:.12em;
+  }
+  @keyframes lbIn{ from{ opacity:0; transform:scale(.96); } to{ opacity:1; transform:scale(1); } }
+
+  /* ===== Roster de equipo ===== */
+  .roster-grid{
+    display:grid; grid-template-columns:repeat(3, 1fr);
+    gap:1px; background:var(--line);
+    border:1px solid var(--line);
+    margin:36px 0 0;
+  }
+  .roster-card{
+    background:var(--panel);
+    padding:32px 24px 28px;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    text-align:center;
+    min-height:230px;
+    position:relative;
+    transition:background .3s ease;
+  }
+  .roster-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:3px;
+    background:var(--ink);
+  }
+  .roster-card:hover{ background:var(--panel-2); }
+  .roster-card .roster-area{
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--sub); letter-spacing:.2em; text-transform:uppercase;
+    margin-bottom:18px;
+  }
+  .roster-card .roster-count{
+    font-family:'Barlow Condensed', 'Oswald', sans-serif;
+    font-weight:800; font-size:clamp(64px, 7vw, 96px);
+    line-height:1; color:var(--ink); letter-spacing:-.02em;
+    margin:0 0 16px;
+  }
+  .roster-card .roster-role{
+    font-size:14px; color:#d4d4d8; line-height:1.5;
+    max-width:none; margin:0;
+  }
+  @media (max-width:820px){
+    .roster-grid{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width:500px){
+    .roster-grid{ grid-template-columns:1fr; }
+    .roster-card{ min-height:0; padding:24px 22px; }
+  }
+
+  /* ===== Full-viewport hero image (Equipo) ===== */
+  .full-hero{
+    width:100vw; margin:0; padding:0;
+    position:relative; left:50%; right:50%;
+    margin-left:-50vw; margin-right:-50vw;
+    overflow:hidden;
+    background:#000;
+  }
+  .full-hero img{
+    width:100%; height:auto; display:block;
+    max-height:100vh; object-fit:cover;
+    border-radius:0;
+  }
+  .full-hero-overlay{
+    position:absolute; inset:0;
+    display:flex; align-items:flex-start; justify-content:flex-start;
+    padding:6vh 6vw 0;
+    background:linear-gradient(180deg, rgba(0,0,0,.75) 0%, rgba(0,0,0,.25) 30%, rgba(0,0,0,0) 60%);
+    pointer-events:none;
+  }
+  .full-hero-overlay .num-title{
+    display:flex; align-items:baseline; gap:24px;
+    font-family:'Barlow Condensed', 'Oswald', 'Inter', sans-serif;
+    text-transform:uppercase; line-height:.95;
+    margin:0; opacity:1 !important; transform:none !important; transition:none !important;
+  }
+  .full-hero-overlay .num-title .n{ display:none; }
+  .full-hero-overlay .num-title .t{
+    font-size:clamp(48px, 7vw, 88px); font-weight:800;
+    color:#fff; letter-spacing:-.02em;
+    text-shadow:0 4px 20px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.8);
+  }
+
+  /* ===== Bloque de contacto ===== */
+  .contact-block{
+    padding:60px 0 40px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    gap:10px;
+  }
+  .contact-block .contact-logo{
+    width:min(70%, 560px); height:auto; display:block;
+    margin:0 auto 32px;
+    filter:drop-shadow(0 6px 24px rgba(0,0,0,.5));
+  }
+  .contact-block .contact-name{
+    font-family:'Barlow Condensed', 'Oswald', sans-serif;
+    text-transform:uppercase; font-weight:800;
+    font-size:clamp(48px, 7vw, 88px); line-height:1;
+    color:var(--ink); margin:0 0 8px;
+  }
+  .contact-block .contact-role{
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    letter-spacing:.18em; text-transform:uppercase;
+    color:var(--sub); max-width:none; margin:0 0 24px;
+  }
+  .contact-block .contact-line{
+    font-size:18px; color:var(--ink); max-width:none; margin:0;
+  }
+  .contact-block .contact-line a{
+    color:var(--ink); text-decoration:none;
+    border-bottom:1px solid rgba(255,255,255,.25);
+    padding-bottom:2px; transition:border-color .2s;
+  }
+  .contact-block .contact-line a:hover{ border-color:var(--ink); }
   img{width:100%; display:block; border-radius:2px;}
   .hero-img{margin:44px 0;}
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:0; margin:44px 0; overflow:hidden; border-radius:2px;}
@@ -394,6 +593,10 @@
     font-family:'Barlow Condensed', 'Oswald', 'Inter', sans-serif;
     text-transform:uppercase; line-height:.95;
   }
+  section#identidad, section#proyecto, section#experiencia{ text-align:center; margin-left:auto; margin-right:auto; }
+  section#identidad .num-title,
+  section#proyecto .num-title,
+  section#experiencia .num-title{ justify-content:center; }
   section.mod .num-title .n{ display:none; }
   section.mod .num-title .t{
     font-size:clamp(48px, 7vw, 88px); font-weight:800;
@@ -409,6 +612,22 @@
   .split .col-slider{
     position:relative; aspect-ratio:4/5; overflow:hidden;
     border-radius:2px;
+  }
+  /* Sección "Quiénes somos" full-bleed: foto llega al top y al borde derecho */
+  section.mod.mod-full{
+    max-width:none; padding:0;
+  }
+  section.mod.mod-full .split{
+    grid-template-columns:1fr 1fr; gap:0;
+    align-items:stretch;
+  }
+  section.mod.mod-full .split .col-text{
+    padding:140px 60px 140px 40px;
+    max-width:640px; justify-self:end; width:100%;
+  }
+  section.mod.mod-full .split .col-slider{
+    aspect-ratio:auto; min-height:100%;
+    border-radius:0;
   }
   .split .col-slider .slide{
     position:absolute; inset:0;
@@ -431,7 +650,13 @@
     transition:background .2s, color .2s;
   }
   .cta:hover{ background:var(--ink); color:#0a0a0a; }
-  .cta::before{ content:"▶"; font-size:9px; }
+  .cta::before{
+    content:""; display:inline-block;
+    width:16px; height:16px; flex:0 0 16px;
+    background:currentColor;
+    -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z'/><path d='m6.2 5.3 3.1 3.9'/><path d='m12.4 3.4 3.1 4'/><path d='M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'/></svg>") no-repeat center/contain;
+            mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z'/><path d='m6.2 5.3 3.1 3.9'/><path d='m12.4 3.4 3.1 4'/><path d='M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'/></svg>") no-repeat center/contain;
+  }
 
   /* ===== Modal video ===== */
   .modal{
@@ -463,6 +688,10 @@
     section.mod{ padding:80px 24px; }
     .cta-row{ justify-content:center; align-items:center; flex-direction:column; }
     .cta-row .cta{ width:100%; max-width:320px; justify-content:center; }
+    section.mod.mod-full{ padding:0; }
+    section.mod.mod-full .split{ grid-template-columns:1fr; gap:0; }
+    section.mod.mod-full .split .col-text{ padding:80px 24px; max-width:none; justify-self:stretch; }
+    section.mod.mod-full .split .col-slider{ aspect-ratio:16/10; order:-1; min-height:auto; }
   }
 
   @media (max-width:700px){
@@ -575,26 +804,19 @@
 </div>
 
 <!-- ===================== 01 QUIÉNES SOMOS ===================== -->
-<section class="mod" id="quienes">
-  <div class="num-title">
-    <span class="n">01</span>
-    <span class="t">Quiénes somos</span>
-  </div>
-
+<section class="mod mod-full" id="quienes">
   <div class="split">
     <div class="col-text">
+      <div class="num-title">
+        <span class="n">01</span>
+        <span class="t">Quiénes somos</span>
+      </div>
+
       <p class="lead">Somos una compañía de teatro que trabaja sobre la experiencia física del espectador: hacemos obras que no se miran desde una butaca, se atraviesan. Nos interesa el cuerpo en riesgo, la energía colectiva y el momento en que el público deja de ser público.</p>
 
       <h2 style="font-size:15px; margin-top:24px; margin-bottom:12px; color:#fff;">Nuestro recorrido</h2>
       <p>Absoluto nace de la necesidad de hacer un teatro que se sienta en el cuerpo antes que se entienda con la cabeza. Nuestro primer proyecto, <strong>Ego</strong>, fue el laboratorio donde probamos ese lenguaje: una obra que nos sirvió para entender qué funciona cuando se saca al espectador de su rol pasivo.</p>
-      <p style="margin-top:14px;">De esa experiencia nos llevamos algo más valioso que un resultado de taquilla: un método de trabajo y la certeza de que hay una audiencia buscando exactamente este tipo de experiencia.</p>
-
-      <h2 style="font-size:15px; margin-top:32px; margin-bottom:12px; color:#fff;">Lo que aprendimos con Ego</h2>
-      <ul class="checklist">
-        <li>El público responde mejor cuando se le da permiso explícito para participar, no cuando se lo obliga.</li>
-        <li>La energía colectiva sostiene la obra tanto como la dramaturgia.</li>
-        <li>Un equipo técnico y actoral estable es lo que permite escalar de una sala pequeña a un formato mayor sin perder identidad.</li>
-      </ul>
+      <p style="margin-top:14px;">De esa experiencia nos llevamos algo más que un resultado de taquilla: un método de trabajo y la certeza de que hay una audiencia buscando exactamente este tipo de experiencia.</p>
 
       <div class="cta-row">
         <button class="cta" data-video="1uAQ1VdyMjQ">Absoluto TRAILER</button>
@@ -722,33 +944,70 @@
     <span class="n">04</span>
     <span class="t">Identidad visual</span>
   </div>
-  <div>
-    <p class="lead">Vaterfly se apoya en imágenes fuertes: cuerpos en el aire, luz cruda, texturas de fiesta y de riesgo real. Material real de la edición de Seúl.</p>
-
-    <div class="thumb-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:36px 0;">
-      <img src="assets/img/thumb-05-culo-inflable.jpg" alt="Inflable Vaterfly">
-      <img src="assets/img/thumb-05-cubos.jpg" alt="Público con cubos">
-      <img src="assets/img/thumb-05-criatura.jpg" alt="Criatura escénica">
-    </div>
-    <div class="hero-img">
-      <img src="assets/img/hero-05-crowd-wide.jpg" alt="Elenco y público en escena">
-    </div>
-
-    <hr class="divider">
-    <h2 style="font-size:18px; margin-bottom:16px;">Palabras que definen el tono</h2>
-    <div class="tags">
-      <div class="tag">Riesgo real</div>
-      <div class="tag">Aéreo</div>
-      <div class="tag">Lúdico</div>
-      <div class="tag">Colectivo</div>
-      <div class="tag">Sin cuarta pared</div>
-      <div class="tag">Alto impacto</div>
-      <div class="tag">Nocturno</div>
-    </div>
-
-    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>05</span></footer>
-  </div>
+  <p class="lead centered">Vaterfly se apoya en imágenes fuertes que transcurren en el enfrentamiento de fuerzas opuestas: la luz y la oscuridad, la vida y la muerte, el bien y el mal. Las escenas están cargadas de cuerpos aéreos, luz cruda, texturas de fiesta e imágenes oníricas.</p>
 </section>
+
+<div class="collage-wrap">
+  <div class="collage" id="collage">
+    <figure class="collage-item" data-speed="0.35" style="top:0%; left:-4%; width:48%; --rot:-6deg;">
+      <img src="assets/Identidad visual/Untitled_3.7.21.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.55" style="top:6%; left:26%; width:44%; --rot:4deg;">
+      <img src="assets/Identidad visual/Untitled_3.7.23.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.20" style="top:2%; left:56%; width:50%; --rot:-4deg;">
+      <img src="assets/Identidad visual/Untitled_3.7.28.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+
+    <figure class="collage-item" data-speed="0.65" style="top:17%; left:6%; width:42%; --rot:6deg;">
+      <img src="assets/Identidad visual/Untitled_3.7.35.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.25" style="top:22%; left:34%; width:52%; --rot:-3deg;">
+      <img src="assets/Identidad visual/Untitled_3.8.7.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.50" style="top:26%; left:66%; width:40%; --rot:7deg;">
+      <img src="assets/Identidad visual/Untitled_3.8.8.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+
+    <figure class="collage-item" data-speed="0.45" style="top:40%; left:-5%; width:48%; --rot:5deg;">
+      <img src="assets/Identidad visual/Untitled_4.12.14.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.60" style="top:44%; left:28%; width:42%; --rot:-6deg;">
+      <img src="assets/Identidad visual/Untitled_4.12.4.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.22" style="top:38%; left:58%; width:48%; --rot:7deg;">
+      <img src="assets/Identidad visual/Untitled_4.12.6.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+
+    <figure class="collage-item" data-speed="0.50" style="top:64%; left:-2%; width:46%; --rot:-5deg;">
+      <img src="assets/Identidad visual/Untitled_4.13.10.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.30" style="top:70%; left:30%; width:50%; --rot:4deg;">
+      <img src="assets/Identidad visual/Untitled_4.13.6.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.65" style="top:62%; left:60%; width:44%; --rot:-7deg;">
+      <img src="assets/Identidad visual/Untitled_4.13.9.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+  </div>
+</div>
+
+<!-- Video breaker · entre Identidad visual y Ficha técnica (ilusión óptica) -->
+<div class="video-break strip" data-parallax="1">
+  <video src="assets/video/loop-ilusion-optica.mp4" muted loop playsinline preload="metadata" autoplay></video>
+  <img class="brand-logo" src="assets/img/logo-vaterfly.png" alt="Vaterfly">
+</div>
 
 <!-- ===================== 05 FICHA TÉCNICA ===================== -->
 <section class="mod" id="ficha">
@@ -757,124 +1016,84 @@
     <span class="t">Ficha técnica</span>
   </div>
   <div>
-    <p class="lead">Le pedimos a Club Media una producción integral: financiamiento, espacio y estructura de producción completa. Esta es una primera aproximación a lo que el proyecto requiere; se termina de cerrar junto al equipo técnico de Club Media.</p>
+    <p class="lead">La compañía busca un espacio donde poder llevar al extremo sus capacidades técnicas, físicas y creativas con el fin de crear un espectáculo único y sin precedentes. Vaterfly requiere un espacio de montaje, ensayo y producción integral para un ciclo de entre 6 y 12 funciones a estrenarse a principios del año 2027.</p>
 
-    <div class="hero-img">
-      <img src="assets/img/hero-06-rigging.jpg" alt="Estructura de rigging aéreo">
-    </div>
-
+    <h2 style="font-size:18px; margin:32px 0 16px;">A continuación nuestras necesidades técnicas</h2>
     <table>
       <tr><th>Ítem</th><th>Requerimiento preliminar</th></tr>
-      <tr><td>Espacio</td><td>Nave o galpón con altura libre suficiente para rigging aéreo (a confirmar con dirección técnica)</td></tr>
-      <tr><td>Rigging y seguridad aérea</td><td>Estructura de anclaje certificada, técnico de rigging y protocolo de seguridad en vivo</td></tr>
-      <tr><td>Capacidad de público</td><td>A definir según venue — pensado para audiencia de pie, con circulación libre</td></tr>
-      <tr><td>Elenco y equipo técnico</td><td>Elenco performático, coordinación aérea, sonido, iluminación y producción general</td></tr>
-      <tr><td>Duración de la experiencia</td><td>A definir en desarrollo — formato de noche completa</td></tr>
-      <tr><td>Temporada propuesta</td><td>A acordar según disponibilidad de sala y calendario de Club Media</td></tr>
+      <tr><td>Espacio</td><td>Nave industrial o galpón con altura libre mínima de 8–10 m y superficie ≥ 500 m². Suelo firme apto para carga aérea y circulación de público.</td></tr>
+      <tr><td>Estructura aérea (rigging)</td><td>Puntos de anclaje certificados o estructura truss autoportante con capacidad ≥ 1000 kg por punto. Cálculo firmado por dirección técnica.</td></tr>
+      <tr><td>Iluminación</td><td>Parrilla técnica con cabezas móviles, PARs LED, blinders, blackouts controlados y consola DMX. Diseño lumínico a cargo de la compañía.</td></tr>
+      <tr><td>Sonido</td><td>PA principal + subs con cobertura 360°, monitores para performers, música en vivo y pregrabada, consola digital y técnico dedicado.</td></tr>
+      <tr><td>Efectos especiales</td><td>Máquinas de humo/hazer, estroboscopios, láser de bajo poder y proyección de video. Sistema de detección de humo desacoplado durante función.</td></tr>
+      <tr><td>Potencia eléctrica</td><td>Trifásica dedicada, tomas industriales y grupo electrógeno de respaldo. Potencia total a definir con FOH y rigging.</td></tr>
+      <tr><td>Producción integral</td><td>Financiamiento del ciclo completo, gestión de permisos, seguros, ART y coordinación entre Vaterfly y el equipo técnico de Club Media.</td></tr>
+      <tr><td>Backstage y camarines</td><td>Área privada para elenco (≥ 8 personas), taller de vestuario y rigging, zona de calentamiento aéreo con colchones.</td></tr>
+      <tr><td>Seguridad y protocolo</td><td>Rigger certificado en funciones, personal médico presente, salidas de emergencia señalizadas y plan de evacuación aprobado.</td></tr>
+      <tr><td>Cronograma</td><td>3–4 semanas de montaje y ensayos técnicos en sede + 6 a 12 funciones a estrenarse a comienzos de 2027.</td></tr>
+      <tr><td>Aforo y capacidad de público</td><td>Audiencia de pie con circulación libre. Capacidad estimada 300–600 personas por función, a ajustar según venue y layout de escenas.</td></tr>
     </table>
-
-    <hr class="divider">
-    <h2 style="font-size:18px; margin-bottom:16px;">Qué aporta Absoluto</h2>
-    <ul class="checklist">
-      <li>El proyecto: concepto, dramaturgia, dirección artística y elenco.</li>
-      <li>El método de trabajo validado en Ego.</li>
-      <li>Coordinación creativa del componente aéreo y performático.</li>
-    </ul>
 
     <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>06</span></footer>
   </div>
 </section>
 
 <!-- ===================== 06 EQUIPO ===================== -->
-<section class="mod" id="equipo">
-  <div class="num-title">
-    <span class="n">06</span>
-    <span class="t">Equipo</span>
+<div class="full-hero" id="equipo">
+  <img src="assets/img/hero-07-equipo.jpg" alt="Elenco Vaterfly">
+  <div class="full-hero-overlay">
+    <div class="num-title">
+      <span class="n">06</span>
+      <span class="t">Equipo</span>
+    </div>
   </div>
-  <div>
-    <div class="hero-img">
-      <img src="assets/img/hero-07-equipo.jpg" alt="Elenco Vaterfly">
+</div>
+
+<section class="mod" id="equipo-detalle">
+  <p class="lead">Elenco y equipo técnico completo en la edición de Seúl. Roles clave a confirmar para esta nueva producción:</p>
+
+  <div class="roster-grid">
+    <div class="roster-card">
+      <div class="roster-area">Dirección</div>
+      <div class="roster-count">2</div>
+      <div class="roster-role">Artística + actoral</div>
     </div>
-    <p class="lead" style="font-size:16px;">Elenco y equipo técnico completo en la edición de Seúl. Roles clave a confirmar para esta nueva producción:</p>
-
-    <div class="cards">
-      <div class="card">
-        <h3>Dirección general — Absoluto</h3>
-        <p>Visión artística y dramatúrgica del proyecto.</p>
-      </div>
-      <div class="card">
-        <h3>Coordinación aérea y de riesgo</h3>
-        <p>Rigging, seguridad y dirección técnica de las escenas aéreas.</p>
-      </div>
-      <div class="card">
-        <h3>Elenco y músicos</h3>
-        <p>Actuación, acrobacia y danza aérea, más banda en vivo.</p>
-      </div>
-      <div class="card">
-        <h3>Producción ejecutiva</h3>
-        <p>Interlocutor directo con Club Media durante todo el proceso.</p>
-      </div>
+    <div class="roster-card">
+      <div class="roster-area">Elenco</div>
+      <div class="roster-count">13</div>
+      <div class="roster-role">10 actores + 3 músicos en vivo</div>
     </div>
-
-    <hr class="divider">
-    <h2 style="font-size:18px; margin-bottom:8px;">Escala de referencia (edición Seúl)</h2>
-    <p style="font-size:14px; color:var(--sub); margin-bottom:16px;">Composición del equipo en la edición anterior de Vaterfly, como referencia de escala — se ajusta al espacio y presupuesto de esta producción.</p>
-    <ul class="checklist">
-      <li>Producción y dirección: productor + directores</li>
-      <li>Elenco: 10 actores, 3 músicos en vivo</li>
-      <li>Vestuario: 1 vestuarista</li>
-      <li>Rigging y seguridad: 3 técnicos escaladores</li>
-      <li>Piso y montaje: 4 técnicos de piso</li>
-      <li>Técnica: operador de luces, sonidista, ingeniero</li>
-    </ul>
-
-    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>07</span></footer>
+    <div class="roster-card">
+      <div class="roster-area">Arte y vestuario</div>
+      <div class="roster-count">2</div>
+      <div class="roster-role">Vestuario + escenografía</div>
+    </div>
+    <div class="roster-card">
+      <div class="roster-area">Rigging y seguridad</div>
+      <div class="roster-count">3</div>
+      <div class="roster-role">Técnicos escaladores</div>
+    </div>
+    <div class="roster-card">
+      <div class="roster-area">Piso y montaje</div>
+      <div class="roster-count">4</div>
+      <div class="roster-role">Técnicos de piso</div>
+    </div>
+    <div class="roster-card">
+      <div class="roster-area">Técnica</div>
+      <div class="roster-count">3</div>
+      <div class="roster-role">Iluminación, sonido, ingeniería</div>
+    </div>
   </div>
 </section>
 
 <!-- ===================== 07 CONTACTO ===================== -->
 <section class="mod" id="contacto" style="border-bottom:none;">
-  <div class="num-title">
-    <span class="n">07</span>
-    <span class="t">Contacto · Próximos pasos</span>
-  </div>
-  <div>
-    <h1 style="font-size:clamp(32px,4.5vw,52px); margin-bottom:24px;">Queremos hacer esto<br>con Club Media.</h1>
-    <p class="lead">Esta carpeta es la primera puerta de entrada al proyecto. El guion completo, el desglose técnico definitivo y el presupuesto detallado se comparten en la siguiente instancia, una vez que haya interés confirmado.</p>
-
-    <div class="timeline">
-      <div class="tstep">
-        <div class="letter" style="background:var(--orange);">01</div>
-        <div>
-          <h3>Reunión de presentación</h3>
-          <p>Mostramos referencias visuales y ampliamos el proyecto en profundidad, sin spoilear el guion.</p>
-        </div>
-      </div>
-      <div class="tstep">
-        <div class="letter" style="background:var(--orange);">02</div>
-        <div>
-          <h3>Acuerdo de confidencialidad</h3>
-          <p>Compartimos guion, desglose escena por escena y ficha técnica definitiva.</p>
-        </div>
-      </div>
-      <div class="tstep">
-        <div class="letter" style="background:var(--orange);">03</div>
-        <div>
-          <h3>Presupuesto y cronograma</h3>
-          <p>Absoluto y Club Media cierran juntos el plan de producción integral.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="callout">
-      <div class="eyebrow mono">Contacto</div>
-      <h3 class="mono">Absoluto</h3>
-      <p>Nombre de contacto — Dirección general</p>
-      <p>contacto@absoluto.com · +54 9 11 0000 0000</p>
-      <p>@absoluto · absoluto.com</p>
-    </div>
-
-    <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>08</span></footer>
+  <div class="contact-block">
+    <img class="contact-logo" src="assets/img/logo-vaterfly.png" alt="Vaterfly">
+    <h3 class="contact-name">Absoluto</h3>
+    <p class="contact-role">Nombre de contacto — Dirección general</p>
+    <p class="contact-line"><a href="mailto:contacto@absoluto.com">contacto@absoluto.com</a> · <a href="tel:+5491100000000">+54 9 11 0000 0000</a></p>
+    <p class="contact-line"><a href="https://instagram.com/absoluto" target="_blank" rel="noopener">@absoluto</a> · <a href="https://absoluto.com" target="_blank" rel="noopener">absoluto.com</a></p>
   </div>
 </section>
 
@@ -883,6 +1102,15 @@
   <div class="box">
     <button class="close" id="modalClose" aria-label="Cerrar">Cerrar ✕</button>
     <iframe id="modalFrame" src="" title="Video" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+  </div>
+</div>
+
+<!-- Lightbox de imagen -->
+<div class="img-lightbox" id="imgLightbox">
+  <button class="close" id="lbClose" aria-label="Cerrar">Cerrar ✕</button>
+  <div class="lb-frame">
+    <img id="lbImg" src="" alt="">
+    <span class="lb-cap">Seúl, Corea. 2024</span>
   </div>
 </div>
 
@@ -1108,6 +1336,57 @@
     }
   }, { passive: true });
   updateParallax();
+
+  // ===== Sección 04: collage con parallax + lightbox =====
+  var collageItems = document.querySelectorAll('.collage .collage-item');
+  if(collageItems.length && !reduce){
+    var isMobileCollage = function(){ return window.matchMedia('(max-width:820px)').matches; };
+    var cTicking = false;
+    function updateCollage(){
+      cTicking = false;
+      if(isMobileCollage()) return;
+      collageItems.forEach(function(item){
+        var speed = parseFloat(item.getAttribute('data-speed')) || 0.2;
+        var rect = item.getBoundingClientRect();
+        var vh = window.innerHeight;
+        var centerFromViewport = rect.top + rect.height/2 - vh/2;
+        var offset = -centerFromViewport * speed;
+        item.style.setProperty('--ty', offset + 'px');
+      });
+    }
+    window.addEventListener('scroll', function(){
+      if(!cTicking){ window.requestAnimationFrame(updateCollage); cTicking = true; }
+    }, { passive:true });
+    window.addEventListener('resize', updateCollage, { passive:true });
+    updateCollage();
+  }
+
+  var lb = document.getElementById('imgLightbox');
+  var lbImg = document.getElementById('lbImg');
+  var lbClose = document.getElementById('lbClose');
+  function openLB(src){
+    if(!lb || !lbImg) return;
+    lbImg.src = src;
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLB(){
+    if(!lb) return;
+    lb.classList.remove('open');
+    if(lbImg) lbImg.src = '';
+    document.body.style.overflow = '';
+  }
+  collageItems.forEach(function(item){
+    item.addEventListener('click', function(){
+      var img = item.querySelector('img');
+      if(img) openLB(img.getAttribute('src'));
+    });
+  });
+  if(lbClose) lbClose.addEventListener('click', closeLB);
+  if(lb) lb.addEventListener('click', function(e){ if(e.target === lb) closeLB(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && lb && lb.classList.contains('open')) closeLB();
+  });
 
   // ===== Sección 03: pin horizontal (con dwell en la primera imagen) =====
   var hpin = document.getElementById('expHPin');
