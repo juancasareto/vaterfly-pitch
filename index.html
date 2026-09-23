@@ -885,7 +885,7 @@
   }
 
   try {
-    if (localStorage.getItem(GATE_KEY) === '1') {
+    if (sessionStorage.getItem(GATE_KEY) === '1') {
       unlock();
     } else {
       document.documentElement.classList.add('pw-locked');
@@ -898,7 +898,7 @@
     e.preventDefault();
     var val = (input.value || '').trim().toLowerCase();
     if (val === PASSWORD) {
-      try { localStorage.setItem(GATE_KEY, '1'); } catch(e){}
+      try { sessionStorage.setItem(GATE_KEY, '1'); } catch(e){}
       unlock();
     } else {
       error.style.display = 'block';
@@ -1190,7 +1190,7 @@
       <tr><td>Sonido</td><td>PA principal + subs con cobertura 360°, monitores para performers, música en vivo y pregrabada, consola digital y técnico dedicado.</td></tr>
       <tr><td>Efectos especiales</td><td>Máquinas de humo/hazer, confeti, láser de bajo poder y proyección de video. Sistema de detección de humo desacoplado durante función.</td></tr>
       <tr><td>Potencia eléctrica</td><td>Trifásica dedicada, tomas industriales y grupo electrógeno de respaldo. Potencia total a definir con FOH y rigging.</td></tr>
-      <tr><td>Producción integral</td><td>Financiamiento del ciclo completo, gestión de permisos, seguros, ART y coordinación entre Vaterfly y el equipo técnico de Club Media.</td></tr>
+      <tr><td>Producción integral</td><td>Financiamiento del ciclo completo, gestión de permisos, seguros, ART y coordinación entre Vaterfly y el equipo técnico de la sede.</td></tr>
       <tr><td>Backstage y camarines</td><td>Área privada para elenco (≥ 8 personas), crew room, taller de vestuario y rigging, zona de calentamiento para performers.</td></tr>
       <tr><td>Seguridad y protocolo</td><td>Rigger certificado en funciones, personal médico presente, salidas de emergencia señalizadas y plan de evacuación aprobado.</td></tr>
       <tr><td>Cronograma</td><td>3–4 semanas de montaje y ensayos técnicos en sede + 6 a 12 funciones a estrenarse a comienzos de 2027.</td></tr>

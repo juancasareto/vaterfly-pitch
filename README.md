@@ -1,6 +1,6 @@
 # Vaterfly — Carpeta de Proyecto (HTML)
 
-Workspace de trabajo para la presentación de Vaterfly (carpeta de proyecto de Absoluto para Club Media), convertida de PDF a HTML.
+Workspace de trabajo para la presentación de Vaterfly (carpeta de proyecto de Absoluto), convertida de PDF a HTML.
 
 ## Estructura
 
