@@ -183,7 +183,7 @@
   }
   .collage{
     position:relative; width:100%;
-    height:280vh; margin:0; z-index:1;
+    height:330vh; margin:0; z-index:1;
   }
   .collage-item{
     position:absolute; overflow:visible;
@@ -571,6 +571,46 @@
     padding-bottom:14px; border-bottom:1px solid var(--line);
   }
 
+  /* ===== Barrera de acceso ===== */
+  html.pw-locked, html.pw-locked body{ overflow:hidden; height:100%; }
+  .pw-gate{
+    position:fixed; inset:0; z-index:9999;
+    background:#0a0a0a;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .pw-gate.hidden{ display:none; }
+  .pw-box{ text-align:center; max-width:360px; width:100%; }
+  .pw-box .pw-logo{
+    width:min(55%, 200px); margin:0 auto 28px; display:block;
+    filter:drop-shadow(0 6px 24px rgba(0,0,0,.5));
+  }
+  .pw-box .pw-label{
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    letter-spacing:.18em; text-transform:uppercase;
+    color:var(--sub); margin-bottom:28px;
+  }
+  #pwForm{ display:flex; gap:10px; }
+  #pwInput{
+    flex:1; min-width:0; background:transparent;
+    border:1px solid var(--line); color:var(--ink);
+    padding:13px 14px; font-family:'JetBrains Mono', monospace;
+    font-size:14px; letter-spacing:.05em; border-radius:2px;
+  }
+  #pwInput::placeholder{ color:var(--sub); }
+  #pwInput:focus{ outline:none; border-color:var(--ink); }
+  #pwForm button{
+    padding:13px 20px; background:var(--ink); color:#0a0a0a;
+    border:none; font-family:'JetBrains Mono', monospace;
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+    cursor:pointer; border-radius:2px; transition:opacity .2s;
+  }
+  #pwForm button:hover{ opacity:.85; }
+  .pw-error{
+    margin-top:16px; font-size:11px; color:var(--orange);
+    font-family:'JetBrains Mono', monospace; letter-spacing:.05em;
+  }
+
   /* ===== Loading splash ===== */
   .splash{
     position:fixed; inset:0; z-index:200;
@@ -818,6 +858,57 @@
 </head>
 <body>
 
+<!-- Barrera de acceso (no es seguridad real, solo evita lectura casual) -->
+<div class="pw-gate" id="pwGate">
+  <div class="pw-box">
+    <img src="assets/img/logo-vaterfly.png" alt="Vaterfly" class="pw-logo">
+    <p class="pw-label">Contenido privado — Club Media</p>
+    <form id="pwForm" autocomplete="off">
+      <input type="password" id="pwInput" placeholder="Contraseña" autocomplete="off" autofocus>
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="pw-error" id="pwError" style="display:none;">Contraseña incorrecta</p>
+  </div>
+</div>
+<script>
+(function(){
+  var GATE_KEY = 'vaterflyDeckAuth';
+  var PASSWORD = 'culoinflable2027';
+  var gate = document.getElementById('pwGate');
+  var form = document.getElementById('pwForm');
+  var input = document.getElementById('pwInput');
+  var error = document.getElementById('pwError');
+
+  function unlock(){
+    gate.classList.add('hidden');
+    document.documentElement.classList.remove('pw-locked');
+  }
+
+  try {
+    if (localStorage.getItem(GATE_KEY) === '1') {
+      unlock();
+    } else {
+      document.documentElement.classList.add('pw-locked');
+    }
+  } catch(e) {
+    document.documentElement.classList.add('pw-locked');
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var val = (input.value || '').trim().toLowerCase();
+    if (val === PASSWORD) {
+      try { localStorage.setItem(GATE_KEY, '1'); } catch(e){}
+      unlock();
+    } else {
+      error.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  });
+})();
+</script>
+
 <!-- Loading splash -->
 <div class="splash" id="splash">
   <img src="assets/img/logo-vaterfly.png" alt="Vaterfly">
@@ -1061,6 +1152,15 @@
     </figure>
     <figure class="collage-item" data-speed="0.65" style="top:62%; left:60%; width:44%; --rot:-7deg;">
       <img src="assets/Identidad visual/Untitled_4.13.9.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+
+    <figure class="collage-item" data-speed="0.40" style="top:84%; left:2%; width:46%; --rot:-4deg;">
+      <img src="assets/Identidad visual/inflable-butt.jpg" alt="">
+      <figcaption class="cap">Seúl, Corea. 2024</figcaption>
+    </figure>
+    <figure class="collage-item" data-speed="0.55" style="top:90%; left:40%; width:54%; --rot:5deg;">
+      <img src="assets/Identidad visual/culito-con-gente.jpg" alt="">
       <figcaption class="cap">Seúl, Corea. 2024</figcaption>
     </figure>
   </div>
