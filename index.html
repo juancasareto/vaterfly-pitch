@@ -400,6 +400,7 @@
     color:var(--sub); max-width:none; margin:0 0 10px;
   }
   .contact-block .contact-roles .contact-role:last-child{ margin-bottom:0; }
+  .contact-block .contact-role span{ white-space:nowrap; }
   .contact-block .contact-line{
     font-size:18px; color:var(--ink); max-width:none; margin:0;
   }
@@ -407,8 +408,14 @@
     color:var(--ink); text-decoration:none;
     border-bottom:1px solid rgba(255,255,255,.25);
     padding-bottom:2px; transition:border-color .2s;
+    white-space:nowrap;
   }
   .contact-block .contact-line a:hover{ border-color:var(--ink); }
+  @media (max-width:600px){
+    .contact-block .contact-name{ font-size:clamp(40px, 12vw, 64px); }
+    .contact-block .contact-role{ font-size:12px; letter-spacing:.08em; }
+    .contact-block .contact-line{ font-size:15px; }
+  }
   img{width:100%; display:block; border-radius:2px;}
   .hero-img{margin:44px 0;}
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:0; margin:44px 0; overflow:hidden; border-radius:2px;}
@@ -1284,10 +1291,10 @@
     <img class="contact-logo" src="assets/img/logo-absoluto.jpg" alt="Absoluto">
     <h3 class="contact-name">Absoluto</h3>
     <div class="contact-roles">
-      <p class="contact-role">Bruno López Aragón — Dirección artística</p>
-      <p class="contact-role">Mariano Panelo — Dirección artística</p>
-      <p class="contact-role">Enrique Molina Lera — Producción general</p>
-      <p class="contact-role">Juan Casareto — Producción ejecutiva</p>
+      <p class="contact-role"><span>Bruno López Aragón</span> — <span>Dirección artística</span></p>
+      <p class="contact-role"><span>Mariano Panelo</span> — <span>Dirección artística</span></p>
+      <p class="contact-role"><span>Enrique Molina Lera</span> — <span>Producción general</span></p>
+      <p class="contact-role"><span>Juan Casareto</span> — <span>Producción ejecutiva</span></p>
     </div>
     <p class="contact-line"><a href="mailto:vaterflyofficial@gmail.com">vaterflyofficial@gmail.com</a> · <a href="tel:+5491140877833">+54 9 11 4087 7833</a></p>
     <p class="contact-line"><a href="https://instagram.com/vaterflyofficial" target="_blank" rel="noopener">@vaterflyofficial</a> · <a href="https://vaterfly.com" target="_blank" rel="noopener">vaterfly.com</a></p>
