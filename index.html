@@ -382,21 +382,23 @@
     gap:10px;
   }
   .contact-block .contact-logo{
-    width:min(70%, 560px); height:auto; display:block;
-    margin:0 auto 32px;
+    width:min(52%, 286px); height:auto; display:block;
+    margin:0 auto -8px;
     filter:drop-shadow(0 6px 24px rgba(0,0,0,.5));
   }
   .contact-block .contact-name{
     font-family:'Barlow Condensed', 'Oswald', sans-serif;
     text-transform:uppercase; font-weight:800;
     font-size:clamp(48px, 7vw, 88px); line-height:1;
-    color:var(--ink); margin:0 0 8px;
+    color:var(--ink); margin:0 0 36px;
   }
+  .contact-block .contact-roles{ margin:0 0 28px; }
   .contact-block .contact-role{
-    font-family:'JetBrains Mono', monospace; font-size:12px;
-    letter-spacing:.18em; text-transform:uppercase;
-    color:var(--sub); max-width:none; margin:0 0 24px;
+    font-family:'JetBrains Mono', monospace; font-size:15px;
+    letter-spacing:.14em; text-transform:uppercase;
+    color:var(--sub); max-width:none; margin:0 0 10px;
   }
+  .contact-block .contact-roles .contact-role:last-child{ margin-bottom:0; }
   .contact-block .contact-line{
     font-size:18px; color:var(--ink); max-width:none; margin:0;
   }
@@ -1111,46 +1113,6 @@
 </div>
 
 <section class="mod" id="equipo-detalle">
-  <h2 class="pillars-heading">Dirección general</h2>
-  <div class="leaders-row">
-    <div class="leader-card">
-      <div class="leader-flip">
-        <div class="leader-flip-inner">
-          <div class="leader-face leader-front" style="background-image:url('assets/Perfiles direccion/perfil-1.png')"></div>
-          <div class="leader-face leader-back"><p>Reseña pendiente — completar con una frase breve (máx. 20 palabras).</p></div>
-        </div>
-      </div>
-      <div class="leader-name">Bruno</div>
-    </div>
-    <div class="leader-card">
-      <div class="leader-flip">
-        <div class="leader-flip-inner">
-          <div class="leader-face leader-front" style="background-image:url('assets/Perfiles direccion/perfil-2.png')"></div>
-          <div class="leader-face leader-back"><p>Reseña pendiente — completar con una frase breve (máx. 20 palabras).</p></div>
-        </div>
-      </div>
-      <div class="leader-name">Mariano</div>
-    </div>
-    <div class="leader-card">
-      <div class="leader-flip">
-        <div class="leader-flip-inner">
-          <div class="leader-face leader-front" style="background-image:url('assets/Perfiles direccion/perfil-1.png')"></div>
-          <div class="leader-face leader-back"><p>Reseña pendiente — completar con una frase breve (máx. 20 palabras).</p></div>
-        </div>
-      </div>
-      <div class="leader-name">Pitu</div>
-    </div>
-    <div class="leader-card">
-      <div class="leader-flip">
-        <div class="leader-flip-inner">
-          <div class="leader-face leader-front" style="background-image:url('assets/Perfiles direccion/perfil-2.png')"></div>
-          <div class="leader-face leader-back"><p>Reseña pendiente — completar con una frase breve (máx. 20 palabras).</p></div>
-        </div>
-      </div>
-      <div class="leader-name">Juan</div>
-    </div>
-  </div>
-
   <p class="lead">Elenco y equipo técnico completo en la edición de Seúl. Roles clave a confirmar para esta nueva producción:</p>
 
   <div class="roster-grid">
@@ -1190,9 +1152,14 @@
 <!-- ===================== 07 CONTACTO ===================== -->
 <section class="mod" id="contacto" style="border-bottom:none;">
   <div class="contact-block">
-    <img class="contact-logo" src="assets/img/logo-vaterfly.png" alt="Vaterfly">
+    <img class="contact-logo" src="assets/img/logo-absoluto.jpg" alt="Absoluto">
     <h3 class="contact-name">Absoluto</h3>
-    <p class="contact-role">Enrique Molina Lera — Producción general</p>
+    <div class="contact-roles">
+      <p class="contact-role">Bruno López Aragón — Dirección artística</p>
+      <p class="contact-role">Mariano Panelo — Dirección artística</p>
+      <p class="contact-role">Enrique Molina Lera — Producción general</p>
+      <p class="contact-role">Juan Casareto — Producción ejecutiva</p>
+    </div>
     <p class="contact-line"><a href="mailto:vaterflyofficial@gmail.com">vaterflyofficial@gmail.com</a> · <a href="tel:+5491140877833">+54 9 11 4087 7833</a></p>
     <p class="contact-line"><a href="https://instagram.com/vaterflyofficial" target="_blank" rel="noopener">@vaterflyofficial</a> · <a href="https://vaterfly.com" target="_blank" rel="noopener">vaterfly.com</a></p>
   </div>
