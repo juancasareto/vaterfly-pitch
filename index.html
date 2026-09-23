@@ -575,15 +575,36 @@
   html.pw-locked, html.pw-locked body{ overflow:hidden; height:100%; }
   .pw-gate{
     position:fixed; inset:0; z-index:9999;
-    background:#0a0a0a;
+    background:#0a0a0a; overflow:hidden;
     display:flex; align-items:center; justify-content:center;
     padding:24px;
+    opacity:1; transform:scale(1);
+    transition:opacity .9s cubic-bezier(.16,.68,.43,.99), transform .9s cubic-bezier(.16,.68,.43,.99);
   }
+  .pw-gate.fade-out{ opacity:0; transform:scale(1.04); pointer-events:none; }
   .pw-gate.hidden{ display:none; }
-  .pw-box{ text-align:center; max-width:360px; width:100%; }
+  .pw-bg-video{
+    position:absolute; top:50%; left:50%;
+    min-width:100%; min-height:100%; width:auto; height:auto;
+    transform:translate(-50%, -50%);
+    object-fit:cover;
+    filter:brightness(.6) contrast(1.05);
+    z-index:0;
+  }
+  .pw-gate::before{
+    content:""; position:absolute; inset:0; z-index:1;
+    background:radial-gradient(ellipse at center, rgba(10,10,10,.55) 0%, rgba(10,10,10,.88) 100%);
+    pointer-events:none;
+  }
+  .pw-box{ position:relative; z-index:2; text-align:center; max-width:360px; width:100%; }
   .pw-box .pw-logo{
-    width:min(55%, 200px); margin:0 auto 28px; display:block;
+    width:min(80%, 320px); margin:0 auto 28px; display:block;
     filter:drop-shadow(0 6px 24px rgba(0,0,0,.5));
+    animation:pwLogoBreathe 4s ease-in-out infinite;
+  }
+  @keyframes pwLogoBreathe{
+    0%, 100%{ transform:scale(1); }
+    50%{ transform:scale(1.08); }
   }
   .pw-box .pw-label{
     font-family:'JetBrains Mono', monospace; font-size:11px;
@@ -860,6 +881,7 @@
 
 <!-- Barrera de acceso (no es seguridad real, solo evita lectura casual) -->
 <div class="pw-gate" id="pwGate">
+  <video class="pw-bg-video" src="assets/video/loop-ilusion-optica.mp4" muted loop playsinline preload="auto" autoplay></video>
   <div class="pw-box">
     <img src="assets/img/logo-vaterfly.png" alt="Vaterfly" class="pw-logo">
     <p class="pw-label">Contenido privado</p>
@@ -884,6 +906,12 @@
     document.documentElement.classList.remove('pw-locked');
   }
 
+  function unlockAnimated(){
+    document.documentElement.classList.remove('pw-locked');
+    gate.classList.add('fade-out');
+    setTimeout(function(){ gate.classList.add('hidden'); }, 900);
+  }
+
   try {
     if (sessionStorage.getItem(GATE_KEY) === '1') {
       unlock();
@@ -899,7 +927,7 @@
     var val = (input.value || '').trim().toLowerCase();
     if (val === PASSWORD) {
       try { sessionStorage.setItem(GATE_KEY, '1'); } catch(e){}
-      unlock();
+      unlockAnimated();
     } else {
       error.style.display = 'block';
       input.value = '';
