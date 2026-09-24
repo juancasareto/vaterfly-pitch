@@ -223,6 +223,7 @@
       <button class="seg" data-view="iso" aria-pressed="true">Isométrica</button>
       <button class="seg" data-view="planta" aria-pressed="false">Planta</button>
       <button class="seg" data-view="publico" aria-pressed="false">Desde el público</button>
+      <button class="seg" data-view="frente" aria-pressed="false">Frente escenario</button>
       <button class="seg" data-view="escenario" aria-pressed="false">Desde escenario</button>
       <button class="seg" data-view="lateral" aria-pressed="false">Lateral</button>
       <button class="seg" data-view="torre" aria-pressed="false">Desde torre 3 m</button>
@@ -405,6 +406,65 @@ const tela = makeEl('tela', {
   tela.labelEl = label('Tela tensa', '', tela.group, [0.1, 10.5, zc]);
 }
 
+/* ───────── Pantalla LED detrás del DJ (propuesta) ───────── */
+const LED = { x: 0.3, z0: 4.5, z1: 8.5, y0: 1.15, y1: 3.4 };
+const led = makeEl('pantalla', {
+  nombre: 'Pantalla LED', estado: 'prop',
+  medidas: ['4 × 2,25 m (16:9)', 'Ground support sobre el escenario, detrás de la cabina DJ', 'Borde inferior a ≈ 1,15 m (15 cm sobre el escenario) · superior a ≈ 3,4 m', 'Pitch sugerido: 3,9 mm'],
+  notas: 'Tapa el anclaje inferior de la línea aérea 1 (≈ 2,2 m de altura): para las escenas de tela (11 y 14) hay que correr ese anclaje, subir la pantalla o retirarla.', base: PURPLE
+});
+{
+  const zc = (LED.z0 + LED.z1) / 2, w = LED.z1 - LED.z0, h = LED.y1 - LED.y0;
+  addBox(led, LED.x - 0.06, LED.x + 0.06, LED.y0, LED.y1, LED.z0, LED.z1, { face: .04 });
+  segs([[LED.x, 1.0, LED.z0 + .3], [LED.x, LED.y0, LED.z0 + .3], [LED.x, 1.0, LED.z1 - .3], [LED.x, LED.y0, LED.z1 - .3],
+        [LED.x - .35, 1.0, LED.z0 + .3], [LED.x + .35, 1.0, LED.z0 + .3], [LED.x - .35, 1.0, LED.z1 - .3], [LED.x + .35, 1.0, LED.z1 - .3]], led.edgeMat, led.group);
+  led.labelEl = label('Pantalla LED', '', led.group, [LED.x, LED.y1 + .35, zc]);
+  var ledCanvas = document.createElement('canvas'); ledCanvas.width = 1280; ledCanvas.height = 720;
+  var lctx = ledCanvas.getContext('2d');
+  var ledTex = new THREE.CanvasTexture(ledCanvas); ledTex.colorSpace = THREE.SRGBColorSpace;
+  ledTex.repeat.x = -1; ledTex.offset.x = 1;           // la sala está espejada en z: se corrige para que el logo se lea bien
+  const ledMat = new THREE.MeshBasicMaterial({ map: ledTex, toneMapped: false, side: THREE.DoubleSide }); ledMat.color.setScalar(1.02);
+  const ledMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), ledMat);
+  ledMesh.rotation.y = Math.PI / 2; ledMesh.position.set(LED.x + 0.07, (LED.y0 + LED.y1) / 2, zc);
+  ledMesh.userData.el = 'pantalla'; pickables.push(ledMesh); led.group.add(ledMesh);
+  var ledLight = new THREE.PointLight(0xff9ad6, 6, 7, 2); ledLight.position.set(1.0, 2.4, zc); led.group.add(ledLight);
+}
+const ledVideo = Object.assign(document.createElement('video'), { src: '../assets/video/loop-ilusion-optica.mp4', muted: true, loop: true, playsInline: true, autoplay: true, crossOrigin: 'anonymous' });
+ledVideo.play().catch(() => {});
+addEventListener('pointerdown', () => { if (ledVideo.paused) ledVideo.play().catch(() => {}); }, { once: true });
+const ledLogo = new Image(); ledLogo.src = '../assets/img/logo-vaterfly.png';
+const LED_MODE = { 1: 'off', 12: 'countdown', 13: 'dim' };
+let ledMode = 'logo';
+function drawLED(t) {
+  const W2 = 1280, H2 = 720, c = lctx;
+  c.globalAlpha = 1; c.fillStyle = '#050505'; c.fillRect(0, 0, W2, H2);
+  const logo = (alpha, scale) => {
+    if (!ledLogo.complete || !ledLogo.naturalWidth) return;
+    const lw = W2 * .72 * scale, lh = lw * ledLogo.naturalHeight / ledLogo.naturalWidth;
+    c.globalAlpha = alpha; c.drawImage(ledLogo, (W2 - lw) / 2, (H2 - lh) / 2, lw, lh); c.globalAlpha = 1;
+  };
+  if (ledMode === 'off') { ledLight.intensity = 0; ledTex.needsUpdate = true; return; }
+  if (ledMode === 'logo' || ledMode === 'dim') {
+    if (ledVideo.readyState >= 2) {
+      const vw = ledVideo.videoWidth, vh = ledVideo.videoHeight, k = Math.max(W2 / vw, H2 / vh);
+      c.globalAlpha = ledMode === 'dim' ? .12 : .6; c.drawImage(ledVideo, (W2 - vw * k) / 2, (H2 - vh * k) / 2, vw * k, vh * k); c.globalAlpha = 1;
+    }
+    if (ledMode === 'dim') { c.fillStyle = 'rgba(20,40,110,.35)'; c.fillRect(0, 0, W2, H2); logo(.18, 1); ledLight.color.set(0x6a86ff); ledLight.intensity = 1.5; }
+    else { logo(1, 1 + .035 * Math.sin(t * 2.2)); ledLight.color.set(0xff9ad6); ledLight.intensity = 6; }
+  } else if (ledMode === 'countdown') {
+    const k = t % 12;
+    if (k < 10) {
+      const n = 10 - Math.floor(k), f = k % 1;
+      c.fillStyle = '#ff6b3d'; c.globalAlpha = .12 + .25 * (1 - f); c.fillRect(0, 0, W2, H2); c.globalAlpha = 1;
+      c.fillStyle = '#ffffff'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = `800 ${Math.round(560 * (1.08 - f * .12))}px "Barlow Condensed", "Arial Narrow", sans-serif`; c.fillText(String(n), W2 / 2, H2 / 2 + 20);
+      ledLight.color.set(0xffb08a); ledLight.intensity = 5;
+    } else { c.fillStyle = '#ff6b3d'; c.fillRect(0, 0, W2, H2); logo(1, 1.1); ledLight.color.set(0xff6b3d); ledLight.intensity = 10; }
+  }
+  ledTex.needsUpdate = true;
+}
+
+
 /* ───────── Anclajes escena aérea ───────── */
 const ANCH = [{ top: [0.08, 9.1, 4.5], bot: [0.08, 2.2, 5.5] }, { top: [0.08, 8.9, 8.3], bot: [0.08, 2.0, 9.4] }];
 const anc = makeEl('anclajes', {
@@ -549,7 +609,7 @@ function bungee(name, anchor, lean) {
 
 /* ───────── Guion → escenas ───────── */
 const SCENES = [
-  { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario'], tarima: [17.2, 10.6], cam: 'iso',
+  { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario', 'pantalla'], tarima: [17.2, 10.6], cam: 'iso',
     guion: 'Bloque previo al show. Un DJ sostiene la hora completa mientras los personajes entran por el lounge y la pista e interactúan con el público.',
     esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'], ['Tarima estacionada contra la pared para liberar la pista', 1]],
     tec: ['Sonido DJ', 'Tragamonedas box (3 actores)', 'Shots de la enfermera'],
@@ -581,12 +641,12 @@ const SCENES = [
       const cur = path([[19.4, 3.2, 6.1], [15, 6.6, 6.3], [7, 6.2, 6.5], [1.5, 1.2, 6.5]]);
       follow(figure('Cap. Psicodelia', [0, 0, 0], { color: ORANGE, air: true }), cur, 0.09);
     } },
-  { n: 2, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario'], cam: 'publico',
+  { n: 2, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario', 'pantalla'], cam: 'publico',
     guion: 'Bloque de 30 min de High Energy. Personaje y detalles a definir; probablemente Chicho Sarli (ver escena 9).',
     esp: [['DJ en cabina sobre el escenario', 1], ['Pista libre para el público']],
     tec: ['Sonido DJ'], pend: ['Confirmar si el DJ es Chicho Sarli u otro personaje'],
     build() { dj('DJ · a confirmar'); } },
-  { n: 3, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
+  { n: 3, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'pantalla', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
     guion: 'Milano Paolini toma la cabina. En paralelo, un músico toca techno con un dispositivo de tubos de PVC. En el aire aparece un mono en bicicleta volando: es el astronauta de la escena 1, que reingresa transformado.',
     esp: [['Milano Paolini en cabina'], ['Músico de tubos PVC sobre la tarima móvil en el centro de la pista', 1], ['Mono en bicicleta sobre cable tendido entre las torres A y B (8 m, ≈ 11 m de luz)', 1]],
     tec: ['Dispositivo de tubos PVC', 'Cable entre torres', 'Bicicleta aérea'],
@@ -635,12 +695,12 @@ const SCENES = [
       anims.push(t => { const r = .38; a.position.set(10.9 + Math.cos(t * .9) * r, 1, 6.5 + Math.sin(t * .9) * r); b.position.set(10.9 - Math.cos(t * .9) * r, 1, 6.5 - Math.sin(t * .9) * r); });
       ring([10.9, 6.5], 3, ORANGE);
     } },
-  { n: 9, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario'], cam: 'escenario',
+  { n: 9, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario', 'pantalla'], cam: 'escenario',
     guion: 'Entra Chicho Sarli, personaje bien porteño con estética Miami años 90. Ingresa disparando billetes con pistolas lanza billetes (E16 en catálogo). 30 min de su set.',
     esp: [['Chicho Sarli entra por la escalera lateral y dispara billetes hacia la pista', 1], ['Luego toma la cabina']],
     tec: ['Pistolas lanza billetes (E16)', 'Sonido DJ'], pend: ['Limpieza de billetes antes de la escena siguiente'],
     build() { propBox(1.55, 2.2, 1.0, 1.95, 5.6, 7.4, 'Cabina DJ'); figure('Chicho Sarli', [2.0, 1.0, 3.2], { color: WHITE }); arcs([2.1, 2.4, 3.2], [[7, 0, 3], [9, 0, 6], [8, 0, 10], [13, 0, 5]]); } },
-  { n: 10, t: 'Warm music', k: 'Transición', el: ['escenario'], cam: 'iso',
+  { n: 10, t: 'Warm music', k: 'Transición', el: ['escenario', 'pantalla'], cam: 'iso',
     guion: 'Bloque de música más contenido, de transición. DJ y duración a definir.',
     esp: [['Cabina DJ en el escenario'], ['Momento para reposicionar la tarima al centro', 1]],
     tec: ['Sonido DJ'], pend: ['DJ', 'Duración', 'Personaje del bloque'],
@@ -657,13 +717,12 @@ const SCENES = [
       wallRunner('Correcaminos 1', ANCH[0], t => 6.5 + Math.sin(t * .7) * 4.2, t => 5.2 + Math.sin(t * 1.3) * .6);
       wallRunner('Correcaminos 2', ANCH[1], t => 6.5 + Math.sin(t * .7 - .9) * 4.2, t => 5.4 + Math.cos(t * 1.1) * .6);
     } },
-  { n: 12, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'tela'], cam: 'publico', luz: 'pico',
+  { n: 12, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'pantalla', 'tela'], cam: 'publico', luz: 'pico',
     guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
-    esp: [['Cuenta regresiva proyectada sobre la tela', 1], ['Línea de efectos al frente del escenario', 1]],
+    esp: [['Cuenta regresiva en la pantalla LED, detrás del DJ', 1], ['Línea de efectos al frente del escenario', 1]],
     tec: ['Proyección / pantalla', 'Efecto “fuegos artificiales”'],
     pend: ['Pirotecnia en interior: confirmar habilitación del venue; evaluar chispa fría o efecto certificado'],
     build() {
-      bigLabel('10 · 9 · 8 …', [0.2, 6, 6.4]);
       const fs = [];
       for (let i = 0; i < 7; i++) { const z = 1.5 + i * 10 / 6; const m = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1, 8, 1, true), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, opacity: .7 })); m.position.set(2.2, 1.5, z); sceneGroup.add(m); fs.push(m); }
       anims.push(t => fs.forEach((m, i) => { const s = 0.6 + 1.6 * Math.abs(Math.sin(t * 3 + i)); m.scale.set(1, s, 1); m.position.y = 1 + s / 2; }));
@@ -711,7 +770,7 @@ const SCENES = [
       follow(figure('Vaca-monja', [0, 0, 0], { color: WHITE }), c, 0.05, 0.1);
       follow(figure('Punky-carnicera', [0, 0, 0]), c, 0.05, 0);
     } },
-  { n: 17, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'tarima', 'torreA', 'torreB', 'torreC', 'tela'], tarima: [10.9, 6.5], cam: 'iso',
+  { n: 17, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'pantalla', 'tarima', 'torreA', 'torreB', 'torreC', 'tela'], tarima: [10.9, 6.5], cam: 'iso',
     guion: 'Van entrando todos los personajes para el cierre coral, con “Hella Good” (remix) sonando.',
     esp: [['Personajes en escenario, tarima y torres', 1], ['Público al centro de la pista']],
     tec: ['Todos los vestuarios'], pend: ['Orden de entrada', 'Cantidad total de personajes en escena'],
@@ -831,7 +890,8 @@ fixture('strobe', [10, 7.6, 1.15], 'TA', 'strobe'); fixture('strobe', [12.3, 7.6
 // Torre C: 2 seguidores
 fixture('seg', [19.35, 4.35, 5.5], 'TC', 'seg', { hang: false }); fixture('seg', [19.35, 4.35, 6.7], 'TC', 'seg', { hang: false });
 // Piso del escenario: 8 PAR 64 en uplight sobre la tela + 2 hazers
-for (let i = 0; i < 8; i++) fixture('par', [0.45, 1.12, 1.8 + i * 1.35], 'ESC', 'parU', { hang: false });
+// Uplights a los lados de la pantalla LED (no detrás de ella)
+for (const z of [1.6, 2.5, 3.4, 4.2, 8.8, 9.6, 10.5, 11.4]) fixture('par', [0.45, 1.12, z], 'ESC', 'parU', { hang: false });
 fixture('hazer', [0.9, 1.0, 0.7], 'ESC', 'hazer'); fixture('hazer', [0.9, 1.0, 12.3], 'ESC', 'hazer');
 
 const strobeFlash = new THREE.PointLight(0xffffff, 0, 30, 2); lightGroup.add(strobeFlash);
@@ -961,7 +1021,7 @@ function setActive(ids) {
 function goScene(i, { moveCam = true } = {}) {
   current = Math.max(0, Math.min(SCENES.length - 1, i));
   const s = SCENES[current];
-  clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {});
+  clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {}); ledMode = LED_MODE[s.n] ?? 'logo';
   const tp = s.tarima ?? TARIMA_HOME; tarTarget.set(tp[0], 0, tp[1]);
   const [bg, hc] = LUZ[s.luz ?? 'normal']; renderer.setClearColor(bg); hemi.color.set(hc);
   if (paused) anims.forEach(f => f(t));
@@ -978,7 +1038,7 @@ function renderList() {
 }
 listEl.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) goScene(+b.dataset.i); });
 
-const NAMES = { escenario: 'Escenario', tela: 'Tela tensa', anclajes: 'Anclajes aéreos', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
+const NAMES = { escenario: 'Escenario', pantalla: 'Pantalla LED', tela: 'Tela tensa', anclajes: 'Anclajes aéreos', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
 const detailEl = document.getElementById('detail');
 function renderDetail() {
   const s = SCENES[current];
@@ -1010,7 +1070,7 @@ addEventListener('keydown', e => {
 const infoEl = document.getElementById('info');
 function showInfo(id) {
   const i = EL[id]?.info; if (!i?.nombre) return;
-  const tag = i.estado === 'plano' ? '<span class="tag plano">Según plano</span>' : '<span class="tag est">Estimado</span>';
+  const tag = i.estado === 'plano' ? '<span class="tag plano">Según plano</span>' : i.estado === 'prop' ? '<span class="tag prop">Propuesta</span>' : '<span class="tag est">Estimado</span>';
   infoEl.innerHTML = `<button class="x" aria-label="Cerrar ficha">×</button><h3>${i.nombre}</h3>${tag}<ul>${i.medidas.map(m => `<li>${m}</li>`).join('')}</ul>${i.notas ? `<p>${i.notas}</p>` : ''}`;
   infoEl.hidden = false;
 }
@@ -1021,6 +1081,7 @@ const VIEWS = {
   iso: { pos: R(29, 17, -12), target: R(9.5, 2.5, 6.5) },
   planta: { pos: R(10, 34, 6.52), target: R(10, 0, 6.5) },
   publico: { pos: R(17.5, 1.7, 6.5), target: R(0, 3.2, 6.5) },
+  frente: { pos: R(8.5, 2.4, 6.5), target: R(0, 2.6, 6.5) },
   escenario: { pos: R(1.4, 2.7, 6.5), target: R(20, 2.2, 6.5) },
   lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
   torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
@@ -1111,7 +1172,7 @@ const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (!paused) { t += dt; anims.forEach(f => f(t)); }
-  updateLights(dt, t);
+  updateLights(dt, t); drawLED(t);
   tar.group.position.lerp(tarTarget, paused ? 1 : Math.min(1, dt * 2.2));
   if (camTween) {
     const k = Math.min(1, (performance.now() - camTween.t0) / camTween.dur), e = ease(k);
