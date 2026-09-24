@@ -1134,7 +1134,7 @@
     <span class="n">04</span>
     <span class="t">Identidad visual</span>
   </div>
-  <p class="lead centered">Vaterfly se apoya en imágenes potentes, representadas por personajes disruptivos que se enfrentan desde fuerzas opuestas —el bien y el mal—. Las escenas están cargadas de cuerpos aéreos, luz cruda, texturas de fiesta e imágenes oníricas.</p>
+  <p class="lead centered">Vaterfly se apoya en imágenes potentes, representadas por personajes disruptivos que se enfrentan desde fuerzas opuestas: el bien y el mal. Las escenas están cargadas de cuerpos aéreos, luz cruda, texturas de fiesta e imágenes oníricas.</p>
 </section>
 
 <div class="collage-wrap">
@@ -1220,7 +1220,7 @@
     <h2 style="font-size:18px; margin:32px 0 16px;">A continuación nuestras necesidades técnicas</h2>
     <table>
       <tr><th>Ítem</th><th>Requerimiento preliminar</th></tr>
-      <tr><td>Espacio</td><td>Nave industrial o galpón con altura libre mínima de 8–10 m y superficie ≥ 500 m². Suelo firme apto para carga aérea y circulación de público.</td></tr>
+      <tr><td>Espacio</td><td>Nave industrial o galpón con altura libre mínima de 8-10 m y superficie ≥ 500 m². Suelo firme apto para carga aérea y circulación de público.</td></tr>
       <tr><td>Estructura aérea (rigging)</td><td>Puntos de anclaje certificados o estructura truss autoportante con capacidad ≥ 1000 kg por punto. Cálculo firmado por dirección técnica.</td></tr>
       <tr><td>Iluminación</td><td>Parrilla técnica con cabezas móviles, PARs LED, blinders, blackouts controlados y consola DMX. Diseño lumínico a cargo de la compañía.</td></tr>
       <tr><td>Sonido</td><td>PA principal + subs con cobertura 360°, monitores para performers, música en vivo y pregrabada, consola digital y técnico dedicado.</td></tr>
@@ -1229,8 +1229,8 @@
       <tr><td>Producción integral</td><td>Financiamiento del ciclo completo, gestión de permisos, seguros, ART y coordinación entre Vaterfly y el equipo técnico de la sede.</td></tr>
       <tr><td>Backstage y camarines</td><td>Área privada para elenco (≥ 8 personas), crew room, taller de vestuario y rigging, zona de calentamiento para performers.</td></tr>
       <tr><td>Seguridad y protocolo</td><td>Rigger certificado en funciones, personal médico presente, salidas de emergencia señalizadas y plan de evacuación aprobado.</td></tr>
-      <tr><td>Cronograma</td><td>3–4 semanas de montaje y ensayos técnicos en sede + 6 a 12 funciones a estrenarse a comienzos de 2027.</td></tr>
-      <tr><td>Aforo y capacidad de público</td><td>Audiencia de pie con circulación libre. Capacidad estimada 300–600 personas por función, a ajustar según venue y layout de escenas.</td></tr>
+      <tr><td>Cronograma</td><td>3-4 semanas de montaje y ensayos técnicos en sede + 6 a 12 funciones a estrenarse a comienzos de 2027.</td></tr>
+      <tr><td>Aforo y capacidad de público</td><td>Audiencia de pie con circulación libre. Capacidad estimada 300-600 personas por función, a ajustar según venue y layout de escenas.</td></tr>
     </table>
 
     <footer class="page-footer mono"><span>Absoluto · Vaterfly</span><span>06</span></footer>
@@ -1291,10 +1291,10 @@
     <img class="contact-logo" src="assets/img/logo-absoluto.jpg" alt="Absoluto">
     <h3 class="contact-name">Absoluto</h3>
     <div class="contact-roles">
-      <p class="contact-role"><span>Bruno López Aragón</span> — <span>Dirección artística</span></p>
-      <p class="contact-role"><span>Mariano Panelo</span> — <span>Dirección artística</span></p>
-      <p class="contact-role"><span>Enrique Molina Lera</span> — <span>Producción general</span></p>
-      <p class="contact-role"><span>Juan Casareto</span> — <span>Producción ejecutiva</span></p>
+      <p class="contact-role"><span>Bruno López Aragón</span> - <span>Dirección artística</span></p>
+      <p class="contact-role"><span>Mariano Panelo</span> - <span>Dirección artística</span></p>
+      <p class="contact-role"><span>Enrique Molina Lera</span> - <span>Producción general</span></p>
+      <p class="contact-role"><span>Juan Casareto</span> - <span>Producción ejecutiva</span></p>
     </div>
     <p class="contact-line"><a href="mailto:vaterflyofficial@gmail.com">vaterflyofficial@gmail.com</a> · <a href="tel:+5491140877833">+54 9 11 4087 7833</a></p>
     <p class="contact-line"><a href="https://instagram.com/vaterflyofficial" target="_blank" rel="noopener">@vaterflyofficial</a> · <a href="https://vaterfly.com" target="_blank" rel="noopener">vaterfly.com</a></p>
@@ -1599,17 +1599,23 @@
     if(e.key === 'Escape' && lb && lb.classList.contains('open')) closeLB();
   });
 
-  // ===== Sección 03: pin horizontal (con dwell en la primera imagen) =====
+  // ===== Sección 03: pin horizontal con pausa en cada slide =====
+  // Unidades en viewports de scroll: HOLD en el primer slide, y por cada
+  // transición MOVE de desplazamiento + PAUSE con el slide quieto.
   var hpin = document.getElementById('expHPin');
   if(hpin){
     var track = hpin.querySelector('.hpin-track');
     var slides = parseInt(hpin.getAttribute('data-slides') || '4', 10);
-    var HOLD = 0.75; // viewports extra de dwell antes de que arranque el translate
+    var HOLD = 0.75;
+    var MOVE = 1;
+    var PAUSE = 0.6;
+    var totalUnits = HOLD + (slides - 1) * (MOVE + PAUSE);
     function sizePin(){
-      hpin.style.height = ((slides + HOLD) * 100) + 'vh';
+      hpin.style.height = ((totalUnits + 1) * 100) + 'vh';
     }
     sizePin();
     window.addEventListener('resize', sizePin, { passive:true });
+    function easeInOut(t){ return t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2; }
     var hpTicking = false;
     function updateHPin(){
       hpTicking = false;
@@ -1617,9 +1623,18 @@
       var vh = window.innerHeight || document.documentElement.clientHeight;
       var scrollable = hpin.offsetHeight - vh;
       if(scrollable <= 0) return;
-      var totalUnits = (slides - 1) + HOLD;
-      var rawProgress = Math.max(0, Math.min(1, -rect.top / scrollable));
-      var panelOffset = Math.max(0, Math.min(slides - 1, rawProgress * totalUnits - HOLD));
+      var u = Math.max(0, Math.min(1, -rect.top / scrollable)) * totalUnits;
+      var panelOffset = 0;
+      if(u > HOLD){
+        var v = u - HOLD;
+        var seg = MOVE + PAUSE;
+        var i = Math.floor(v / seg);
+        if(i >= slides - 1){
+          panelOffset = slides - 1;
+        } else {
+          panelOffset = i + easeInOut(Math.min(1, (v - i * seg) / MOVE));
+        }
+      }
       track.style.transform = 'translate3d(' + (-panelOffset * 100) + 'vw, 0, 0)';
     }
     window.addEventListener('scroll', function(){

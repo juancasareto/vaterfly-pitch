@@ -1,4 +1,4 @@
-# Vaterfly — Carpeta de Proyecto (HTML)
+# Vaterfly - Pitch Deck (HTML)
 
 Workspace de trabajo para la presentación de Vaterfly (carpeta de proyecto de Absoluto), convertida de PDF a HTML.
 
@@ -13,7 +13,7 @@ assets/img/          → imágenes extraídas del PDF original
 
 - `index.html` tiene todo el CSS inline en el `<head>`, sin dependencias externas.
 - Para previsualizar local: `python3 -m http.server 8000` desde esta carpeta, y abrir `http://localhost:8000`.
-- Cada sección del PDF original (`01/ Quiénes somos`, `02/ El proyecto`, etc.) es un `<section>` independiente en el HTML — fácil de ubicar y editar por separado.
+- Cada sección del PDF original (`01/ Quiénes somos`, `02/ El proyecto`, etc.) es un `<section>` independiente en el HTML, fácil de ubicar y editar por separado.
 
 ## Publicar cambios (flujo de trabajo con git)
 
@@ -22,7 +22,7 @@ assets/img/          → imágenes extraídas del PDF original
 3. `git commit -m "descripción corta del cambio"`
 4. `git push`
 
-Cada commit queda registrado con fecha, autor y qué cambió — así se puede ver el historial completo y volver atrás si hace falta (`git log`, `git diff`, `git revert`).
+Cada commit queda registrado con fecha, autor y qué cambió, así se puede ver el historial completo y volver atrás si hace falta (`git log`, `git diff`, `git revert`).
 
 ## Publicación (GitHub Pages)
 
