@@ -119,6 +119,8 @@
   .chip{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:3px; background:var(--panel-2); border:1px solid var(--line); color:var(--ink)}
   .chip.el{border-color:rgba(255,107,61,.45); color:var(--orange); cursor:pointer}
   .pend li::before{background:var(--orange)}
+  .lux{margin:0 0 10px; color:var(--ink); max-width:65ch}
+  .detail h3 .tag{margin-left:6px; letter-spacing:.05em}
   .pend li{color:var(--sub)}
   .dnav{display:flex; gap:8px; margin-top:24px}
   .dnav button{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:9px; cursor:pointer;
@@ -239,7 +241,9 @@
       <label class="chk"><input type="checkbox" id="lyScene" checked> Escena</label>
       <label class="chk"><input type="checkbox" id="lyCotas" checked> Cotas</label>
       <label class="chk"><input type="checkbox" id="lyLabels" checked> Etiquetas</label>
+      <label class="chk"><input type="checkbox" id="lyLights" checked> Luces</label>
       <span class="spacer"></span>
+      <button class="tbtn" id="btnShow" aria-pressed="false">Modo show</button>
       <button class="tbtn" id="btnMeasure" aria-pressed="false">Medir</button>
       <button class="tbtn" id="btnPause" aria-pressed="false">Pausar</button>
       <button class="tbtn" id="btnPlano">Plano original</button>
@@ -271,6 +275,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 /* ───────── Sala (metros). x: largo 0→20 (escenario en x=0) · z: ancho 0→13 · y: alto ───────── */
 const W = 20, D = 13, H = 15;
@@ -301,6 +309,11 @@ controls.maxDistance = 90; controls.minDistance = 1;
 const hemi = new THREE.HemisphereLight(0xffffff, 0x202028, 1.6);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(8, 20, -10); scene.add(sun);
+// Post: bloom solo sobre lo que pasa de 1.0 (lentes, núcleo de los haces, estrobos). Las líneas del plano no brillan.
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 1.0);
+composer.addPass(bloom); composer.addPass(new OutputPass());
 
 // El plano está dibujado con el eje del ancho espejado respecto de three.js: invertimos z para que la sala se lea igual que el isométrico.
 const root = new THREE.Group(); root.position.set(-W / 2, 0, D / 2); root.scale.z = -1; scene.add(root);
@@ -478,6 +491,7 @@ function figure(name, p, { color = ORANGE, air = false, horizontal = false } = {
   const g = new THREE.Group(); const m = new THREE.Mesh(figGeo, figMat(color));
   if (horizontal) { m.rotation.z = -Math.PI / 2; m.position.set(0.845, 0, 0); } else m.position.y = 0.845;
   g.add(m); g.position.set(...p); sceneGroup.add(g);
+  g.userData.horizontal = horizontal; if (name && !FIG[name]) FIG[name] = g;
   if (name) label(name, 'fig' + (air ? ' air' : ''), g, horizontal ? [1.0, 0.6, 0] : [0, 2.05, 0]);
   return g;
 }
@@ -709,6 +723,223 @@ const SCENES = [
     } },
 ];
 
+/* ───────── Rig de luces (propuesta: el plano no trae puntos de colgado) ───────── */
+const lightGroup = new THREE.Group(); root.add(lightGroup);
+const FX = [], FIG = {};
+const FX_TYPES = {
+  beam:    { nombre: 'Cabeza móvil Beam', angle: 2.2, beamGain: .75, poolGain: 1.1, uso: 'Haces cerrados y rápidos que dibujan el aire. Necesitan humo para verse.' },
+  wash:    { nombre: 'Cabeza móvil Wash LED', angle: 12, beamGain: .10, poolGain: .55, uso: 'Baño de color sobre la pista y los personajes.' },
+  strobe:  { nombre: 'Estrobo LED', uso: 'Destellos en los picos. También sirve como golpe de blanco.' },
+  par:     { nombre: 'PAR 64 · 1000 W', angle: 7, beamGain: .28, poolGain: .7, uso: 'El “par mil”: luz cálida clásica. Frontal del escenario y uplight sobre la tela.' },
+  blinder: { nombre: 'Blinder 4 lámparas', angle: 22, beamGain: .09, poolGain: .25, uso: 'Enceguece al público en los picos: cuenta regresiva y cierre.' },
+  seg:     { nombre: 'Seguidor', angle: 3.2, beamGain: .38, poolGain: 1.2, uso: 'Sigue a un personaje por la sala. Lo opera una persona desde la torre C.' },
+  hazer:   { nombre: 'Máquina de humo / hazer', uso: 'Llena el aire de una niebla fina para que se vean los haces. Confirmar que el venue lo permite (detectores).' },
+};
+const RIGS = {
+  T1: 'Truss frontal sobre el escenario · 7 m', T2: 'Truss lateral pista (lado torre A) · 10 m', T3: 'Truss lateral pista (lado torre B) · 10 m',
+  TA: 'Plataforma torre A · 8 m', TB: 'Plataforma torre B · 8 m', TC: 'Plataforma torre C · 3 m', ESC: 'Piso del escenario',
+};
+
+const beamVS = `attribute float aT; varying float vT; varying vec3 vN; varying vec3 vV;
+void main(){ vT = aT; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
+const beamFS = `uniform vec3 uColor; uniform float uInt; varying float vT; varying vec3 vN; varying vec3 vV;
+void main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.8); float fall = 0.18 + 0.82 * pow(1.0 - vT, 1.6);
+  gl_FragColor = vec4(uColor * uInt * edge * fall, 1.0); }`;
+const beamGeoCache = {};
+function beamGeo(half) {
+  if (beamGeoCache[half]) return beamGeoCache[half];
+  const g = new THREE.ConeGeometry(Math.tan(half * Math.PI / 180), 1, 40, 12, true); g.translate(0, -0.5, 0);
+  const pos = g.attributes.position, a = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) a[i] = -pos.getY(i);
+  g.setAttribute('aT', new THREE.BufferAttribute(a, 1)); g.rotateX(-Math.PI / 2);
+  return beamGeoCache[half] = g;
+}
+const glowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.45, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
+})();
+const bodyMat = new THREE.LineBasicMaterial({ color: 0x9a9aa2 });
+const poolGeo = new THREE.PlaneGeometry(2, 2);
+const Z = new THREE.Vector3(0, 0, 1), _v = new THREE.Vector3();
+
+function fixture(type, p, rig, grp, { hang = true } = {}) {
+  const T = FX_TYPES[type], g = new THREE.Group(); g.position.set(...p); lightGroup.add(g);
+  const fx = { type, T, rig, grp, g, lens: g.position, color: new THREE.Color(0), int: 0, tColor: new THREE.Color(0xffffff), tInt: 0,
+               target: new THREE.Vector3(p[0], 0, p[2]), aimFn: null, flash: 0, idx: FX.length };
+  const aim = new THREE.Group(); g.add(aim); fx.aim = aim;
+  const edges = (geo, parent, pos = [0, 0, 0]) => { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), bodyMat); e.position.set(...pos); parent.add(e); };
+  if (type === 'beam' || type === 'wash') {
+    edges(new THREE.BoxGeometry(0.42, 0.08, 0.3), g, [0, hang ? 0.36 : -0.36, 0]);
+    const hg = new THREE.CylinderGeometry(type === 'wash' ? .17 : .12, .15, .34, 14); hg.rotateX(Math.PI / 2); edges(hg, aim, [0, 0, -0.1]);
+  } else if (type === 'par' || type === 'seg') {
+    const cg = new THREE.CylinderGeometry(type === 'seg' ? .16 : .12, type === 'seg' ? .16 : .12, type === 'seg' ? .9 : .38, 14); cg.rotateX(Math.PI / 2);
+    edges(cg, aim, [0, 0, type === 'seg' ? -0.4 : -0.17]);
+  } else if (type === 'strobe') edges(new THREE.BoxGeometry(0.62, 0.2, 0.14), g);
+  else if (type === 'blinder') edges(new THREE.BoxGeometry(0.5, 0.5, 0.16), aim, [0, 0, -0.08]);
+  else if (type === 'hazer') edges(new THREE.BoxGeometry(0.55, 0.32, 0.32), g, [0, 0.16, 0]);
+  const pick = new THREE.Mesh(new THREE.BoxGeometry(.7, .7, .7), new THREE.MeshBasicMaterial({ visible: false }));
+  pick.userData.fx = fx.idx; g.add(pick); pickables.push(pick);
+  if (T.angle) {
+    fx.uni = { uColor: { value: fx.color }, uInt: { value: 0 } };
+    fx.beam = new THREE.Mesh(beamGeo(T.angle), new THREE.ShaderMaterial({ uniforms: fx.uni, vertexShader: beamVS, fragmentShader: beamFS,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    aim.add(fx.beam);
+    fx.pool = new THREE.Mesh(poolGeo, new THREE.MeshBasicMaterial({ map: glowTex, color: 0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    lightGroup.add(fx.pool);
+  }
+  if (type !== 'hazer') {
+    fx.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    fx.glow.scale.setScalar(type === 'strobe' ? .9 : type === 'blinder' ? .8 : .45); g.add(fx.glow);
+  }
+  FX.push(fx); return fx;
+}
+function truss(a, b, rig) {
+  const m = new THREE.LineBasicMaterial({ color: PURPLE, transparent: true, opacity: .75 }), s = .15;
+  const alongX = Math.abs(b[0] - a[0]) > Math.abs(b[2] - a[2]);
+  const off = alongX ? [[0, s, s], [0, s, -s], [0, -s, s], [0, -s, -s]] : [[s, s, 0], [-s, s, 0], [s, -s, 0], [-s, -s, 0]];
+  const P = (p, o) => [p[0] + o[0], p[1] + o[1], p[2] + o[2]], pts = [];
+  for (const o of off) pts.push(P(a, o), P(b, o));
+  const L = Math.hypot(b[0] - a[0], b[2] - a[2]), n = Math.round(L / 0.5);
+  for (let i = 0; i < n; i++) {
+    const k0 = i / n, k1 = (i + 1) / n, q = k => [a[0] + (b[0] - a[0]) * k, a[1], a[2] + (b[2] - a[2]) * k];
+    pts.push(P(q(k0), off[i % 2 ? 0 : 1]), P(q(k1), off[i % 2 ? 1 : 0]), P(q(k0), off[i % 2 ? 2 : 3]), P(q(k1), off[i % 2 ? 3 : 2]));
+  }
+  segs(pts, m, lightGroup);
+  const hangs = [a, b, [(a[0] + b[0]) / 2, a[1], (a[2] + b[2]) / 2]];
+  segs(hangs.flatMap(p => [[p[0], p[1] + s, p[2]], [p[0], H, p[2]]]), dashMat(0x5c5c63, .25, .25), lightGroup);
+  const o = new THREE.Object3D(); o.position.set(...(alongX ? [(a[0] + b[0]) / 2, a[1] + .55, a[2]] : [a[0], a[1] + .55, (a[2] + b[2]) / 2])); lightGroup.add(o);
+  label(rig === 'T1' ? 'Truss frontal · 7 m' : 'Truss lateral · 10 m', 'fig air', o);
+}
+
+// Estructuras de colgado
+truss([3.2, 7, 0.8], [3.2, 7, 12.2], 'T1');
+truss([6, 10, 2.5], [17, 10, 2.5], 'T2');
+truss([6, 10, 10.5], [17, 10, 10.5], 'T3');
+// Truss frontal: 6 beams, 6 PAR 64, 4 estrobos, 2 blinders
+for (let i = 0; i < 6; i++) fixture('beam', [3.2, 6.45, 1.5 + i * 2.1], 'T1', 'beamT1');
+for (let i = 0; i < 6; i++) fixture('par', [3.45, 6.6, 2.4 + i * 1.65], 'T1', 'parF');
+for (const z of [2.6, 5.2, 7.8, 10.4]) fixture('strobe', [3.0, 7.35, z], 'T1', 'strobe');
+for (const z of [4.4, 8.6]) fixture('blinder', [3.5, 6.55, z], 'T1', 'blinder');
+// Trusses laterales: 8 wash
+for (const z of [2.5, 10.5]) for (const x of [7, 10, 13, 16]) fixture('wash', [x, 9.45, z], z < 6 ? 'T2' : 'T3', 'wash');
+// Torres de 8 m: 2 beams + 1 estrobo cada una
+for (const x of [9.3, 10.7]) fixture('beam', [x, 8.45, 0.5], 'TA', 'beamTorre', { hang: false });
+for (const x of [11.6, 13.0]) fixture('beam', [x, 8.45, 12.45], 'TB', 'beamTorre', { hang: false });
+fixture('strobe', [10, 7.6, 1.15], 'TA', 'strobe'); fixture('strobe', [12.3, 7.6, 11.85], 'TB', 'strobe');
+// Torre C: 2 seguidores
+fixture('seg', [19.35, 4.35, 5.5], 'TC', 'seg', { hang: false }); fixture('seg', [19.35, 4.35, 6.7], 'TC', 'seg', { hang: false });
+// Piso del escenario: 8 PAR 64 en uplight sobre la tela + 2 hazers
+for (let i = 0; i < 8; i++) fixture('par', [0.45, 1.12, 1.8 + i * 1.35], 'ESC', 'parU', { hang: false });
+fixture('hazer', [0.9, 1.0, 0.7], 'ESC', 'hazer'); fixture('hazer', [0.9, 1.0, 12.3], 'ESC', 'hazer');
+
+const strobeFlash = new THREE.PointLight(0xffffff, 0, 30, 2); lightGroup.add(strobeFlash);
+
+/* Patrones de apuntado: (fx, i, n, look) → (t, out) */
+const CARAS = [[7, 3.8], [7, 9.2], [15, 3.8], [15, 9.2]];
+function figTarget(name, out, fallback) {
+  const f = FIG[name]; if (f) { out.copy(f.position); out.y += f.userData.horizontal ? 0 : 1.1; if (f.userData.horizontal) out.x += 0.8; }
+  else out.set(...fallback);
+}
+const AIM = {
+  down: (fx) => (t, o) => o.set(fx.lens.x, 0, fx.lens.z),
+  stage: (fx) => (t, o) => o.set(1.3, 1.0, fx.lens.z),
+  up: (fx) => (t, o) => o.set(0.05, 9.6, fx.lens.z),
+  pista: (fx, i) => (t, o) => o.set(fx.lens.x + Math.sin(t * .3 + i) * 1.6, 0, 6.5 + (fx.lens.z - 6.5) * .35 + Math.cos(t * .25 + i * 1.3) * 1.4),
+  fan: (fx, i) => (t, o) => o.set(11 + Math.sin(t * .45 + i * .7) * 6.5, 0, 6.5 + Math.cos(t * .37 + i * 1.1) * 4.8),
+  fanFast: (fx, i) => (t, o) => o.set(11 + Math.sin(t * 1.3 + i * .9) * 7, 0, 6.5 + Math.cos(t * 1.05 + i * 1.4) * 5),
+  cruz: (fx, i) => (t, o) => o.set(10 + Math.sin(t * .5 + (i % 2) * Math.PI) * 6, 0, 13 - fx.lens.z + Math.sin(t * .8 + i) * .8),
+  publico: (fx, i) => (t, o) => o.set(7 + (i % 4) * 3, 0, 2.5 + ((i * 3) % 9)),
+  tarima: (fx, i) => (t, o) => o.set(10.9 + Math.sin(i * 2.1) * .6, 1.0, 6.5 + Math.cos(i * 2.1) * .5),
+  circTarima: (fx, i) => (t, o) => { const a = t * .35 + i * 1.05; o.set(10.9 + Math.cos(a) * 2.6, 0, 6.5 + Math.sin(a) * 2.6); },
+  toroide: (fx, i) => (t, o) => { const a = t * .6 + i * 1.3; o.set(11 + Math.cos(a) * 2.2, 7, 6.5 + Math.sin(a) * 2.2); },
+  caras: (fx, i) => (t, o) => { const [x, z] = CARAS[i % 4]; o.set(x, 6.5, z); },
+  tela: (fx, i, n) => (t, o) => o.set(0.05, 3.2 + (i % 3) * 2.4 + Math.sin(t * .5 + i) * .7, 2 + (i / Math.max(1, n - 1)) * 9),
+  track: (fx, i, n, look) => (t, o) => figTarget(look.names[i % look.names.length], o, [1.3, 2, 6.5]),
+};
+const hex = c => new THREE.Color('#' + c);
+function applyLook(look) {
+  const byGrp = {}; FX.forEach(f => (byGrp[f.grp] ??= []).push(f));
+  const set = (grp, spec) => {
+    const list = byGrp[grp] || [];
+    list.forEach((fx, i) => {
+      if (!spec || !spec.i) { fx.tInt = 0; return; }
+      const cs = [].concat(spec.c ?? 'ffffff'); fx.tColor.copy(hex(cs[i % cs.length])); fx.tInt = spec.i;
+      const pat = AIM[spec.aim ?? 'down'] ?? AIM.down; fx.aimFn = pat(fx, i, list.length, spec);
+    });
+  };
+  set('beamT1', look.beam); set('beamTorre', look.beamTorre ?? look.beam); set('wash', look.wash);
+  set('parF', look.parF && { aim: 'stage', c: 'ffc68a', ...look.parF }); set('parU', look.parU && { aim: 'up', c: 'ffc68a', ...look.parU });
+  set('blinder', look.blinder && { aim: 'publico', c: 'ffb45a', i: look.blinder });
+  set('seg', look.seg && { aim: 'track', c: 'fff4e6', i: .95, names: look.seg });
+  strobeMode = look.strobe ?? 'off';
+  (byGrp.strobe || []).forEach(fx => { fx.tColor.set(0xffffff); fx.tInt = strobeMode === 'off' ? 0 : .15; });
+}
+let strobeMode = 'off';
+function updateLights(dt, t) {
+  if (!lightGroup.visible) return;
+  const k = Math.min(1, dt * 3), reduce = paused;
+  let flashAt = null;
+  for (const fx of FX) {
+    fx.color.lerp(fx.tColor, k); fx.int += (fx.tInt - fx.int) * k;
+    if (fx.type === 'strobe') {
+      const on = strobeMode !== 'off' && !reduce && ((t * 2.5 + fx.idx * .37) % 1) < .07;
+      fx.glow.material.color.copy(fx.color).multiplyScalar(on ? 9 : fx.int * 3); fx.glow.scale.setScalar(on ? 2.2 : .9);
+      if (on) flashAt = fx.lens; continue;
+    }
+    if (fx.glow) fx.glow.material.color.copy(fx.color).multiplyScalar(fx.int * (fx.type === 'blinder' ? 5 : 3));
+    if (!fx.beam) continue;
+    const vis = fx.int > .01; fx.beam.visible = fx.pool.visible = vis; if (!vis) continue;
+    if (fx.aimFn) fx.aimFn(t, fx.target);
+    _v.copy(fx.target).sub(fx.lens); const dist = Math.max(.5, _v.length());
+    fx.aim.quaternion.setFromUnitVectors(Z, _v.normalize()); fx.beam.scale.setScalar(dist);
+    fx.uni.uInt.value = fx.int * fx.T.beamGain;
+    const r = dist * Math.tan(fx.T.angle * Math.PI / 180) * 1.35 + .15, tg = fx.target;
+    fx.pool.visible = tg.y < .05 || (tg.x < 2.35 && Math.abs(tg.y - 1) < .05) || tg.x < .1;
+    fx.pool.position.copy(tg); fx.pool.scale.setScalar(r);
+    if (tg.x < .1) { fx.pool.rotation.set(0, Math.PI / 2, 0); fx.pool.position.x = .07; } else { fx.pool.rotation.set(-Math.PI / 2, 0, 0); fx.pool.position.y += .02; }
+    fx.pool.material.color.copy(fx.color).multiplyScalar(fx.int * fx.T.poolGain);
+  }
+  strobeFlash.intensity = flashAt ? 420 : 0; if (flashAt) strobeFlash.position.copy(flashAt);
+}
+function showFxInfo(idx) {
+  const fx = FX[idx], same = FX.filter(f => f.type === fx.type).length;
+  infoEl.innerHTML = `<button class="x" aria-label="Cerrar ficha">×</button><h3>${fx.T.nombre}</h3><span class="tag prop">Propuesta</span>
+    <ul><li>Posición: ${RIGS[fx.rig]}</li><li>Altura: ${fx.lens.y.toFixed(1).replace('.', ',')} m</li><li>En el rig: ${same} unidades</li></ul><p>${fx.T.uso}</p>`;
+  infoEl.hidden = false;
+}
+function showRider() {
+  const count = {}; FX.forEach(f => count[f.type] = (count[f.type] || 0) + 1);
+  infoEl.innerHTML = `<button class="x" aria-label="Cerrar ficha">×</button><h3>Rider de luces</h3><span class="tag prop">Propuesta · a validar con el iluminador</span>
+    <ul>${Object.entries(count).map(([k, n]) => `<li>${n} × ${FX_TYPES[k].nombre}</li>`).join('')}<li>3 trusses colgados del techo (1 × 11,4 m a 7 m · 2 × 11 m a 10 m)</li></ul>
+    <p>Cantidades y posiciones son un punto de partida. Faltan confirmar carga del techo, potencia disponible y consola.</p>`;
+  infoEl.hidden = false;
+}
+
+/* Un look por escena */
+const P = { o: 'ff6b3d', v: '8a8fff', m: 'ff3fa4', c: '3fd8ff', a: 'ffa040', w: 'ffffff', r: 'ff2a1a', b: '4a6bff', g: 'ffd36b', t: 'ffe2bf' };
+const LOOKS = {
+  0:  { txt: 'Baños cálidos ámbar y magenta que respiran lento. Beams apagados, uplight ámbar sobre la tela.', wash: { c: [P.a, P.m], i: .6, aim: 'pista' }, parF: { i: .2 }, parU: { i: .4, c: P.a } },
+  1:  { txt: 'Sala casi a oscuras. Beams blancos giran alrededor del toroide, estrobos en la explosión y los dos seguidores toman al Capitán en vuelo.', wash: { c: P.v, i: .15, aim: 'pista' }, beam: { c: P.w, i: 1, aim: 'toroide' }, strobe: 'on', parU: { i: .45, c: P.v }, seg: ['Cap. Psicodelia'] },
+  2:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
+  3:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
+  4:  { txt: 'Frontal cálido de PAR 64 sobre el escenario, pista en azul bajo y los dos seguidores sobre la Monja.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja'] },
+  5:  { txt: 'Beams de las torres siguen a cada bungee; el truss frontal barre la pista. Estrobos en cada disparo.', wash: { c: P.o, i: .5, aim: 'fan' }, beam: { c: P.w, i: .9, aim: 'fan' }, beamTorre: { c: P.o, i: 1, aim: 'track', names: ['Bungee 1', 'Bungee 2'] }, strobe: 'on', parU: { i: .4, c: P.o }, seg: ['Bungee 1', 'Bungee 2'] },
+  6:  { txt: 'Pasarela rosa: wash magenta, beams violeta cruzados y seguidores sobre la cabeza del desfile.', wash: { c: P.m, i: .6, aim: 'pista' }, beam: { c: P.v, i: .7, aim: 'cruz' }, parF: { i: .4 }, parU: { i: .4, c: P.m }, seg: ['Personajes'] },
+  7:  { txt: 'Blanco cálido de ceremonia sobre la tarima, uplight blanco en la tela, sin beams.', wash: { c: P.t, i: .55, aim: 'tarima' }, parF: { i: .3 }, parU: { i: .6, c: P.w }, seg: ['Novio', 'Novia'] },
+  8:  { txt: 'Vals en ámbar: beams dorados giran lentos alrededor de la tarima y los seguidores acompañan a los novios.', wash: { c: P.a, i: .45, aim: 'tarima' }, beam: { c: P.g, i: .45, aim: 'circTarima' }, parU: { i: .45, c: P.a }, seg: ['Novio', 'Novia'] },
+  9:  { txt: 'Miami 90: cian y magenta a fondo, beams rápidos, estrobos y seguidores sobre Chicho Sarli.', wash: { c: [P.c, P.m], i: .75, aim: 'fan' }, beam: { c: [P.m, P.c], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .6, c: P.c }, seg: ['Chicho Sarli'] },
+  10: { txt: 'Transición contenida: ámbar bajo, beams fijos hacia el piso.', wash: { c: P.a, i: .35, aim: 'pista' }, beam: { c: P.a, i: .25, aim: 'down' }, parU: { i: .4, c: P.a } },
+  11: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
+  12: { txt: 'Pico: blinders al público, beams blancos fijos, estrobos, frontal y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
+  13: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
+  14: { txt: 'Duelo sobre la tela: beams blancos barren la tela, violeta de fondo y un seguidor por tenista.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .75, aim: 'tela' }, parU: { i: .5, c: P.v }, seg: ['Tenista 1', 'Tenista 2'] },
+  15: { txt: 'Beams violetas y blancos clavados en las cuatro caras mientras bajan; seguidores en los personajes sin cara.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'caras' }, parU: { i: .4, c: P.v }, seg: ['Sin cara'] },
+  16: { txt: 'Persecución: beams naranjas cruzados, estrobos y un seguidor para cada personaje.', wash: { c: [P.w, P.o], i: .5, aim: 'fan' }, beam: { c: P.o, i: .75, aim: 'cruz' }, strobe: 'on', seg: ['Vaca-monja', 'Punky-carnicera'] },
+  17: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, blinders, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
+};
+
 /* ───────── Estado ───────── */
 const LUZ = { normal: [0x0a0a0a, 0xffffff], frio: [0x05080f, 0x9fb8ff], pico: [0x120905, 0xffd2c2] };
 let current = 0, t = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -716,21 +947,21 @@ let current = 0, t = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').
 function clearScene() {
   sceneGroup.traverse(o => { if (o.isCSS2DObject) o.element.remove(); });
   sceneGroup.traverse(o => { if (o.geometry && o.geometry !== figGeo) o.geometry.dispose(); });
-  sceneGroup.clear(); anims = [];
+  sceneGroup.clear(); anims = []; for (const k in FIG) delete FIG[k];
 }
 function setActive(ids) {
   for (const el of Object.values(EL)) {
     if (el.id === 'sala') continue;
     const on = ids.includes(el.id);
-    el.edgeMat.color.set(on ? ORANGE : el.base);
-    el.faceMats.forEach(m => { m.color.set(on ? ORANGE : INK); m.opacity = Math.min(1, m.userData.base * (on ? 2.4 : 1)); });
+    el.edgeMat.color.set(on ? ORANGE : showMode ? 0x4a4a52 : el.base);
+    el.faceMats.forEach(m => { m.color.set(on ? ORANGE : INK); m.opacity = Math.min(1, m.userData.base * (on ? 2.4 : 1) * (showMode ? .35 : 1)); });
     el.labelEl?.classList.toggle('on', on);
   }
 }
 function goScene(i, { moveCam = true } = {}) {
   current = Math.max(0, Math.min(SCENES.length - 1, i));
   const s = SCENES[current];
-  clearScene(); s.build(); setActive(s.el);
+  clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {});
   const tp = s.tarima ?? TARIMA_HOME; tarTarget.set(tp[0], 0, tp[1]);
   const [bg, hc] = LUZ[s.luz ?? 'normal']; renderer.setClearColor(bg); hemi.color.set(hc);
   if (paused) anims.forEach(f => f(t));
@@ -759,6 +990,7 @@ function renderDetail() {
     <h3>En el espacio</h3><ul>${s.esp.map(li).join('')}</ul>
     ${s.el.length ? `<h3>Estructura en uso</h3><div class="chips">${s.el.map(id => `<button class="chip el" data-el="${id}">${NAMES[id]}</button>`).join('')}</div>` : ''}
     ${s.tec.length ? `<h3>Elementos técnicos</h3><div class="chips">${s.tec.map(x => `<span class="chip">${x}</span>`).join('')}</div>` : ''}
+    <h3>Luces <span class="tag prop">Propuesta</span></h3><p class="lux">${LOOKS[s.n]?.txt ?? 'Sin look definido.'}</p><button class="chip el" data-rider="1">Ver rider de luces</button>
     <h3>Pendiente de definir</h3><ul class="pend">${s.pend.map(x => `<li><span>${x}</span></li>`).join('')}</ul>
     <div class="dnav"><button id="prev" ${current === 0 ? 'disabled' : ''}>← Anterior</button><button id="next" ${current === SCENES.length - 1 ? 'disabled' : ''}>Siguiente →</button></div>`;
 }
@@ -766,6 +998,7 @@ detailEl.addEventListener('click', e => {
   if (e.target.id === 'prev') goScene(current - 1);
   if (e.target.id === 'next') goScene(current + 1);
   const c = e.target.closest('[data-el]'); if (c) showInfo(c.dataset.el);
+  if (e.target.closest('[data-rider]')) showRider();
 });
 addEventListener('keydown', e => {
   if (e.target.closest('input,textarea')) return;
@@ -808,6 +1041,10 @@ bindLayer('lyStruct', v => { for (const el of Object.values(EL)) if (el.id !== '
 bindLayer('lyScene', v => sceneGroup.visible = v);
 bindLayer('lyCotas', v => cotaGroup.visible = v);
 bindLayer('lyLabels', v => vp.classList.toggle('hide-labels', !v));
+bindLayer('lyLights', v => { lightGroup.visible = v; if (!v) strobeFlash.intensity = 0; });
+let showMode = false;
+const btnShow = document.getElementById('btnShow');
+btnShow.addEventListener('click', () => { showMode = !showMode; btnShow.setAttribute('aria-pressed', showMode); setActive(SCENES[current].el); });
 
 // Pausa
 const btnPause = document.getElementById('btnPause');
@@ -852,6 +1089,7 @@ renderer.domElement.addEventListener('pointerup', e => {
     }
     return;
   }
+  if (hit?.object.userData.fx !== undefined) { showFxInfo(hit.object.userData.fx); return; }
   const id = hit?.object.userData.el;
   if (id) showInfo(id); else infoEl.hidden = true;
 });
@@ -860,6 +1098,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 function resize() {
   const r = vp.getBoundingClientRect(); if (!r.width || !r.height) return;
   renderer.setSize(r.width, r.height); labelR.setSize(r.width, r.height);
+  composer.setPixelRatio(Math.min(devicePixelRatio, 2)); composer.setSize(r.width, r.height);
   camera.aspect = r.width / r.height;
   camera.fov = camera.aspect < 0.9 ? 60 : 42;
   camera.updateProjectionMatrix();
@@ -872,6 +1111,7 @@ const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (!paused) { t += dt; anims.forEach(f => f(t)); }
+  updateLights(dt, t);
   tar.group.position.lerp(tarTarget, paused ? 1 : Math.min(1, dt * 2.2));
   if (camTween) {
     const k = Math.min(1, (performance.now() - camTween.t0) / camTween.dur), e = ease(k);
@@ -879,7 +1119,7 @@ renderer.setAnimationLoop(() => {
     if (k >= 1) camTween = null;
   }
   controls.update();
-  renderer.render(scene, camera); labelR.render(scene, camera);
+  composer.render(); labelR.render(scene, camera);
 });
 
 // Arranque (admite #escena-N en el link)
