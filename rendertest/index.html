@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Vaterfly Plano 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Un solo mundo visual: el plano técnico en negro. Tema oscuro deliberado. */
+  :root{
+    color-scheme: dark;
+    --bg:#0a0a0a; --panel:#111114; --panel-2:#17171c; --line:#26262b; --line-2:#34343b;
+    --ink:#f4f4f5; --sub:#8a8a90; --faint:#5c5c63;
+    --orange:#FF6B3D; --orange-soft:rgba(255,107,61,.14);
+    --purple:#8A8FFF; --purple-soft:rgba(138,143,255,.14);
+    --display:"Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+    --body:"Barlow", "Helvetica Neue", Arial, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  html,body{height:100%}
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0}
+  [hidden]{display:none!important}
+  body{background:var(--bg); color:var(--ink); font-family:var(--body); font-size:14px; line-height:1.45}
+  button{font:inherit; color:inherit}
+  :focus-visible{outline:2px solid var(--orange); outline-offset:2px}
+
+  .app{height:100%; display:grid; grid-template-columns:250px minmax(0,1fr) 340px; grid-template-rows:auto minmax(0,1fr)}
+  .top{grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+       padding:10px 16px; border-bottom:1px solid var(--line); background:var(--bg)}
+  .brand{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; min-width:0}
+  .wm{font-family:var(--display); font-weight:800; font-size:24px; letter-spacing:.06em}
+  .wm b{color:var(--orange); font-weight:800}
+  .brand .sub{font-family:var(--mono); font-size:11px; color:var(--sub); letter-spacing:.04em}
+  .views{display:flex; gap:4px; flex-wrap:wrap}
+  .seg{background:var(--panel); border:1px solid var(--line); padding:6px 10px; border-radius:4px; cursor:pointer;
+       font-family:var(--mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--sub)}
+  .seg:hover{color:var(--ink); border-color:var(--line-2)}
+  .seg[aria-pressed="true"]{color:var(--bg); background:var(--ink); border-color:var(--ink)}
+
+  /* Lista de escenas */
+  .scenes{border-right:1px solid var(--line); overflow:auto; background:var(--bg)}
+  .scenes h2{font-family:var(--mono); font-weight:500; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--sub);
+             padding:14px 16px 8px; margin:0; position:sticky; top:0; background:var(--bg); z-index:1}
+  .scenes ol{list-style:none; margin:0; padding:0 8px 16px}
+  .scenes li button{display:grid; grid-template-columns:28px 1fr; gap:6px; align-items:baseline; width:100%; text-align:left;
+       background:none; border:0; border-radius:4px; padding:7px 8px; cursor:pointer}
+  .scenes li button:hover{background:var(--panel)}
+  .scenes li button[aria-current="true"]{background:var(--panel-2); box-shadow:inset 2px 0 0 var(--orange)}
+  .s-num{font-family:var(--mono); font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums}
+  [aria-current="true"] .s-num{color:var(--orange)}
+  .s-t{font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:.02em; line-height:1.1}
+  .s-k{grid-column:2; font-family:var(--mono); font-size:10px; color:var(--sub); letter-spacing:.04em; text-transform:uppercase}
+
+  /* Visor */
+  .stage-wrap{position:relative; min-height:0; overflow:hidden; background:var(--bg)}
+  #viewport{position:absolute; inset:0}
+  #viewport canvas{display:block; position:absolute; inset:0; touch-action:none}
+  #viewport.measuring canvas{cursor:crosshair}
+  .labels{position:absolute; inset:0; pointer-events:none; overflow:hidden}
+  .lbl{font-family:var(--mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--sub);
+       white-space:nowrap; padding:2px 5px; background:rgba(10,10,10,.72); border:1px solid var(--line); border-radius:3px}
+  .lbl.on{color:var(--orange); border-color:rgba(255,107,61,.5)}
+  .lbl.fig{color:var(--ink); border-color:rgba(255,107,61,.45); font-size:9.5px}
+  .lbl.fig.air{border-color:rgba(138,143,255,.55)}
+  .lbl.cota{color:var(--ink); background:transparent; border:0; font-size:11px}
+  .lbl.big{font-family:var(--display); font-weight:800; font-size:28px; color:var(--orange); border:0; background:transparent; letter-spacing:.08em}
+  .lbl.meas{color:var(--bg); background:var(--orange); border-color:var(--orange); font-weight:500}
+  .hide-labels .lbl:not(.meas):not(.big){display:none}
+
+  .tools{position:absolute; top:12px; left:12px; right:12px; display:flex; gap:6px; flex-wrap:wrap; pointer-events:none}
+  .tools > *{pointer-events:auto}
+  .chk{display:inline-flex; align-items:center; gap:6px; background:rgba(17,17,20,.9); border:1px solid var(--line);
+       padding:5px 9px; border-radius:4px; font-family:var(--mono); font-size:11px; color:var(--sub); cursor:pointer; user-select:none}
+  .chk input{accent-color:var(--orange); margin:0}
+  .chk:has(input:checked){color:var(--ink)}
+  .tbtn{background:rgba(17,17,20,.9); border:1px solid var(--line); padding:5px 10px; border-radius:4px; font-family:var(--mono);
+        font-size:11px; color:var(--ink); cursor:pointer}
+  .tbtn[aria-pressed="true"]{background:var(--orange); color:var(--bg); border-color:var(--orange)}
+  .spacer{flex:1}
+
+  .legend{position:absolute; left:12px; bottom:12px; display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:10.5px;
+          color:var(--sub); background:rgba(10,10,10,.8); border:1px solid var(--line); border-radius:4px; padding:8px 10px; pointer-events:none}
+  .legend span{display:flex; align-items:center; gap:8px}
+  .legend i{display:inline-block; width:18px; height:0; border-top:2px solid var(--ink)}
+  .legend i.o{border-color:var(--orange)} .legend i.p{border-top:2px dashed var(--purple)}
+  .note{position:absolute; right:12px; bottom:12px; max-width:280px; font-family:var(--mono); font-size:10px; color:var(--faint); text-align:right; pointer-events:none}
+
+  #info{position:absolute; right:12px; top:52px; width:min(300px, calc(100% - 24px)); background:var(--panel); border:1px solid var(--line-2);
+        border-radius:6px; padding:14px 16px; box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  #info h3{font-family:var(--display); font-weight:700; font-size:20px; margin:0 0 4px; letter-spacing:.02em}
+  #info ul{margin:8px 0 0; padding-left:16px; color:var(--ink)}
+  #info li{margin:2px 0}
+  #info p{margin:8px 0 0; color:var(--sub)}
+  #info .x{position:absolute; top:8px; right:8px; background:none; border:0; color:var(--sub); cursor:pointer; font-size:18px; line-height:1}
+  .tag{display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; padding:1px 6px; border-radius:3px;
+       border:1px solid var(--line-2); color:var(--sub); vertical-align:middle}
+  .tag.plano{color:var(--ink)} .tag.prop{color:var(--purple); border-color:rgba(138,143,255,.5); background:var(--purple-soft)}
+  .tag.est{color:var(--orange); border-color:rgba(255,107,61,.45)}
+
+  /* Detalle de escena */
+  .detail{border-left:1px solid var(--line); overflow:auto; padding:18px 18px 24px; background:var(--bg)}
+  .d-head{display:flex; gap:12px; align-items:flex-start}
+  .d-num{font-family:var(--display); font-weight:800; font-size:54px; line-height:.85; color:var(--orange); font-variant-numeric:tabular-nums}
+  .detail h1{font-family:var(--display); font-weight:800; font-size:30px; line-height:1; margin:2px 0 6px; letter-spacing:.01em; text-wrap:balance}
+  .meta{font-family:var(--mono); font-size:11px; color:var(--sub); margin:0; letter-spacing:.03em}
+  .guion{margin:16px 0 0; font-size:15px; line-height:1.5; color:var(--ink); max-width:65ch}
+  .detail h3{font-family:var(--mono); font-weight:500; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--sub);
+             margin:22px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line)}
+  .detail ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px}
+  .detail li{display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:baseline}
+  .detail li::before{content:""; width:6px; height:6px; border-radius:1px; background:var(--line-2); transform:translateY(-1px)}
+  .detail li.p::before{background:var(--purple)}
+  .detail li .tag{margin-left:6px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:3px; background:var(--panel-2); border:1px solid var(--line); color:var(--ink)}
+  .chip.el{border-color:rgba(255,107,61,.45); color:var(--orange); cursor:pointer}
+  .pend li::before{background:var(--orange)}
+  .pend li{color:var(--sub)}
+  .dnav{display:flex; gap:8px; margin-top:24px}
+  .dnav button{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:9px; cursor:pointer;
+               font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase}
+  .dnav button:hover:not(:disabled){border-color:var(--line-2)}
+  .dnav button:disabled{opacity:.35; cursor:default}
+
+  /* Plano original */
+  #planoDlg{border:1px solid var(--line-2); background:var(--bg); color:var(--ink); padding:0; border-radius:6px; max-width:min(1100px, 94vw); width:100%}
+  #planoDlg::backdrop{background:rgba(0,0,0,.75)}
+  #planoDlg header{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line);
+                   font-family:var(--mono); font-size:11px; color:var(--sub); text-transform:uppercase; letter-spacing:.06em}
+  #planoDlg img{display:block; width:100%; height:auto}
+  #planoDlg button{background:none; border:1px solid var(--line); border-radius:4px; padding:4px 10px; cursor:pointer; font-family:var(--mono); font-size:11px}
+
+  #loadErr{position:absolute; inset:0; display:grid; place-items:center; color:var(--sub); font-family:var(--mono); font-size:12px; text-align:center; padding:24px}
+
+  @media (max-width: 980px){
+    .app{height:auto; display:flex; flex-direction:column}
+    .stage-wrap{height:62svh; min-height:360px; order:2}
+    .scenes{order:3; border:0; border-bottom:1px solid var(--line); overflow:visible}
+    .scenes h2{position:static; padding-bottom:4px}
+    .scenes ol{display:flex; overflow-x:auto; gap:4px; padding:0 16px 12px; scroll-snap-type:x proximity}
+    .scenes li{flex:0 0 auto; scroll-snap-align:start}
+    .scenes li button{grid-template-columns:auto auto; width:auto; border:1px solid var(--line); padding:6px 10px}
+    .s-k{display:none}
+    .detail{order:4; border:0; padding-inline:16px}
+    .note{display:none}
+    .legend{font-size:9.5px}
+  }
+  @media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto!important} }
+</style>
+<style>
+  /* Barrera de acceso: igual que el deck (no es seguridad real, solo evita lectura casual) */
+  html.pw-locked, html.pw-locked body{ overflow:hidden; height:100%; }
+  .pw-gate{ position:fixed; inset:0; z-index:9999; background:#0a0a0a; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:24px;
+    opacity:1; transform:scale(1); transition:opacity .9s cubic-bezier(.16,.68,.43,.99), transform .9s cubic-bezier(.16,.68,.43,.99); }
+  .pw-gate.fade-out{ opacity:0; transform:scale(1.04); pointer-events:none; }
+  .pw-gate.hidden{ display:none; }
+  .pw-bg-video{ position:absolute; top:50%; left:50%; min-width:100%; min-height:100%; width:auto; height:auto; transform:translate(-50%,-50%); object-fit:cover; filter:brightness(.6) contrast(1.05); z-index:0; }
+  .pw-gate::before{ content:""; position:absolute; inset:0; z-index:1; background:radial-gradient(ellipse at center, rgba(10,10,10,.55) 0%, rgba(10,10,10,.88) 100%); pointer-events:none; }
+  .pw-box{ position:relative; z-index:2; text-align:center; max-width:360px; width:100%; }
+  .pw-box .pw-logo{ width:min(80%,320px); margin:0 auto 28px; display:block; filter:drop-shadow(0 6px 24px rgba(0,0,0,.5)); animation:pwLogoBreathe 4s ease-in-out infinite; }
+  @keyframes pwLogoBreathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.08); } }
+  @media (prefers-reduced-motion: reduce){ .pw-box .pw-logo{ animation:none; } }
+  .pw-box .pw-label{ font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--sub); margin:0 0 28px; }
+  #pwForm{ display:flex; gap:10px; }
+  #pwInput{ flex:1; min-width:0; background:transparent; border:1px solid var(--line-2); color:var(--ink); padding:13px 14px; font-family:var(--mono); font-size:14px; letter-spacing:.05em; border-radius:2px; }
+  #pwInput::placeholder{ color:var(--sub); }
+  #pwInput:focus{ outline:none; border-color:var(--ink); }
+  #pwForm button{ padding:13px 20px; background:var(--ink); color:#0a0a0a; border:none; font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.1em; cursor:pointer; border-radius:2px; }
+  #pwForm button:hover{ opacity:.85; }
+  .pw-error{ margin-top:16px; font-size:11px; color:var(--orange); font-family:var(--mono); letter-spacing:.05em; }
+</style>
+
+</head>
+<body>
+
+<div class="pw-gate" id="pwGate">
+  <video class="pw-bg-video" src="../assets/video/loop-ilusion-optica.mp4" muted loop playsinline preload="auto" autoplay></video>
+  <div class="pw-box">
+    <img src="../assets/img/logo-vaterfly.png" alt="Vaterfly" class="pw-logo">
+    <p class="pw-label">Plano técnico · contenido privado</p>
+    <form id="pwForm" autocomplete="off">
+      <input type="password" id="pwInput" placeholder="Contraseña" aria-label="Contraseña" autocomplete="off" autofocus>
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="pw-error" id="pwError" style="display:none;">Contraseña incorrecta</p>
+  </div>
+</div>
+<script>
+(function(){
+  var GATE_KEY = 'vaterflyRenderAuth';
+  var PASSWORD = 'toroide2027';
+  var gate = document.getElementById('pwGate'), form = document.getElementById('pwForm');
+  var input = document.getElementById('pwInput'), error = document.getElementById('pwError');
+  function unlock(){ gate.classList.add('hidden'); document.documentElement.classList.remove('pw-locked'); }
+  try { if (sessionStorage.getItem(GATE_KEY) === '1') unlock(); else document.documentElement.classList.add('pw-locked'); }
+  catch(e){ document.documentElement.classList.add('pw-locked'); }
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if ((input.value || '').trim().toLowerCase() === PASSWORD) {
+      try { sessionStorage.setItem(GATE_KEY, '1'); } catch(e){}
+      document.documentElement.classList.remove('pw-locked');
+      gate.classList.add('fade-out');
+      setTimeout(function(){ gate.classList.add('hidden'); window.dispatchEvent(new Event('resize')); }, 900);
+    } else { error.style.display = 'block'; input.value = ''; input.focus(); }
+  });
+})();
+</script>
+
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="wm">VATER<b>FLY</b></span>
+      <span class="sub">PLANO TÉCNICO 3D · SALA 20 × 13 × 15 m · GUION v2026-08-31</span>
+    </div>
+    <nav class="views" aria-label="Vistas de cámara">
+      <button class="seg" data-view="iso" aria-pressed="true">Isométrica</button>
+      <button class="seg" data-view="planta" aria-pressed="false">Planta</button>
+      <button class="seg" data-view="publico" aria-pressed="false">Desde el público</button>
+      <button class="seg" data-view="escenario" aria-pressed="false">Desde escenario</button>
+      <button class="seg" data-view="lateral" aria-pressed="false">Lateral</button>
+      <button class="seg" data-view="torre" aria-pressed="false">Desde torre 3 m</button>
+    </nav>
+  </header>
+
+  <aside class="scenes" aria-label="Escenas del guion">
+    <h2>Guion · 18 bloques</h2>
+    <ol id="sceneList"></ol>
+  </aside>
+
+  <main class="stage-wrap">
+    <div id="viewport"></div>
+    <div class="tools">
+      <label class="chk"><input type="checkbox" id="lyStruct" checked> Estructura</label>
+      <label class="chk"><input type="checkbox" id="lyScene" checked> Escena</label>
+      <label class="chk"><input type="checkbox" id="lyCotas" checked> Cotas</label>
+      <label class="chk"><input type="checkbox" id="lyLabels" checked> Etiquetas</label>
+      <span class="spacer"></span>
+      <button class="tbtn" id="btnMeasure" aria-pressed="false">Medir</button>
+      <button class="tbtn" id="btnPause" aria-pressed="false">Pausar</button>
+      <button class="tbtn" id="btnPlano">Plano original</button>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span><i></i>Según plano</span>
+      <span><i class="o"></i>Activo en la escena</span>
+      <span><i class="p"></i>Propuesta de uso · a validar</span>
+    </div>
+    <div class="note">Medidas relevadas del plano isométrico. Profundidad y altura de escenario estimadas. Tocá un elemento para ver su ficha.</div>
+    <div id="info" hidden></div>
+  </main>
+
+  <section class="detail" id="detail" aria-live="polite"></section>
+</div>
+
+<dialog id="planoDlg">
+  <header><span>Plano original · esquema isométrico</span><button id="planoClose">Cerrar</button></header>
+  <img src="plano.jpg" alt="Esquema isométrico del escenario: sala de 20 por 13 metros y 15 de alto, escenario de ancho completo con escaleras laterales, tela tensa con anclajes aéreos, torre de andamio central de 8 metros, torre de 3 metros en la pared opuesta y tarima móvil con ruedas">
+</dialog>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* ───────── Sala (metros). x: largo 0→20 (escenario en x=0) · z: ancho 0→13 · y: alto ───────── */
+const W = 20, D = 13, H = 15;
+const STAGE = { d: 2.3, h: 1.0 };           // estimados a partir del plano
+const INK = 0xe8e8ea, DIM = 0x4a4a52, ORANGE = 0xff6b3d, PURPLE = 0x8a8fff, WHITE = 0xf4f4f5;
+const TOP = { A: [10.0, 8, 0.55], B: [12.3, 8, 12.45], C: [19.5, 3, 6.1] };
+
+const vp = document.getElementById('viewport');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+} catch (e) {
+  vp.innerHTML = '<div id="loadErr">Este navegador no pudo iniciar WebGL.<br>Probá con Chrome, Safari o Firefox actualizados.</div>';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x0a0a0a);
+vp.appendChild(renderer.domElement);
+const labelR = new CSS2DRenderer();
+labelR.domElement.className = 'labels';
+vp.appendChild(labelR.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 300);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.maxDistance = 90; controls.minDistance = 1;
+const hemi = new THREE.HemisphereLight(0xffffff, 0x202028, 1.6);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(8, 20, -10); scene.add(sun);
+
+// El plano está dibujado con el eje del ancho espejado respecto de three.js: invertimos z para que la sala se lea igual que el isométrico.
+const root = new THREE.Group(); root.position.set(-W / 2, 0, D / 2); root.scale.z = -1; scene.add(root);
+const R = (x, y, z) => new THREE.Vector3(x - W / 2, y, D / 2 - z);
+const structGroup = new THREE.Group(); root.add(structGroup);
+const cotaGroup = new THREE.Group(); root.add(cotaGroup);
+const sceneGroup = new THREE.Group(); root.add(sceneGroup);
+const measureGroup = new THREE.Group(); root.add(measureGroup);
+
+const pickables = [];
+const EL = {};
+
+/* ───────── helpers de construcción ───────── */
+function makeEl(id, info, parent = structGroup) {
+  const group = new THREE.Group(); group.name = id; parent.add(group);
+  const base = info.base ?? INK;
+  const el = { id, group, info, base, edgeMat: new THREE.LineBasicMaterial({ color: base }), faceMats: [] };
+  EL[id] = el; return el;
+}
+function addBox(el, x0, x1, y0, y1, z0, z1, { face = 0.06, edges = true, pick = true } = {}) {
+  const geo = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  const fm = new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: face, depthWrite: false });
+  fm.userData.base = face;
+  const m = new THREE.Mesh(geo, fm); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  el.group.add(m); el.faceMats.push(fm);
+  if (pick) { m.userData.el = el.id; pickables.push(m); }
+  if (edges) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), el.edgeMat); e.position.copy(m.position); el.group.add(e); }
+  return m;
+}
+function segs(pts, mat, parent) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flat(), 3));
+  const l = new THREE.LineSegments(g, mat);
+  if (mat.isLineDashedMaterial) l.computeLineDistances();
+  parent.add(l); return l;
+}
+function label(text, cls, obj, off = [0, 0, 0]) {
+  const div = document.createElement('div'); div.className = 'lbl ' + (cls || ''); div.textContent = text;
+  const o = new CSS2DObject(div); o.position.set(...off); obj.add(o); return div;
+}
+
+/* ───────── Sala ───────── */
+const sala = makeEl('sala', {}, structGroup);
+{
+  const g = [];
+  for (let x = 1; x < W; x++) g.push([x, 0, 0], [x, 0, D]);
+  for (let z = 1; z < D; z++) g.push([0, 0, z], [W, 0, z]);
+  segs(g, new THREE.LineBasicMaterial({ color: 0x1c1c21 }), sala.group);
+  const dim = new THREE.LineBasicMaterial({ color: 0x8a8a90 });
+  segs([[0,0,0],[W,0,0],[W,0,0],[W,0,D],[W,0,D],[0,0,D],[0,0,D],[0,0,0],
+        [0,0,0],[0,H,0],[0,0,D],[0,H,D],[W,0,D],[W,H,D],[W,0,0],[W,H,0],
+        [0,H,0],[0,H,D],[0,H,D],[W,H,D]], dim, sala.group);
+  segs([[0,H,0],[W,H,0],[W,H,0],[W,H,D]], new THREE.LineDashedMaterial({ color: 0x5c5c63, dashSize: .4, gapSize: .3 }), sala.group);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshBasicMaterial({ color: 0x0e0e11 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(W / 2, -0.01, D / 2); floor.userData.floor = true;
+  sala.group.add(floor); pickables.push(floor);
+  // muros del fondo apenas marcados (pared del escenario y pared larga opuesta)
+  const wm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.018, side: THREE.DoubleSide, depthWrite: false });
+  const w1 = new THREE.Mesh(new THREE.PlaneGeometry(D, H), wm); w1.rotation.y = Math.PI / 2; w1.position.set(0, H / 2, D / 2); sala.group.add(w1);
+  const w2 = new THREE.Mesh(new THREE.PlaneGeometry(W, H), wm); w2.position.set(W / 2, H / 2, D); sala.group.add(w2);
+}
+
+/* ───────── Escenario + escaleras laterales ───────── */
+const esc = makeEl('escenario', {
+  nombre: 'Escenario', estado: 'plano',
+  medidas: ['Ancho completo de sala: 13 m', 'Profundidad ≈ 2,3 m (estimada)', 'Altura ≈ 1,0 m (estimada)', 'Escaleras en ambos extremos'],
+  notas: 'Profundidad y altura leídas a ojo del isométrico: confirmar con el proveedor de tarimas.'
+});
+addBox(esc, 0, STAGE.d, 0, STAGE.h, 0, D, { face: .08 });
+for (const [z0, z1] of [[0.25, 1.45], [11.55, 12.75]])
+  for (let k = 1; k <= 3; k++) addBox(esc, STAGE.d, STAGE.d + (4 - k) * 0.3, (k - 1) * STAGE.h / 4, k * STAGE.h / 4, z0, z1, { face: .08 });
+esc.labelEl = label('Escenario', '', esc.group, [1.2, 1.5, 2.6]);
+
+/* ───────── Tela plana tensa ───────── */
+const tela = makeEl('tela', {
+  nombre: 'Tela plana tensa', estado: 'plano',
+  medidas: ['Sobre la pared del escenario', 'Ancho ≈ 10,2 m · alto ≈ 9 m', 'Desde el nivel de escenario hasta ≈ 10 m'],
+  notas: 'Superficie para escenas aéreas verticales y como fondo de proyección.'
+});
+{
+  const w = 10.2, h = 9, zc = 1.3 + w / 2, yc = 1.0 + h / 2;
+  const fm = new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false });
+  fm.userData.base = 0.07; tela.faceMats.push(fm);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), fm); m.rotation.y = Math.PI / 2; m.position.set(0.04, yc, zc);
+  m.userData.el = 'tela'; pickables.push(m); tela.group.add(m);
+  const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), tela.edgeMat); e.rotation.copy(m.rotation); e.position.copy(m.position); tela.group.add(e);
+  const seams = []; for (let i = 1; i < 4; i++) { const z = 1.3 + i * w / 4; seams.push([0.05, 1, z], [0.05, 10, z]); }
+  segs(seams, new THREE.LineBasicMaterial({ color: 0x3a3a40 }), tela.group);
+  tela.labelEl = label('Tela tensa', '', tela.group, [0.1, 10.5, zc]);
+}
+
+/* ───────── Anclajes escena aérea ───────── */
+const ANCH = [{ top: [0.08, 9.1, 4.5], bot: [0.08, 2.2, 5.5] }, { top: [0.08, 8.9, 8.3], bot: [0.08, 2.0, 9.4] }];
+const anc = makeEl('anclajes', {
+  nombre: 'Anclajes escena aérea', estado: 'plano',
+  medidas: ['2 líneas tensas sobre la tela', 'Punto superior ≈ 9 m · inferior ≈ 2 m', 'Posición lateral aproximada'],
+  notas: 'Cargas y tipo de anclaje a definir con rigger certificado.'
+});
+{
+  const sg = new THREE.SphereGeometry(0.13, 16, 10);
+  for (const a of ANCH) {
+    for (const p of [a.top, a.bot]) {
+      const fm = new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.9 }); fm.userData.base = 0.9; anc.faceMats.push(fm);
+      const s = new THREE.Mesh(sg, fm); s.position.set(...p); s.userData.el = 'anclajes'; pickables.push(s); anc.group.add(s);
+    }
+    segs([a.top, a.bot], anc.edgeMat, anc.group);
+  }
+}
+
+/* ───────── Andamios ───────── */
+function scaffold(el, { x0, z0, w, d, h, axis = 'x', bays = 2 }) {
+  const P = (u, y, v) => axis === 'x' ? [x0 + u, y, z0 + v] : [x0 + v, y, z0 + u];
+  const us = [...Array(bays + 1)].map((_, i) => i * w / bays), vs = [0, d];
+  const lv = []; for (let y = 0; y < h - 0.01; y += 2) lv.push(y); lv.push(h);
+  const s = [];
+  for (const u of us) for (const v of vs) s.push(P(u, 0, v), P(u, h, v));
+  for (const y of lv) { s.push(P(0, y, 0), P(w, y, 0), P(0, y, d), P(w, y, d)); for (const u of us) s.push(P(u, y, 0), P(u, y, d)); }
+  for (let i = 0; i < lv.length - 1; i++) for (let b = 0; b < bays; b++) for (const v of vs) {
+    const f = (i + b) % 2; s.push(P(f ? us[b] : us[b + 1], lv[i], v), P(f ? us[b + 1] : us[b], lv[i + 1], v));
+  }
+  segs(s, el.edgeMat, el.group);
+  const [ax, , az] = P(0, 0, 0), [bx, , bz] = P(w, 0, d);
+  addBox(el, Math.min(ax, bx), Math.max(ax, bx), h - 0.06, h, Math.min(az, bz), Math.max(az, bz), { face: .22, edges: false });
+  addBox(el, Math.min(ax, bx), Math.max(ax, bx), 0, h, Math.min(az, bz), Math.max(az, bz), { face: .02, edges: false });
+}
+const tA = makeEl('torreA', { nombre: 'Torre de andamio central · A', estado: 'plano', medidas: ['Doble de ancha (2 cuerpos) ≈ 2,6 × 1,0 m', 'Altura 8 m', 'Contra la pared larga cercana, a mitad de sala'],
+  notas: 'El plano dibuja dos torres iguales enfrentadas y acota una sola (8 m): asumimos la misma altura para ambas.' });
+scaffold(tA, { x0: 8.7, z0: 0.05, w: 2.6, d: 1.0, h: 8 });
+tA.labelEl = label('Torre A · 8 m', '', tA.group, [10, 8.7, 0.55]);
+const tB = makeEl('torreB', { nombre: 'Torre de andamio central · B', estado: 'plano', medidas: ['Doble de ancha (2 cuerpos) ≈ 2,6 × 1,0 m', 'Altura 8 m (acotada en el plano)', 'Contra la pared larga opuesta'],
+  notas: 'Enfrentada a la torre A: ≈ 11 m de luz entre ambas.' });
+scaffold(tB, { x0: 11.0, z0: 11.95, w: 2.6, d: 1.0, h: 8 });
+tB.labelEl = label('Torre B · 8 m', '', tB.group, [12.3, 8.7, 12.45]);
+const tC = makeEl('torreC', { nombre: 'Torre en pared opuesta', estado: 'plano', medidas: ['Doble de ancha ≈ 2,4 × 1,0 m', 'Altura 3 m', 'Centrada en la pared frente al escenario, a 20 m'],
+  notas: 'Punto de vista frontal del show: sirve de mirador, plataforma de performer o posición técnica.' });
+scaffold(tC, { x0: 18.95, z0: 4.9, w: 2.4, d: 1.0, h: 3, axis: 'z' });
+tC.labelEl = label('Torre C · 3 m', '', tC.group, [19.45, 3.7, 6.1]);
+
+/* ───────── Tarima móvil ───────── */
+const TARIMA_HOME = [10.9, 5.85];
+const tar = makeEl('tarima', { nombre: 'Tarima móvil', estado: 'plano', medidas: ['≈ 2,4 × 1,3 m', 'Sobre ruedas', 'Altura igual al escenario (≈ 1,0 m)'],
+  notas: 'Se desplaza según la escena: la posición de cada escena es propuesta.' });
+tar.group.position.set(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
+addBox(tar, -1.2, 1.2, 0.3, STAGE.h, -0.65, 0.65, { face: .14 });
+{
+  const cg = new THREE.CylinderGeometry(0.14, 0.14, 0.07, 18); cg.rotateX(Math.PI / 2);
+  const eg = new THREE.EdgesGeometry(cg, 20);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const e = new THREE.LineSegments(eg, tar.edgeMat); e.position.set(sx * 1.05, 0.14, sz * 0.52); tar.group.add(e); }
+}
+tar.labelEl = label('Tarima móvil', '', tar.group, [0, 1.6, 0]);
+const tarTarget = new THREE.Vector3(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
+
+/* ───────── Cotas ───────── */
+function cota(a, b, text, tick = [0, 0.3, 0]) {
+  const m = new THREE.LineBasicMaterial({ color: 0x8a8a90 });
+  const t = (p, s) => [p[0] + tick[0] * s, p[1] + tick[1] * s, p[2] + tick[2] * s];
+  segs([a, b, t(a, 1), t(a, -1), t(b, 1), t(b, -1)], m, cotaGroup);
+  const o = new THREE.Object3D(); o.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2); cotaGroup.add(o);
+  label(text, 'cota', o);
+}
+cota([0, 0, -0.9], [W, 0, -0.9], '20 m', [0, 0, 0.3]);
+cota([-0.9, 0, 0], [-0.9, 0, D], '13 m', [0.3, 0, 0]);
+cota([W + 0.9, 0, -0.9], [W + 0.9, H, -0.9], '15 m', [0.3, 0, 0]);
+cota([13.9, 0, 13.4], [13.9, 8, 13.4], '8 m', [0.3, 0, 0]);
+cota([19.6, 0, 7.8], [19.6, 3, 7.8], '3 m', [0, 0, 0.3]);
+cota([0, STAGE.h + 0.05, -0.5], [STAGE.d, STAGE.h + 0.05, -0.5], '≈2,3 m', [0, 0, 0.3]);
+cota([10, 8.3, 1.1], [12.3, 8.3, 11.9], '≈11 m entre torres', [0, 0.3, 0]);
+
+/* ───────── Figuras y utilidades de escena ───────── */
+const figGeo = new THREE.CapsuleGeometry(0.22, 1.25, 4, 12);
+const matCache = {};
+const figMat = c => matCache[c] ??= new THREE.MeshStandardMaterial({ color: c, roughness: .55, emissive: c, emissiveIntensity: .35 });
+let anims = [];
+function figure(name, p, { color = ORANGE, air = false, horizontal = false } = {}) {
+  const g = new THREE.Group(); const m = new THREE.Mesh(figGeo, figMat(color));
+  if (horizontal) { m.rotation.z = -Math.PI / 2; m.position.set(0.845, 0, 0); } else m.position.y = 0.845;
+  g.add(m); g.position.set(...p); sceneGroup.add(g);
+  if (name) label(name, 'fig' + (air ? ' air' : ''), g, horizontal ? [1.0, 0.6, 0] : [0, 2.05, 0]);
+  return g;
+}
+const dashMat = (c, ds = .32, gs = .2) => new THREE.LineDashedMaterial({ color: c, dashSize: ds, gapSize: gs });
+function curveOf(pts, closed = false) {
+  const v = pts.map(p => new THREE.Vector3(...p));
+  return v.length === 2 ? new THREE.LineCurve3(v[0], v[1]) : new THREE.CatmullRomCurve3(v, closed, 'centripetal');
+}
+function path(pts, { color = PURPLE, closed = false } = {}) {
+  const c = curveOf(pts, closed);
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(c.getPoints(160)), dashMat(color));
+  l.computeLineDistances(); sceneGroup.add(l); return c;
+}
+function dynLine(color = PURPLE) {
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color })); sceneGroup.add(l);
+  return (a, b) => { const p = g.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true; g.computeBoundingSphere(); };
+}
+function propBox(x0, x1, y0, y1, z0, z1, name, color = PURPLE) {
+  const geo = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), dashMat(color, .15, .1)); e.computeLineDistances();
+  e.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); sceneGroup.add(e);
+  const f = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .08, depthWrite: false })); f.position.copy(e.position); sceneGroup.add(f);
+  if (name) label(name, 'fig air', e, [0, (y1 - y0) / 2 + 0.35, 0]);
+  return e;
+}
+function ring(c, r, color = ORANGE, y = 0.02) {
+  const pts = []; for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2; pts.push(new THREE.Vector3(c[0] + Math.cos(a) * r, y, c[1] + Math.sin(a) * r)); }
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), dashMat(color, .3, .2)); l.computeLineDistances(); sceneGroup.add(l);
+}
+function ceilingHangs(points) { segs(points.flatMap(p => [p, [p[0], H, p[2]]]), dashMat(0x5c5c63, .25, .25), sceneGroup); }
+function arcs(from, tos, color = ORANGE) {
+  for (const to of tos) { const mid = [(from[0] + to[0]) / 2, Math.max(from[1], to[1]) + 2.2, (from[2] + to[2]) / 2]; path([from, mid, to], { color }); }
+}
+function follow(obj, curve, speed, phase = 0, yOff = 0) {
+  anims.push(t => { const p = curve.getPointAt(((t * speed + phase) % 1 + 1) % 1); obj.position.set(p.x, p.y + yOff, p.z); });
+}
+function bigLabel(text, p) { const o = new THREE.Object3D(); o.position.set(...p); sceneGroup.add(o); label(text, 'big', o); }
+
+// piezas reutilizadas por varias escenas
+function dj(name = 'DJ') { propBox(1.55, 2.2, 1.0, 1.95, 5.6, 7.4, 'Cabina DJ'); figure(name, [1.0, 1.0, 6.5], { color: WHITE }); }
+function wallRunner(name, anchor, zFn, yFn, color = PURPLE) {
+  const f = figure(name, [0.05, 5, 6], { color, air: true, horizontal: true });
+  const line = dynLine(PURPLE), top = new THREE.Vector3(...anchor.top);
+  anims.push(t => { f.position.set(0.05, yFn(t), zFn(t)); line(top, new THREE.Vector3(0.9, f.position.y, f.position.z)); });
+}
+function bungee(name, anchor, lean) {
+  const a = new THREE.Vector3(...anchor);
+  segs([[anchor[0], 8, anchor[2] - lean], anchor], new THREE.LineBasicMaterial({ color: PURPLE }), sceneGroup);
+  const f = figure(name, [anchor[0], 4, anchor[2]], { color: PURPLE, air: true }); const cord = dynLine(PURPLE);
+  let ph = Math.random() * 6;
+  anims.push(t => { const y = 3.6 + 1.9 * Math.cos(t * 1.9 + ph); f.position.set(a.x, y, a.z); cord(a, new THREE.Vector3(a.x, y + 1.7, a.z)); });
+  return f;
+}
+
+/* ───────── Guion → escenas ───────── */
+const SCENES = [
+  { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario'], tarima: [17.2, 10.6], cam: 'iso',
+    guion: 'Bloque previo al show. Un DJ sostiene la hora completa mientras los personajes entran por el lounge y la pista e interactúan con el público.',
+    esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'], ['Tarima estacionada contra la pared para liberar la pista', 1]],
+    tec: ['Sonido DJ', 'Tragamonedas box (3 actores)', 'Shots de la enfermera'],
+    pend: ['Recorrido lounge → pista', 'Dónde se guarda la tragamonedas entre pasadas'],
+    build() {
+      dj();
+      const v1 = figure('Voleibolista', [7.2, 0, 4.4]), v2 = figure('Voleibolista', [7.2, 0, 8.6]);
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 10), figMat(WHITE)); sceneGroup.add(ball);
+      anims.push(t => { const k = (Math.sin(t * 1.4) + 1) / 2; ball.position.set(7.2, 2.2 + Math.sin(k * Math.PI) * 2.2, 4.4 + k * 4.2); });
+      figure('Enfermera', [14.5, 0, 9.4]);
+      propBox(12.4, 13.4, 0, 2.1, 3.0, 3.8, 'Tragamonedas');
+      figure('', [12.1, 0, 3.4]); figure('', [13.7, 0, 3.4]); figure('', [12.9, 0, 4.2]);
+    } },
+  { n: 1, t: 'Intro', k: 'Escena de apertura', el: ['torreC'], cam: 'iso',
+    guion: 'Una explosión “revela” un debris espacial: una nave con dos astronautas girando alrededor, sostenidos por una estructura aérea de toroide. A lo lejos entra volando el Capitán Psicodelia hasta el escenario.',
+    esp: [['Toroide colgado del techo sobre el centro de la pista, a ≈ 7 m', 1], ['Vuelo del Capitán desde la torre C (3 m) hasta el escenario', 1], ['Explosión en el centro del toroide', 1]],
+    tec: ['Estructura toroide', 'Nave / debris', 'Sistema de vuelo', 'Efecto explosión'],
+    pend: ['Punto de colgado y carga admisible del techo', 'Sistema de vuelo: tirolesa o motor con carro', 'Tipo de efecto para la explosión (apto interior)'],
+    build() {
+      const c = [11, 7, 6.5];
+      const tor = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.07, 10, 80), figMat(0xbfc0ff)); tor.rotation.x = Math.PI / 2; tor.position.set(...c); sceneGroup.add(tor);
+      label('Toroide', 'fig air', tor, [0, 0, 0.6]);
+      ceilingHangs([[c[0] + 2.2, 7, c[2]], [c[0] - 2.2, 7, c[2]], [c[0], 7, c[2] + 2.2], [c[0], 7, c[2] - 2.2]]);
+      propBox(10.4, 11.6, 6.55, 7.45, 6.1, 6.9, 'Nave');
+      const a1 = figure('Astronauta', [0, 0, 0], { color: PURPLE, air: true }), a2 = figure('Astronauta', [0, 0, 0], { color: PURPLE, air: true });
+      anims.push(t => { for (const [f, ph] of [[a1, 0], [a2, Math.PI]]) { const a = t * .6 + ph; f.position.set(c[0] + Math.cos(a) * 2.2, 6.1, c[2] + Math.sin(a) * 2.2); } });
+      const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(...c); sceneGroup.add(flash);
+      anims.push(t => { const k = (t % 5) / 5; flash.scale.setScalar(0.2 + k * 3.2); flash.material.opacity = Math.max(0, 0.45 * (1 - k * 1.6)); });
+      const cur = path([[19.4, 3.2, 6.1], [15, 6.6, 6.3], [7, 6.2, 6.5], [1.5, 1.2, 6.5]]);
+      follow(figure('Cap. Psicodelia', [0, 0, 0], { color: ORANGE, air: true }), cur, 0.09);
+    } },
+  { n: 2, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario'], cam: 'publico',
+    guion: 'Bloque de 30 min de High Energy. Personaje y detalles a definir; probablemente Chicho Sarli (ver escena 9).',
+    esp: [['DJ en cabina sobre el escenario', 1], ['Pista libre para el público']],
+    tec: ['Sonido DJ'], pend: ['Confirmar si el DJ es Chicho Sarli u otro personaje'],
+    build() { dj('DJ · a confirmar'); } },
+  { n: 3, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
+    guion: 'Milano Paolini toma la cabina. En paralelo, un músico toca techno con un dispositivo de tubos de PVC. En el aire aparece un mono en bicicleta volando: es el astronauta de la escena 1, que reingresa transformado.',
+    esp: [['Milano Paolini en cabina'], ['Músico de tubos PVC sobre la tarima móvil en el centro de la pista', 1], ['Mono en bicicleta sobre cable tendido entre las torres A y B (8 m, ≈ 11 m de luz)', 1]],
+    tec: ['Dispositivo de tubos PVC', 'Cable entre torres', 'Bicicleta aérea'],
+    pend: ['Cálculo de la línea entre torres y anclaje de las torres al piso', 'Microfoneo de los tubos PVC'],
+    build() {
+      dj('Milano Paolini');
+      figure('Músico PVC', [9.5, 1.0, 6.5]); propBox(9.9, 10.5, 1.0, 2.2, 5.9, 7.1, 'Tubos PVC');
+      const c = path([[10, 8, 1.05], [12.3, 8, 11.95]]);
+      const m = figure('Mono en bici', [0, 0, 0], { color: PURPLE, air: true });
+      anims.push(t => { const k = (Math.sin(t * .35) + 1) / 2; const p = c.getPointAt(k); m.position.set(p.x, p.y - 1.95, p.z); });
+    } },
+  { n: 4, t: 'La monja', k: 'Escena', el: ['escenario'], cam: 'publico',
+    guion: 'Entra en escena la Monja. Coreografía y duración a definir.',
+    esp: [['La Monja entra por la escalera lateral y ocupa el escenario', 1]],
+    tec: [], pend: ['Coreografía', 'Duración'],
+    build() { const c = path([[3.6, 0, 12.2], [2.5, 1.0, 11.2], [1.2, 1.0, 8], [1.2, 1.0, 6.5]], { color: ORANGE }); follow(figure('Monja', [0, 0, 0], { color: WHITE }), c, 0.08); } },
+  { n: 5, t: 'Cañón de remeras', k: 'Escena', el: ['torreA', 'torreB'], cam: 'iso',
+    guion: 'Dos performers en bungee disparan remeras al público con pistolas / cañones. Reemplaza a la vieja “guerra de cubos”.',
+    esp: [['Un bungee colgado de cada torre de 8 m, con brazo hacia la pista', 1], ['Disparos de remeras hacia el centro de la pista']],
+    tec: ['Bungee ×2', 'Cañones de remeras', 'Brazos de colgado en torres'],
+    pend: ['Radio de oscilación y zona de exclusión bajo cada bungee', 'Cantidad de remeras y recarga'],
+    build() {
+      bungee('Bungee 1', [10, 8, 2.4], 1.35); bungee('Bungee 2', [12.3, 8, 10.6], -1.35);
+      arcs([10, 5, 2.4], [[9, 0, 6], [12, 0, 5], [15, 0, 4]]); arcs([12.3, 5, 10.6], [[9, 0, 9], [13, 0, 7.5], [16, 0, 10]]);
+      ring([10, 2.4], 1.2, PURPLE); ring([12.3, 10.6], 1.2, PURPLE);
+    } },
+  { n: 6, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
+    guion: 'Desfile de personajes. Estética y ritmo a definir.',
+    esp: [['Circuito: escenario → escalera → vuelta por la pista → tarima → escalera opuesta', 1], ['Tarima como punto de pose al fondo de la pista', 1]],
+    tec: ['Pasillo despejado en la pista'], pend: ['Estética', 'Ritmo y cantidad de personajes', 'Cómo se abre paso entre el público'],
+    build() {
+      const c = path([[1.4, 1, 3], [2.6, 1, 0.9], [3.8, 0, 0.9], [9, 0, 2.2], [15.5, 1.0, 6.5], [9, 0, 10.8], [3.8, 0, 12.1], [2.6, 1, 12.1], [1.4, 1, 10]], { color: ORANGE, closed: true });
+      for (let i = 0; i < 5; i++) follow(figure(i === 0 ? 'Personajes' : '', [0, 0, 0]), c, 0.035, i * 0.2);
+    } },
+  { n: 7, t: 'Casamiento', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
+    guion: 'Escena de casamiento. Interviene el vestuario de Novios (traje y vestido, V19 en catálogo).',
+    esp: [['Tarima en el centro de la pista como altar, rodeada por el público', 1]],
+    tec: ['Vestuario Novios (V19)'], pend: ['Oficiante / personajes que acompañan'],
+    build() { figure('Novio', [10.5, 1, 6.5]); figure('Novia', [11.3, 1, 6.5], { color: WHITE }); ring([10.9, 6.5], 3, ORANGE); } },
+  { n: 8, t: 'Vals', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
+    guion: 'Vals: continuación del arco del casamiento.',
+    esp: [['Los novios bailan sobre la tarima en el centro de la pista', 1]],
+    tec: [], pend: ['Duración'],
+    build() {
+      const a = figure('Novio', [0, 0, 0]), b = figure('Novia', [0, 0, 0], { color: WHITE });
+      anims.push(t => { const r = .38; a.position.set(10.9 + Math.cos(t * .9) * r, 1, 6.5 + Math.sin(t * .9) * r); b.position.set(10.9 - Math.cos(t * .9) * r, 1, 6.5 - Math.sin(t * .9) * r); });
+      ring([10.9, 6.5], 3, ORANGE);
+    } },
+  { n: 9, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario'], cam: 'escenario',
+    guion: 'Entra Chicho Sarli, personaje bien porteño con estética Miami años 90. Ingresa disparando billetes con pistolas lanza billetes (E16 en catálogo). 30 min de su set.',
+    esp: [['Chicho Sarli entra por la escalera lateral y dispara billetes hacia la pista', 1], ['Luego toma la cabina']],
+    tec: ['Pistolas lanza billetes (E16)', 'Sonido DJ'], pend: ['Limpieza de billetes antes de la escena siguiente'],
+    build() { propBox(1.55, 2.2, 1.0, 1.95, 5.6, 7.4, 'Cabina DJ'); figure('Chicho Sarli', [2.0, 1.0, 3.2], { color: WHITE }); arcs([2.1, 2.4, 3.2], [[7, 0, 3], [9, 0, 6], [8, 0, 10], [13, 0, 5]]); } },
+  { n: 10, t: 'Warm music', k: 'Transición', el: ['escenario'], cam: 'iso',
+    guion: 'Bloque de música más contenido, de transición. DJ y duración a definir.',
+    esp: [['Cabina DJ en el escenario'], ['Momento para reposicionar la tarima al centro', 1]],
+    tec: ['Sonido DJ'], pend: ['DJ', 'Duración', 'Personaje del bloque'],
+    build() { dj('DJ · a definir'); } },
+  { n: 11, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'tela', 'anclajes'], tarima: [10.9, 6.5], cam: 'iso',
+    guion: 'Se mete una escalera dentro del público y el Capitán Psicodelia invita a todos a subirse; entre staff y público se arma un mosh mutuo. En paralelo, en el aire, dos performers femeninas corren tipo correcaminos: una persecución, un enfrentamiento aéreo.',
+    esp: [['Escalera junto a la tarima, en el centro de la pista', 1], ['Zona de mosh alrededor de la tarima (radio ≈ 3,5 m)', 1], ['Correcaminos en danza vertical sobre la tela, con los anclajes', 1]],
+    tec: ['Escalera de mosh', 'Arneses de danza vertical ×2', 'Staff de contención'],
+    pend: ['Staff de seguridad para el mosh', 'Tipo de escalera y quién la ingresa'],
+    build() {
+      figure('Cap. Psicodelia', [10.9, 1, 6.5]);
+      segs([[8.6, 0, 5.9], [8.9, 2.4, 6.2], [8.6, 0, 6.9], [8.9, 2.4, 6.6], [9.4, 0, 5.9], [8.9, 2.4, 6.2], [9.4, 0, 6.9], [8.9, 2.4, 6.6]], new THREE.LineBasicMaterial({ color: ORANGE }), sceneGroup);
+      ring([10.9, 6.5], 3.5, ORANGE);
+      wallRunner('Correcaminos 1', ANCH[0], t => 6.5 + Math.sin(t * .7) * 4.2, t => 5.2 + Math.sin(t * 1.3) * .6);
+      wallRunner('Correcaminos 2', ANCH[1], t => 6.5 + Math.sin(t * .7 - .9) * 4.2, t => 5.4 + Math.cos(t * 1.1) * .6);
+    } },
+  { n: 12, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'tela'], cam: 'publico', luz: 'pico',
+    guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
+    esp: [['Cuenta regresiva proyectada sobre la tela', 1], ['Línea de efectos al frente del escenario', 1]],
+    tec: ['Proyección / pantalla', 'Efecto “fuegos artificiales”'],
+    pend: ['Pirotecnia en interior: confirmar habilitación del venue; evaluar chispa fría o efecto certificado'],
+    build() {
+      bigLabel('10 · 9 · 8 …', [0.2, 6, 6.4]);
+      const fs = [];
+      for (let i = 0; i < 7; i++) { const z = 1.5 + i * 10 / 6; const m = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1, 8, 1, true), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, opacity: .7 })); m.position.set(2.2, 1.5, z); sceneGroup.add(m); fs.push(m); }
+      anims.push(t => fs.forEach((m, i) => { const s = 0.6 + 1.6 * Math.abs(Math.sin(t * 3 + i)); m.scale.set(1, s, 1); m.position.y = 1 + s / 2; }));
+    } },
+  { n: 13, t: 'El trompetista peposo', k: 'Escena · bajón', el: ['torreC'], cam: 'escenario', luz: 'frio',
+    guion: 'Bajón repentino después del pico. Clima nocturno, frío. Aparece “el trompetista peposo”, que toca trompeta con delay.',
+    esp: [['Trompetista arriba de la torre C, de frente al escenario y con la sala a oscuras', 1], ['Un único haz cenital sobre él', 1]],
+    tec: ['Micrófono de trompeta + delay', 'Seguidor o cenital'], pend: ['Cambio de luces pico → frío'],
+    build() {
+      figure('Trompetista', [19.5, 3, 6.1], { color: 0x9fb8ff });
+      const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 11, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, side: THREE.DoubleSide }));
+      beam.position.set(19.5, 3 + 5.5, 6.1); sceneGroup.add(beam);
+    } },
+  { n: 14, t: 'Cajón + Pelea', k: 'Escena fusionada', el: ['tela', 'anclajes'], cam: 'publico',
+    guion: 'Enfrentamiento aéreo entre dos tenistas. La pelea transcurre dentro de esta misma escena (antes eran dos escenas separadas).',
+    esp: [['Duelo de tenistas en danza vertical sobre la tela, uno por línea de anclaje', 1]],
+    tec: ['Arneses aéreos ×2'], pend: ['Coreografía de pelea', 'Qué es el “cajón” en escena'],
+    build() {
+      wallRunner('Tenista 1', ANCH[0], t => 5.0 + Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.sin(t * 2.2) * .4);
+      wallRunner('Tenista 2', ANCH[1], t => 8.2 - Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.cos(t * 2.2) * .4);
+    } },
+  { n: 15, t: 'Esfera / Cuatro caras', k: 'Escena', el: [], cam: 'lateral',
+    guion: 'Descienden 4 caras esculpidas. De cada una baja un personaje sin cara, con estructuras en los brazos que los hacen ver con brazos largos.',
+    esp: [['4 caras colgadas de motores en el techo, sobre las cuatro esquinas de la pista', 1], ['Bajan hasta ≈ 4,5 m; el personaje desciende debajo de cada una', 1]],
+    tec: ['4 caras esculpidas', '4 puntos motorizados', 'Extensiones de brazos'],
+    pend: ['Peso de cada cara', 'Motores y control de descenso', 'Cantidad de riggers'],
+    build() {
+      const P = [[7, 3.8], [7, 9.2], [15, 3.8], [15, 9.2]];
+      ceilingHangs(P.map(([x, z]) => [x, 11, z]));
+      const faceGeo = new THREE.IcosahedronGeometry(0.9, 1);
+      P.forEach(([x, z], i) => {
+        const f = new THREE.Mesh(faceGeo, figMat(0xbfc0ff)); f.scale.set(1, 1.25, .7); sceneGroup.add(f);
+        const p = figure(i === 0 ? 'Sin cara' : '', [x, 0, z], { color: PURPLE, air: true });
+        segs([[-.2, 1.35, 0], [-1.2, .5, 0], [.2, 1.35, 0], [1.2, .5, 0]], new THREE.LineBasicMaterial({ color: PURPLE }), p);
+        anims.push(t => { const k = (1 - Math.cos(((t * .25 + i * .08) % 1) * Math.PI * 2)) / 2; const y = 11 - k * 6.5; f.position.set(x, y, z); p.position.set(x, Math.max(0, y - 1.2 - 1.7 - k * 3), z); });
+      });
+      label('Caras esculpidas ×4', 'fig air', sceneGroup, [11, 12, 6.5]);
+    } },
+  { n: 16, t: 'Persecución', k: 'Vaca-monja vs. Punky-carnicera', el: [], cam: 'iso',
+    guion: 'Retorno de la persecución. Los dos personajes vienen apareciendo desde el principio del show.',
+    esp: [['Persecución en circuito por el perímetro de la pista', 1]],
+    tec: [], pend: ['En qué escenas anteriores aparecen', 'Si se suma un tramo aéreo'],
+    build() {
+      const c = path([[4, 0, 2], [17, 0, 2.2], [17.5, 0, 10.8], [4, 0, 11]], { color: ORANGE, closed: true });
+      follow(figure('Vaca-monja', [0, 0, 0], { color: WHITE }), c, 0.05, 0.1);
+      follow(figure('Punky-carnicera', [0, 0, 0]), c, 0.05, 0);
+    } },
+  { n: 17, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'tarima', 'torreA', 'torreB', 'torreC', 'tela'], tarima: [10.9, 6.5], cam: 'iso',
+    guion: 'Van entrando todos los personajes para el cierre coral, con “Hella Good” (remix) sonando.',
+    esp: [['Personajes en escenario, tarima y torres', 1], ['Público al centro de la pista']],
+    tec: ['Todos los vestuarios'], pend: ['Orden de entrada', 'Cantidad total de personajes en escena'],
+    build() {
+      dj('DJ');
+      [[1.2, 2], [1.2, 3.6], [1.2, 9.4], [1.2, 11], [1.6, 4.7], [1.6, 8.3]].forEach(([x, z], i) => figure(i === 0 ? 'Elenco' : '', [x, 1, z], { color: i % 2 ? WHITE : ORANGE }));
+      figure('', [10.5, 1, 6.5]); figure('', [11.3, 1, 6.5], { color: WHITE });
+      figure('', [10, 8, 0.55], { color: PURPLE }); figure('', [12.3, 8, 12.45], { color: PURPLE }); figure('Trompetista', [19.5, 3, 6.1], { color: 0x9fb8ff });
+    } },
+];
+
+/* ───────── Estado ───────── */
+const LUZ = { normal: [0x0a0a0a, 0xffffff], frio: [0x05080f, 0x9fb8ff], pico: [0x120905, 0xffd2c2] };
+let current = 0, t = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function clearScene() {
+  sceneGroup.traverse(o => { if (o.isCSS2DObject) o.element.remove(); });
+  sceneGroup.traverse(o => { if (o.geometry && o.geometry !== figGeo) o.geometry.dispose(); });
+  sceneGroup.clear(); anims = [];
+}
+function setActive(ids) {
+  for (const el of Object.values(EL)) {
+    if (el.id === 'sala') continue;
+    const on = ids.includes(el.id);
+    el.edgeMat.color.set(on ? ORANGE : el.base);
+    el.faceMats.forEach(m => { m.color.set(on ? ORANGE : INK); m.opacity = Math.min(1, m.userData.base * (on ? 2.4 : 1)); });
+    el.labelEl?.classList.toggle('on', on);
+  }
+}
+function goScene(i, { moveCam = true } = {}) {
+  current = Math.max(0, Math.min(SCENES.length - 1, i));
+  const s = SCENES[current];
+  clearScene(); s.build(); setActive(s.el);
+  const tp = s.tarima ?? TARIMA_HOME; tarTarget.set(tp[0], 0, tp[1]);
+  const [bg, hc] = LUZ[s.luz ?? 'normal']; renderer.setClearColor(bg); hemi.color.set(hc);
+  if (paused) anims.forEach(f => f(t));
+  if (moveCam) goView(s.cam);
+  renderList(); renderDetail();
+  try { history.replaceState(null, '', '#escena-' + s.n); } catch (e) {}
+}
+
+/* ───────── UI ───────── */
+const listEl = document.getElementById('sceneList');
+function renderList() {
+  listEl.innerHTML = SCENES.map((s, i) => `<li><button data-i="${i}" aria-current="${i === current}"><span class="s-num">${String(s.n).padStart(2, '0')}</span><span class="s-t">${s.t}</span><span class="s-k">${s.k}</span></button></li>`).join('');
+  listEl.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+listEl.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) goScene(+b.dataset.i); });
+
+const NAMES = { escenario: 'Escenario', tela: 'Tela tensa', anclajes: 'Anclajes aéreos', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
+const detailEl = document.getElementById('detail');
+function renderDetail() {
+  const s = SCENES[current];
+  const li = ([txt, p]) => `<li class="${p ? 'p' : ''}"><span>${txt}${p ? '<span class="tag prop">Propuesta</span>' : ''}</span></li>`;
+  detailEl.innerHTML = `
+    <div class="d-head"><span class="d-num">${String(s.n).padStart(2, '0')}</span>
+      <div><h1>${s.t}</h1><p class="meta">${s.k}</p></div></div>
+    <p class="guion">${s.guion}</p>
+    <h3>En el espacio</h3><ul>${s.esp.map(li).join('')}</ul>
+    ${s.el.length ? `<h3>Estructura en uso</h3><div class="chips">${s.el.map(id => `<button class="chip el" data-el="${id}">${NAMES[id]}</button>`).join('')}</div>` : ''}
+    ${s.tec.length ? `<h3>Elementos técnicos</h3><div class="chips">${s.tec.map(x => `<span class="chip">${x}</span>`).join('')}</div>` : ''}
+    <h3>Pendiente de definir</h3><ul class="pend">${s.pend.map(x => `<li><span>${x}</span></li>`).join('')}</ul>
+    <div class="dnav"><button id="prev" ${current === 0 ? 'disabled' : ''}>← Anterior</button><button id="next" ${current === SCENES.length - 1 ? 'disabled' : ''}>Siguiente →</button></div>`;
+}
+detailEl.addEventListener('click', e => {
+  if (e.target.id === 'prev') goScene(current - 1);
+  if (e.target.id === 'next') goScene(current + 1);
+  const c = e.target.closest('[data-el]'); if (c) showInfo(c.dataset.el);
+});
+addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea')) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { goScene(current + 1); e.preventDefault(); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { goScene(current - 1); e.preventDefault(); }
+  if (e.key === 'Escape') { infoEl.hidden = true; }
+});
+
+const infoEl = document.getElementById('info');
+function showInfo(id) {
+  const i = EL[id]?.info; if (!i?.nombre) return;
+  const tag = i.estado === 'plano' ? '<span class="tag plano">Según plano</span>' : '<span class="tag est">Estimado</span>';
+  infoEl.innerHTML = `<button class="x" aria-label="Cerrar ficha">×</button><h3>${i.nombre}</h3>${tag}<ul>${i.medidas.map(m => `<li>${m}</li>`).join('')}</ul>${i.notas ? `<p>${i.notas}</p>` : ''}`;
+  infoEl.hidden = false;
+}
+infoEl.addEventListener('click', e => { if (e.target.closest('.x')) infoEl.hidden = true; });
+
+// Vistas
+const VIEWS = {
+  iso: { pos: R(29, 17, -12), target: R(9.5, 2.5, 6.5) },
+  planta: { pos: R(10, 34, 6.52), target: R(10, 0, 6.5) },
+  publico: { pos: R(17.5, 1.7, 6.5), target: R(0, 3.2, 6.5) },
+  escenario: { pos: R(1.4, 2.7, 6.5), target: R(20, 2.2, 6.5) },
+  lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
+  torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
+};
+let camTween = null;
+function goView(v) {
+  const p = VIEWS[v]; if (!p) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  camTween = { t0: performance.now(), dur: reduce ? 1 : 1000, fp: camera.position.clone(), ft: controls.target.clone(), tp: p.pos, tt: p.target };
+  document.querySelectorAll('.views .seg').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+}
+document.querySelector('.views').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) goView(b.dataset.view); });
+controls.addEventListener('start', () => { camTween = null; document.querySelectorAll('.views .seg').forEach(b => b.setAttribute('aria-pressed', 'false')); });
+
+// Capas
+const bindLayer = (id, fn) => document.getElementById(id).addEventListener('change', e => fn(e.target.checked));
+bindLayer('lyStruct', v => { for (const el of Object.values(EL)) if (el.id !== 'sala') el.group.visible = v; });
+bindLayer('lyScene', v => sceneGroup.visible = v);
+bindLayer('lyCotas', v => cotaGroup.visible = v);
+bindLayer('lyLabels', v => vp.classList.toggle('hide-labels', !v));
+
+// Pausa
+const btnPause = document.getElementById('btnPause');
+const syncPause = () => { btnPause.textContent = paused ? 'Reproducir' : 'Pausar'; btnPause.setAttribute('aria-pressed', paused); };
+btnPause.addEventListener('click', () => { paused = !paused; syncPause(); }); syncPause();
+
+// Plano original
+const dlg = document.getElementById('planoDlg');
+document.getElementById('btnPlano').addEventListener('click', () => dlg.showModal());
+document.getElementById('planoClose').addEventListener('click', () => dlg.close());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+// Medición + selección
+const btnMeasure = document.getElementById('btnMeasure');
+let measuring = false, mPts = [];
+btnMeasure.addEventListener('click', () => {
+  measuring = !measuring; btnMeasure.setAttribute('aria-pressed', measuring); vp.classList.toggle('measuring', measuring);
+  btnMeasure.textContent = measuring ? 'Medir · tocá 2 puntos' : 'Medir';
+  if (!measuring) { clearMeasure(); }
+});
+function clearMeasure() { measureGroup.traverse(o => { if (o.isCSS2DObject) o.element.remove(); }); measureGroup.clear(); mPts = []; }
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const vis = pickables.filter(o => { let p = o; while (p) { if (!p.visible) return false; p = p.parent; } return true; });
+  const hit = ray.intersectObjects(vis, false)[0];
+  if (measuring) {
+    if (!hit) return;
+    if (mPts.length === 2) clearMeasure();
+    const p = root.worldToLocal(hit.point.clone()); mPts.push(p);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), new THREE.MeshBasicMaterial({ color: ORANGE })); dot.position.copy(p); measureGroup.add(dot);
+    if (mPts.length === 2) {
+      const [a, b] = mPts;
+      measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: ORANGE })));
+      const o = new THREE.Object3D(); o.position.lerpVectors(a, b, .5); measureGroup.add(o);
+      label(a.distanceTo(b).toFixed(2).replace('.', ',') + ' m', 'meas', o);
+    }
+    return;
+  }
+  const id = hit?.object.userData.el;
+  if (id) showInfo(id); else infoEl.hidden = true;
+});
+
+// Tamaño
+function resize() {
+  const r = vp.getBoundingClientRect(); if (!r.width || !r.height) return;
+  renderer.setSize(r.width, r.height); labelR.setSize(r.width, r.height);
+  camera.aspect = r.width / r.height;
+  camera.fov = camera.aspect < 0.9 ? 60 : 42;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(vp); resize();
+
+// Loop
+const clock = new THREE.Clock();
+const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (!paused) { t += dt; anims.forEach(f => f(t)); }
+  tar.group.position.lerp(tarTarget, paused ? 1 : Math.min(1, dt * 2.2));
+  if (camTween) {
+    const k = Math.min(1, (performance.now() - camTween.t0) / camTween.dur), e = ease(k);
+    camera.position.lerpVectors(camTween.fp, camTween.tp, e); controls.target.lerpVectors(camTween.ft, camTween.tt, e);
+    if (k >= 1) camTween = null;
+  }
+  controls.update();
+  renderer.render(scene, camera); labelR.render(scene, camera);
+});
+
+// Arranque (admite #escena-N en el link)
+const m = location.hash.match(/escena-(\d+)/);
+camera.position.copy(VIEWS.iso.pos); controls.target.copy(VIEWS.iso.target);
+goScene(m ? SCENES.findIndex(s => s.n === +m[1]) : 0, { moveCam: !!m });
+</script>
+
+</body>
+</html>
