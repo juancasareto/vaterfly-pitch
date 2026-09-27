@@ -119,6 +119,25 @@
   .chip{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:3px; background:var(--panel-2); border:1px solid var(--line); color:var(--ink)}
   .chip.el{border-color:rgba(255,107,61,.45); color:var(--orange); cursor:pointer}
   .pend li::before{background:var(--orange)}
+  .tabs{display:flex; gap:4px; padding:12px 8px 8px; position:sticky; top:0; background:var(--bg); z-index:1}
+  .tabs button{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:7px 6px; cursor:pointer;
+               font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--sub)}
+  .tabs button[aria-selected="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+  .scenes li button:disabled{opacity:.42; cursor:default}
+  .scenes li button:disabled:hover{background:none}
+  .src{font-family:var(--mono); font-size:10.5px; color:var(--faint); margin:10px 0 0; letter-spacing:.02em}
+  .ctl{display:flex; flex-direction:column; gap:10px}
+  .segrow{display:flex; flex-wrap:wrap; gap:4px; align-items:center}
+  .lbl-in{font-family:var(--mono); font-size:11px; color:var(--sub); margin-right:4px; text-transform:uppercase; letter-spacing:.05em}
+  .rng{display:grid; grid-template-columns:auto 1fr 3.5ch; gap:10px; align-items:center; font-family:var(--mono); font-size:11px; color:var(--sub); text-transform:uppercase; letter-spacing:.05em}
+  .rng input{accent-color:var(--orange); width:100%}
+  .rng output{color:var(--ink); font-variant-numeric:tabular-nums; text-align:right}
+  .tag.warn{color:#ff6a5a; border-color:rgba(255,80,60,.5); background:rgba(255,60,40,.1)}
+  .notes li.w::before{background:#ff4a3a}
+  .ficha{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0}
+  .ficha dt{font-family:var(--mono); font-size:11px; color:var(--sub); text-transform:uppercase; letter-spacing:.04em}
+  .ficha dd{margin:0}
+  .ficha dd.tbd{color:var(--faint)}
   .lux{margin:0 0 10px; color:var(--ink); max-width:65ch}
   .detail h3 .tag{margin-left:6px; letter-spacing:.05em}
   .pend li{color:var(--sub)}
@@ -142,7 +161,7 @@
     .app{height:auto; display:flex; flex-direction:column}
     .stage-wrap{height:62svh; min-height:360px; order:2}
     .scenes{order:3; border:0; border-bottom:1px solid var(--line); overflow:visible}
-    .scenes h2{position:static; padding-bottom:4px}
+    .tabs{position:static}
     .scenes ol{display:flex; overflow-x:auto; gap:4px; padding:0 16px 12px; scroll-snap-type:x proximity}
     .scenes li{flex:0 0 auto; scroll-snap-align:start}
     .scenes li button{grid-template-columns:auto auto; width:auto; border:1px solid var(--line); padding:6px 10px}
@@ -231,8 +250,11 @@
     </nav>
   </header>
 
-  <aside class="scenes" aria-label="Escenas del guion">
-    <h2>Guion · 18 bloques</h2>
+  <aside class="scenes" aria-label="Guion y mecanismos">
+    <div class="tabs" role="tablist" aria-label="Qué mostrar">
+      <button role="tab" id="tabGuion" aria-selected="true">Guion · 18</button>
+      <button role="tab" id="tabMec" aria-selected="false">Mecanismos · 7</button>
+    </div>
     <ol id="sceneList"></ol>
   </aside>
 
@@ -301,6 +323,7 @@ try {
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setClearColor(0x0a0a0a);
+renderer.localClippingEnabled = true;
 vp.appendChild(renderer.domElement);
 const labelR = new CSS2DRenderer();
 labelR.domElement.className = 'labels';
@@ -444,22 +467,38 @@ const marco = makeEl('marco', {
   marco.labelEl = label('Marco de caños', '', marco.group, [x - .2, 10.9, TELA.z0 + 1]);
 }
 
-/* ───────── Anclajes escena aérea (sobre el marco) ───────── */
-const ANCH = [{ top: [TELA.x + .1, 9.1, 4.5], bot: [TELA.x + .1, 2.2, 5.5] }, { top: [TELA.x + .1, 8.9, 8.3], bot: [TELA.x + .1, 2.0, 9.4] }];
-const anc = makeEl('anclajes', {
-  nombre: 'Anclajes escena aérea', estado: 'plano',
-  medidas: ['2 líneas tensas sobre la tela', 'Punto superior ≈ 9 m · inferior ≈ 2 m', 'Toman el marco de caños'],
-  notas: 'Cargas y tipo de anclaje a definir con rigger certificado. El marco tiene que estar calculado para esa carga.'
+/* ───────── Pelea telón: marco giratorio 7,5 × 7,5 m pegado a la tela tensa (Notion · Bruno) ───────── */
+// Reemplaza a las 2 líneas de anclaje aéreo que había sobre la tela.
+const TEL = { side: 7.5, yb: STAGE.h + 0.3, z: (TELA.z0 + TELA.z1) / 2, xPegado: TELA.x + 0.4, xGiro: TELA.x + 3.95 };
+const telon = makeEl('telon', {
+  nombre: 'Pelea telón', estado: 'plano',
+  medidas: ['Marco cuadrado de 7,5 × 7,5 m (Layher) con truss arriba', 'Tela blanca tensada con cuerda por ojales', 'Cuelga de un swivel al centro del truss superior, con cable de acero al techo', 'Gira 180° · pegado a la tela tensa, sobre el escenario'],
+  notas: 'Borde inferior a 0,3 m del escenario (≈ 1,3 m del piso): supuesto. El mecanismo completo, con la percha y el giro, está en la pestaña Mecanismos.'
 });
+const telHang = new THREE.Group(); telon.group.add(telHang); telHang.position.set(TEL.xPegado, 0, TEL.z);
+const telRot = new THREE.Group(); telHang.add(telRot);
+let telFabricMat;
 {
-  const sg = new THREE.SphereGeometry(0.13, 16, 10);
-  for (const a of ANCH) {
-    for (const p of [a.top, a.bot]) {
-      const fm = new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: 0.9 }); fm.userData.base = 0.9; anc.faceMats.push(fm);
-      const sp = new THREE.Mesh(sg, fm); sp.position.set(...p); sp.userData.el = 'anclajes'; pickables.push(sp); anc.group.add(sp);
-    }
-    segs([a.top, a.bot], anc.edgeMat, anc.group);
-  }
+  const sd = TEL.side, h = sd / 2, yb = TEL.yb, yt = yb + sd, pts = [];
+  for (const x of [-.05, .05]) pts.push([x, yb, -h], [x, yb, h], [x, yb, h], [x, yt, h], [x, yt, h], [x, yt, -h], [x, yt, -h], [x, yb, -h]);
+  const q = .15, yA = yt, yB = yt - .3;                            // truss superior de 30 cm
+  for (const x of [-q, q]) for (const y of [yA, yB]) pts.push([x, y, -h], [x, y, h]);
+  for (let i = 0, n = 15; i < n; i++) { const z0 = -h + i * sd / n, z1 = z0 + sd / n; for (const x of [-q, q]) pts.push([x, i % 2 ? yA : yB, z0], [x, i % 2 ? yB : yA, z1]); }
+  segs(pts, telon.edgeMat, telRot);
+  const a = .35, fw = sd - 2 * a, fh = sd - .3 - 2 * a, fy0 = yb + a, fy1 = fy0 + fh;
+  telFabricMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .1, side: THREE.DoubleSide, depthWrite: false });
+  const fab = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), telFabricMat); fab.rotation.y = Math.PI / 2; fab.position.set(0.02, fy0 + fh / 2, 0);
+  fab.userData.el = 'telon'; pickables.push(fab); telRot.add(fab);
+  const lace = [], n = 16;
+  const zig = (p0, p1, q0, q1) => { const L = (A, B, u) => [0, A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u];
+    for (let i = 0; i < n; i++) lace.push(L(p0, p1, i / n), L(q0, q1, (i + .5) / n), L(q0, q1, (i + .5) / n), L(p0, p1, (i + 1) / n)); };
+  zig([fy0, -h + a], [fy0, h - a], [yb, -h], [yb, h]); zig([fy1, -h + a], [fy1, h - a], [yB, -h], [yB, h]);
+  zig([fy0, -h + a], [fy1, -h + a], [yb, -h], [yB, -h]); zig([fy0, h - a], [fy1, h - a], [yb, h], [yB, h]);
+  segs(lace, new THREE.LineBasicMaterial({ color: 0x7a7a82 }), telRot);
+  segs([[0, yt, 0], [0, H, 0]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), telHang);          // cable de acero
+  const sw = new THREE.CylinderGeometry(.09, .09, .22, 12);
+  const swE = new THREE.LineSegments(new THREE.EdgesGeometry(sw, 20), telon.edgeMat); swE.position.y = yt + .2; telHang.add(swE);
+  telon.labelEl = label('Pelea telón', '', telHang, [0.3, yt + .9, 0]);
 }
 
 /* ───────── Accesos de público (a los lados de la torre C) ───────── */
@@ -605,10 +644,10 @@ function bigLabel(text, p) { const o = new THREE.Object3D(); o.position.set(...p
 
 // piezas reutilizadas por varias escenas
 function dj(name = 'DJ') { propBox(SX + 1.55, SX + 2.2, 1.0, 1.95, 5.6, 7.4, 'Cabina DJ'); figure(name, [SX + 1.0, 1.0, 6.5], { color: WHITE }); }
-function wallRunner(name, anchor, zFn, yFn, color = PURPLE) {
-  const f = figure(name, [TELA.x + .08, 5, 6], { color, air: true, horizontal: true });
-  const line = dynLine(PURPLE), top = new THREE.Vector3(...anchor.top);
-  anims.push(t => { f.position.set(TELA.x + .08, yFn(t), zFn(t)); line(top, new THREE.Vector3(TELA.x + .95, f.position.y, f.position.z)); });
+function wallRunner(name, _unused, zFn, yFn, color = PURPLE) {
+  const f = figure(name, [TEL.xPegado + .12, 5, 6], { color, air: true, horizontal: true });
+  const line = dynLine(PURPLE);
+  anims.push(t => { f.position.set(TEL.xPegado + .12, yFn(t), zFn(t)); line(new THREE.Vector3(TEL.xPegado + 1, H, f.position.z), new THREE.Vector3(TEL.xPegado + 1, f.position.y, f.position.z)); });
 }
 function bungee(name, anchor, lean) {
   const a = new THREE.Vector3(...anchor);
@@ -717,17 +756,17 @@ const SCENES = [
     esp: [['Cabina DJ en el escenario'], ['Momento para reposicionar la tarima al centro', 1]],
     tec: ['Sonido DJ'], pend: ['DJ', 'Duración', 'Personaje del bloque'],
     build() { dj('DJ · a definir'); } },
-  { n: 11, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'tela', 'anclajes'], tarima: [10.9, 6.5], cam: 'iso',
+  { n: 11, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
     guion: 'Se mete una escalera dentro del público y el Capitán Psicodelia invita a todos a subirse; entre staff y público se arma un mosh mutuo. En paralelo, en el aire, dos performers femeninas corren tipo correcaminos: una persecución, un enfrentamiento aéreo.',
-    esp: [['Escalera junto a la tarima, en el centro de la pista', 1], ['Zona de mosh alrededor de la tarima (radio ≈ 3,5 m)', 1], ['Correcaminos en danza vertical sobre la tela, con los anclajes', 1]],
+    esp: [['Escalera junto a la tarima, en el centro de la pista', 1], ['Zona de mosh alrededor de la tarima (radio ≈ 3,5 m)', 1], ['Correcaminos en danza vertical sobre el Pelea telón', 1]],
     tec: ['Escalera de mosh', 'Arneses de danza vertical ×2', 'Staff de contención'],
     pend: ['Staff de seguridad para el mosh', 'Tipo de escalera y quién la ingresa'],
     build() {
       figure('Cap. Psicodelia', [10.9, 1, 6.5]);
       segs([[8.6, 0, 5.9], [8.9, 2.4, 6.2], [8.6, 0, 6.9], [8.9, 2.4, 6.6], [9.4, 0, 5.9], [8.9, 2.4, 6.2], [9.4, 0, 6.9], [8.9, 2.4, 6.6]], new THREE.LineBasicMaterial({ color: ORANGE }), sceneGroup);
       ring([10.9, 6.5], 3.5, ORANGE);
-      wallRunner('Correcaminos 1', ANCH[0], t => 6.5 + Math.sin(t * .7) * 4.2, t => 5.2 + Math.sin(t * 1.3) * .6);
-      wallRunner('Correcaminos 2', ANCH[1], t => 6.5 + Math.sin(t * .7 - .9) * 4.2, t => 5.4 + Math.cos(t * 1.1) * .6);
+      wallRunner('Correcaminos 1', null, t => 6.5 + Math.sin(t * .7) * 4.2, t => 5.2 + Math.sin(t * 1.3) * .6);
+      wallRunner('Correcaminos 2', null, t => 6.5 + Math.sin(t * .7 - .9) * 4.2, t => 5.4 + Math.cos(t * 1.1) * .6);
     } },
   { n: 12, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'tela'], cam: 'publico', luz: 'pico',
     guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
@@ -749,13 +788,13 @@ const SCENES = [
       const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 11, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.set(19.5, 3 + 5.5, 6.1); sceneGroup.add(beam);
     } },
-  { n: 14, t: 'Cajón + Pelea', k: 'Escena fusionada', el: ['tela', 'anclajes'], cam: 'publico',
+  { n: 14, t: 'Cajón + Pelea', k: 'Escena fusionada', el: ['telon'], cam: 'publico',
     guion: 'Enfrentamiento aéreo entre dos tenistas. La pelea transcurre dentro de esta misma escena (antes eran dos escenas separadas).',
     esp: [['Duelo de tenistas en danza vertical sobre la tela, uno por línea de anclaje', 1]],
     tec: ['Arneses aéreos ×2'], pend: ['Coreografía de pelea', 'Qué es el “cajón” en escena'],
     build() {
-      wallRunner('Tenista 1', ANCH[0], t => 5.0 + Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.sin(t * 2.2) * .4);
-      wallRunner('Tenista 2', ANCH[1], t => 8.2 - Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.cos(t * 2.2) * .4);
+      wallRunner('Tenista 1', null, t => 5.0 + Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.sin(t * 2.2) * .4);
+      wallRunner('Tenista 2', null, t => 8.2 - Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.cos(t * 2.2) * .4);
     } },
   { n: 15, t: 'Esfera / Cuatro caras', k: 'Escena', el: [], cam: 'lateral',
     guion: 'Descienden 4 caras esculpidas. De cada una baja un personaje sin cara, con estructuras en los brazos que los hacen ver con brazos largos.',
@@ -805,11 +844,12 @@ const FX_TYPES = {
   par:     { nombre: 'PAR 64 · 1000 W', angle: 7, beamGain: .28, poolGain: .7, uso: 'El “par mil”: luz cálida clásica. Frontal del escenario y uplight sobre la tela.' },
   blinder: { nombre: 'Blinder 4 lámparas', angle: 22, beamGain: .09, poolGain: .25, uso: 'Enceguece al público en los picos: cuenta regresiva y cierre.' },
   seg:     { nombre: 'Seguidor', angle: 3.2, beamGain: .38, poolGain: 1.2, uso: 'Sigue a un personaje por la sala. Va en el piso, sobre trípode, en una esquina, operado por una persona. Ojo: el público puede tapar el haz; evaluar un praticable de 0,5 a 1 m.' },
+  contra:  { nombre: 'Luz de contra en trípode', angle: 27, beamGain: .06, poolGain: 0, uso: 'Desde el backstage ilumina toda la tela del Pelea telón: es la que genera las sombras.' },
   hazer:   { nombre: 'Máquina de humo / hazer', uso: 'Llena el aire de una niebla fina para que se vean los haces. Confirmar que el venue lo permite (detectores).' },
 };
 const RIGS = {
   T1: 'Truss frontal sobre el escenario · 7 m', T2: 'Truss lateral pista (lado torre A) · 10 m', T3: 'Truss lateral pista (lado torre B) · 10 m',
-  TA: 'Plataforma torre A · 8 m', TCT: 'Truss de músicos sobre torre C · ≈ 5,6 m', PISO: 'Piso, en trípode (esquina de la sala)', TB: 'Plataforma torre B · 8 m', TC: 'Plataforma torre C · 3 m', ESC: 'Piso del escenario',
+  TA: 'Plataforma torre A · 8 m', BST: 'Backstage, en trípode', TCT: 'Truss de músicos sobre torre C · ≈ 5,6 m', PISO: 'Piso, en trípode (esquina de la sala)', TB: 'Plataforma torre B · 8 m', TC: 'Plataforma torre C · 3 m', ESC: 'Piso del escenario',
 };
 
 const beamVS = `attribute float aT; varying float vT; varying vec3 vN; varying vec3 vV;
@@ -845,8 +885,9 @@ function fixture(type, p, rig, grp, { hang = true } = {}) {
   if (type === 'beam' || type === 'wash') {
     edges(new THREE.BoxGeometry(0.42, 0.08, 0.3), g, [0, hang ? 0.36 : -0.36, 0]);
     const hg = new THREE.CylinderGeometry(type === 'wash' ? .17 : .12, .15, .34, 14); hg.rotateX(Math.PI / 2); edges(hg, aim, [0, 0, -0.1]);
-  } else if (type === 'par' || type === 'seg') {
-    const cg = new THREE.CylinderGeometry(type === 'seg' ? .16 : .12, type === 'seg' ? .16 : .12, type === 'seg' ? .9 : .38, 14); cg.rotateX(Math.PI / 2);
+  } else if (type === 'par' || type === 'seg' || type === 'contra') {
+    const r = type === 'seg' ? .16 : type === 'contra' ? .22 : .12, len = type === 'seg' ? .9 : .38;
+    const cg = new THREE.CylinderGeometry(r, r, len, 14); cg.rotateX(Math.PI / 2);
     edges(cg, aim, [0, 0, type === 'seg' ? -0.4 : -0.17]);
   } else if (type === 'strobe') edges(new THREE.BoxGeometry(0.62, 0.2, 0.14), g);
   else if (type === 'blinder') edges(new THREE.BoxGeometry(0.5, 0.5, 0.16), aim, [0, 0, -0.08]);
@@ -908,7 +949,10 @@ for (const z of [0.7, 12.3]) {
 // Truss de músicos: 2 PAR 64 para los músicos de la torre C
 for (const z of [5.2, 7.0]) fixture('par', [19.3, 5.25, z], 'TCT', 'parM');
 // Piso del escenario: 8 PAR 64 en uplight sobre la tela + 2 hazers
-for (let i = 0; i < 8; i++) fixture('par', [SX + 0.45, 1.12, 1.8 + i * 1.35], 'ESC', 'parU', { hang: false });
+for (let i = 0; i < 8; i++) fixture('par', [TEL.xPegado + 0.5, 1.12, 1.8 + i * 1.35], 'ESC', 'parU', { hang: false });
+// Contra del Pelea telón: trípode en el backstage
+const contraFx = fixture('contra', [1.2, 2.3, TEL.z], 'BST', 'contra', { hang: false });
+segs([[1.2, 2.05, TEL.z], [0.75, 0, TEL.z + .4], [1.2, 2.05, TEL.z], [0.75, 0, TEL.z - .4], [1.2, 2.05, TEL.z], [1.75, 0, TEL.z]], bodyMat, lightGroup);
 fixture('hazer', [SX + 0.6, 1.0, STAGE.z0 + .4], 'ESC', 'hazer'); fixture('hazer', [SX + 0.6, 1.0, STAGE.z1 - .4], 'ESC', 'hazer');
 
 const strobeFlash = new THREE.PointLight(0xffffff, 0, 30, 2); lightGroup.add(strobeFlash);
@@ -922,7 +966,8 @@ function figTarget(name, out, fallback) {
 const AIM = {
   down: (fx) => (t, o) => o.set(fx.lens.x, 0, fx.lens.z),
   stage: (fx) => (t, o) => o.set(SX + 1.3, 1.0, fx.lens.z),
-  up: (fx) => (t, o) => o.set(TELA.x + .06, 9.6, fx.lens.z),
+  up: (fx) => (t, o) => o.set(TEL.xPegado + .12, 8.6, fx.lens.z),
+  telon: () => (t, o) => o.set(telHang.position.x, TEL.yb + TEL.side / 2, TEL.z),
   pista: (fx, i) => (t, o) => o.set(fx.lens.x + Math.sin(t * .3 + i) * 1.6, 0, 6.5 + (fx.lens.z - 6.5) * .35 + Math.cos(t * .25 + i * 1.3) * 1.4),
   fan: (fx, i) => (t, o) => o.set(11 + Math.sin(t * .45 + i * .7) * 6.5, 0, 6.5 + Math.cos(t * .37 + i * 1.1) * 4.8),
   fanFast: (fx, i) => (t, o) => o.set(11 + Math.sin(t * 1.3 + i * .9) * 7, 0, 6.5 + Math.cos(t * 1.05 + i * 1.4) * 5),
@@ -949,6 +994,7 @@ function applyLook(look) {
   set('beamT1', look.beam); set('beamTorre', look.beamTorre ?? look.beam); set('wash', look.wash);
   set('parF', look.parF && { aim: 'stage', c: 'ffc68a', ...look.parF }); set('parU', look.parU && { aim: 'up', c: 'ffc68a', ...look.parU });
   set('parM', { aim: 'down', c: 'ffc68a', i: look.parM ?? .45 });
+  set('contra', look.contra && { aim: 'telon', c: 'fff6ea', i: look.contra });
   set('blinder', look.blinder && { aim: 'publico', c: 'ffb45a', i: look.blinder });
   set('seg', look.seg && { aim: 'track', c: 'fff4e6', i: .95, names: look.seg });
   strobeMode = look.strobe ?? 'off';
@@ -980,6 +1026,7 @@ function updateLights(dt, t) {
     if (onTela) { fx.pool.rotation.set(0, Math.PI / 2, 0); fx.pool.position.x = TELA.x + .08; } else { fx.pool.rotation.set(-Math.PI / 2, 0, 0); fx.pool.position.y += .02; }
     fx.pool.material.color.copy(fx.color).multiplyScalar(fx.int * fx.T.poolGain);
   }
+  telFabricMat.opacity = .1 + contraFx.int * .55;
   strobeFlash.intensity = flashAt ? 420 : 0; if (flashAt) strobeFlash.position.copy(flashAt);
 }
 function showFxInfo(idx) {
@@ -1019,14 +1066,83 @@ const LOOKS = {
   17: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, blinders, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
 };
 
+
+/* ───────── Mecanismos (fuente: Notion › Mecanismos y estructuras) ───────── */
+const mecState = { fase: 'giro', auto: true, angle: 0, eje: 'pegado' };
+const MECS = [
+  { id: 'telon', t: 'Pelea telón', k: 'Marco giratorio 7,5 × 7,5 m + percha',
+    fuente: 'Notion › Mecanismos y estructuras › Pelea telón · actualizado por Bruno el 27/09',
+    escenas: '5 · Pandereta (texto de Mariano). En Notion figura como “¿14 · Cajón + Pelea?”: conviene corregirlo.',
+    desc: 'Estructura metálica cuadrada con un telón tenso tipo pandereta. Sobre la tela se desarrolla una pelea entre 2 mujeres. La estructura gira 180° y las performers pueden subir y bajar por la tela.',
+    func: ['Marco de Layher con tela blanca tensada por una cuerda a través de ojales.', 'Cuelga de un swivel al centro del truss superior; el swivel va al techo con un cable de acero. Gira 180°.',
+      'Una luz en trípode en el backstage ilumina toda la tela desde atrás: contraluz para las sombras.',
+      'Pelea: aparte del marco, de una cuerda cuelga una percha (caño de 1,5 m tomado al centro). De cada punta cuelga una performer con 2,5 m de cuerda y hacen una persecución.'],
+    ubic: 'Sobre el escenario principal, pegado a la tela tensa. Separa escenario y backstage.',
+    ficha: [['Tipo', 'a definir'], ['Performers', '2'], ['Operadores / riggers', 'a definir'], ['Dimensiones', '7,5 × 7,5 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+    el: ['telon'], cam: 'mecTelon', look: { contra: 1, wash: { c: '8a8fff', i: .12, aim: 'pista' }, parU: { i: .15, c: 'ffffff' } },
+    pend: ['Altura del borde inferior del marco (supuesto: 0,3 m sobre el escenario)', 'Cómo gira 180° estando pegado a la tela fija: ver el choque marcado en rojo',
+      'Dónde cuelga la percha y a qué altura (supuesto: al frente del escenario, a 7,2 m)', 'Peso del marco y carga admisible del punto de colgado del swivel',
+      'La contra atraviesa también la tela fija: la sombra puede verse más apagada o doble', 'Operadores y riggers'],
+    build() {
+      const st = mecState, ax = st.eje === 'giro' ? TEL.xGiro : TEL.xPegado, R = TEL.side / 2;
+      telHang.position.x = ax;
+      const notes = [];
+      if (st.fase === 'giro') {
+        ring([ax, TEL.z], R, ORANGE, TEL.yb); ring([ax, TEL.z], R, 0x8a8a90, 0.03);
+        const zona = new THREE.Mesh(new THREE.CircleGeometry(R, 72), new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: .2, depthWrite: false, side: THREE.DoubleSide,
+          clippingPlanes: [new THREE.Plane(new THREE.Vector3(1, 0, 0), -(SXE - W / 2))] }));
+        zona.rotation.x = -Math.PI / 2; zona.position.set(ax, 0.04, TEL.z); sceneGroup.add(zona);
+        const over = ax + R - SXE;
+        const o = new THREE.Object3D(); o.position.set((SXE + ax + R) / 2, 0.4, TEL.z); sceneGroup.add(o); label(`Barre la pista · ${over.toFixed(1).replace('.', ',')} m`, 'fig', o);
+        notes.push([`Barrido: círculo de 7,5 m de diámetro alrededor del swivel.`]);
+        notes.push([`Sobresale ${over.toFixed(1).replace('.', ',')} m del frente del escenario, con el borde inferior a ≈ 1,3 m del piso: sin público debajo durante el giro.`, 'warn']);
+        if (ax - R < TELA.x) {
+          const d = ax - TELA.x, half = Math.sqrt(R * R - d * d);
+          const cm = new THREE.Mesh(new THREE.PlaneGeometry(2 * half, TEL.side), new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: .22, depthWrite: false, side: THREE.DoubleSide }));
+          cm.rotation.y = Math.PI / 2; cm.position.set(TELA.x + .1, TEL.yb + TEL.side / 2, TEL.z); sceneGroup.add(cm);
+          label('Choca con la tela fija', 'fig', cm, [0, TEL.side / 2 + .4, 0]);
+          notes.push(['Con el eje pegado, el giro de 180° choca con la tela fija y el marco de caños: pegado no puede girar.', 'warn']);
+        } else notes.push(['Con el eje a 3,95 m de la tela el giro no la toca, pero el telón queda delante del escenario, sobre la pista.', 'warn']);
+        anims.push(t => { if (st.auto) st.angle = (1 - Math.cos(t * .55)) / 2 * 180; telRot.rotation.y = st.angle * Math.PI / 180;
+          const out = document.getElementById('telAngOut'), rg = document.getElementById('telAng');
+          if (out) out.textContent = Math.round(st.angle) + '°'; if (rg && st.auto) rg.value = Math.round(st.angle); });
+        telRot.rotation.y = st.angle * Math.PI / 180;
+      } else {
+        telRot.rotation.y = 0;
+        const px = SXE + .1, py = 7.2, pz = TEL.z, th = .35, rr = .75 + 2.5 * Math.sin(th);
+        segs([[px, H, pz], [px, py, pz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sceneGroup);
+        const pg = new THREE.Group(); pg.position.set(px, py, pz); sceneGroup.add(pg);
+        pg.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 1.5), figMat(0xbfc0ff)));
+        label('Percha 1,5 m', 'fig air', pg, [0, .45, 0]);
+        ring([px, pz], rr, PURPLE, py - 2.5 * Math.cos(th)); ring([px, pz], rr, 0x8a8a90, 0.03);
+        const f1 = figure('Performer 1', [0, 0, 0], { color: PURPLE, air: true }), f2 = figure('Performer 2', [0, 0, 0], { color: ORANGE, air: true });
+        const r1 = dynLine(PURPLE), r2 = dynLine(PURPLE), c = new THREE.Vector3(px, py, pz), e = new THREE.Vector3(), hp = new THREE.Vector3(), u = new THREE.Vector3();
+        anims.push(t => {
+          const phi = t * 1.1 + .45 * Math.sin(t * .7); pg.rotation.y = phi; u.set(Math.sin(phi), 0, Math.cos(phi));
+          [[f1, r1, 1], [f2, r2, -1]].forEach(([f, r, sg]) => {
+            e.copy(c).addScaledVector(u, .75 * sg); hp.copy(c).addScaledVector(u, rr * sg); hp.y = py - 2.5 * Math.cos(th);
+            r(e, hp); f.position.set(hp.x, hp.y - 1.05, hp.z);
+          });
+        });
+        notes.push([`Radio de la persecución ≈ ${rr.toFixed(1).replace('.', ',')} m: con el eje al frente del escenario pasa a ≈ 0,4 m del telón.`]);
+        notes.push(['La percha queda dentro del barrido del telón: no pueden usarse a la vez.', 'warn']);
+      }
+      this.notes = notes;
+    } },
+  ...[['Cajón', 'Estructura del enfrentamiento aéreo'], ['Esfera / Cabeza', 'La cabeza que se parte'], ['Bungees', ''], ['Toroide', ''], ['Las monjas', ''], ['Péndulos', '']]
+    .map(([t, k], i) => ({ id: 'm' + i, t, k: k || 'Ficha en Notion · sin modelo 3D todavía', soon: true })),
+];
+
 /* ───────── Estado ───────── */
 const LUZ = { normal: [0x0a0a0a, 0xffffff], frio: [0x05080f, 0x9fb8ff], pico: [0x120905, 0xffd2c2] };
+let mode = 'guion', curMec = 0;
 let current = 0, t = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function clearScene() {
   sceneGroup.traverse(o => { if (o.isCSS2DObject) o.element.remove(); });
   sceneGroup.traverse(o => { if (o.geometry && o.geometry !== figGeo) o.geometry.dispose(); });
   sceneGroup.clear(); anims = []; for (const k in FIG) delete FIG[k];
+  telRot.rotation.y = 0; telHang.position.x = TEL.xPegado;
 }
 function setActive(ids) {
   for (const el of Object.values(EL)) {
@@ -1038,6 +1154,7 @@ function setActive(ids) {
   }
 }
 function goScene(i, { moveCam = true } = {}) {
+  mode = 'guion';
   current = Math.max(0, Math.min(SCENES.length - 1, i));
   const s = SCENES[current];
   clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {});
@@ -1048,18 +1165,60 @@ function goScene(i, { moveCam = true } = {}) {
   renderList(); renderDetail();
   try { history.replaceState(null, '', '#escena-' + s.n); } catch (e) {}
 }
+function goMec(i, { moveCam = true } = {}) {
+  const m = MECS[i]; if (!m || m.soon) return;
+  mode = 'mec'; curMec = i;
+  clearScene(); m.build(); setActive(m.el); applyLook(m.look ?? {});
+  tarTarget.set(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
+  renderer.setClearColor(LUZ.normal[0]); hemi.color.set(LUZ.normal[1]);
+  if (paused) anims.forEach(f => f(t));
+  if (moveCam) goView(m.cam);
+  renderList(); renderDetail();
+  try { history.replaceState(null, '', '#mec-' + m.id); } catch (e) {}
+}
 
 /* ───────── UI ───────── */
 const listEl = document.getElementById('sceneList');
 function renderList() {
+  tabG.setAttribute('aria-selected', mode === 'guion'); tabM.setAttribute('aria-selected', mode === 'mec');
+  if (mode === 'mec') {
+    listEl.innerHTML = MECS.map((m, i) => `<li><button data-m="${i}" aria-current="${i === curMec}" ${m.soon ? 'disabled' : ''}><span class="s-num">M${i + 1}</span><span class="s-t">${m.t}</span><span class="s-k">${m.k}</span></button></li>`).join('');
+    return;
+  }
   listEl.innerHTML = SCENES.map((s, i) => `<li><button data-i="${i}" aria-current="${i === current}"><span class="s-num">${String(s.n).padStart(2, '0')}</span><span class="s-t">${s.t}</span><span class="s-k">${s.k}</span></button></li>`).join('');
   listEl.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
-listEl.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) goScene(+b.dataset.i); });
+listEl.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) goScene(+b.dataset.i); const mb = e.target.closest('button[data-m]'); if (mb) goMec(+mb.dataset.m); });
+const tabG = document.getElementById('tabGuion'), tabM = document.getElementById('tabMec');
+tabG.addEventListener('click', () => { if (mode !== 'guion') goScene(current); });
+tabM.addEventListener('click', () => { if (mode !== 'mec') goMec(curMec); });
 
-const NAMES = { backstage: 'Backstage', marco: 'Marco de caños', accesos: 'Accesos de público', trussMusicos: 'Truss de músicos', escenario: 'Escenario', tela: 'Tela tensa', anclajes: 'Anclajes aéreos', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
+const NAMES = { backstage: 'Backstage', marco: 'Marco de caños', accesos: 'Accesos de público', trussMusicos: 'Truss de músicos', escenario: 'Escenario', tela: 'Tela tensa', telon: 'Pelea telón', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
 const detailEl = document.getElementById('detail');
+function renderMecDetail() {
+  const m = MECS[curMec], st = mecState;
+  const note = ([txt, k]) => `<li class="${k ? 'w' : ''}"><span>${txt}${k ? '<span class="tag warn">Revisar</span>' : ''}</span></li>`;
+  const segB = (attr, val, txt, cur) => `<button class="seg" data-${attr}="${val}" aria-pressed="${cur === val}">${txt}</button>`;
+  detailEl.innerHTML = `
+    <div class="d-head"><span class="d-num">M${curMec + 1}</span><div><h1>${m.t}</h1><p class="meta">${m.k}</p></div></div>
+    <p class="src">${m.fuente}</p>
+    <p class="guion">${m.desc}</p>
+    <h3>Controles</h3>
+    <div class="ctl">
+      <div class="segrow">${segB('fase', 'giro', 'Giro del telón', st.fase)}${segB('fase', 'pelea', 'Persecución en percha', st.fase)}</div>
+      ${st.fase === 'giro' ? `
+      <label class="rng" for="telAng"><span>Ángulo</span><input type="range" id="telAng" min="0" max="180" step="1" value="${Math.round(st.angle)}"><output id="telAngOut">${Math.round(st.angle)}°</output></label>
+      <div class="segrow"><button class="tbtn" id="telAuto" aria-pressed="${st.auto}">${st.auto ? 'Giro automático' : 'Reanudar giro'}</button></div>
+      <div class="segrow"><span class="lbl-in">Eje</span>${segB('eje', 'pegado', 'Pegado a la tela', st.eje)}${segB('eje', 'giro', 'Adelantado 3,95 m', st.eje)}</div>` : ''}
+    </div>
+    <h3>En la sala</h3><ul class="notes">${(m.notes || []).map(note).join('')}</ul>
+    <h3>Funcionamiento</h3><ul>${m.func.map(x => `<li><span>${x}</span></li>`).join('')}</ul>
+    <h3>Ubicación</h3><p class="lux">${m.ubic}</p>
+    <h3>Ficha</h3><dl class="ficha">${m.ficha.map(([k, v]) => `<dt>${k}</dt><dd class="${v === 'a definir' ? 'tbd' : ''}">${v}</dd>`).join('')}<dt>Escenas</dt><dd>${m.escenas}</dd></dl>
+    <h3>Pendiente de definir</h3><ul class="pend">${m.pend.map(x => `<li><span>${x}</span></li>`).join('')}</ul>`;
+}
 function renderDetail() {
+  if (mode === 'mec') return renderMecDetail();
   const s = SCENES[current];
   const li = ([txt, p]) => `<li class="${p ? 'p' : ''}"><span>${txt}${p ? '<span class="tag prop">Propuesta</span>' : ''}</span></li>`;
   detailEl.innerHTML = `
@@ -1078,11 +1237,20 @@ detailEl.addEventListener('click', e => {
   if (e.target.id === 'next') goScene(current + 1);
   const c = e.target.closest('[data-el]'); if (c) showInfo(c.dataset.el);
   if (e.target.closest('[data-rider]')) showRider();
+  const f = e.target.closest('[data-fase]'); if (f) { mecState.fase = f.dataset.fase; goMec(curMec, { moveCam: false }); }
+  const ej = e.target.closest('[data-eje]'); if (ej) { mecState.eje = ej.dataset.eje; goMec(curMec, { moveCam: false }); }
+  if (e.target.closest('#telAuto')) { mecState.auto = !mecState.auto; renderMecDetail(); }
+});
+detailEl.addEventListener('input', e => {
+  if (e.target.id !== 'telAng') return;
+  mecState.auto = false; mecState.angle = +e.target.value; telRot.rotation.y = mecState.angle * Math.PI / 180;
+  document.getElementById('telAngOut').textContent = e.target.value + '°';
+  const b = document.getElementById('telAuto'); if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Reanudar giro'; }
 });
 addEventListener('keydown', e => {
   if (e.target.closest('input,textarea')) return;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { goScene(current + 1); e.preventDefault(); }
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { goScene(current - 1); e.preventDefault(); }
+  if (mode === 'guion' && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) { goScene(current + 1); e.preventDefault(); }
+  if (mode === 'guion' && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) { goScene(current - 1); e.preventDefault(); }
   if (e.key === 'Escape') { infoEl.hidden = true; }
 });
 
@@ -1103,6 +1271,7 @@ const VIEWS = {
   frente: { pos: R(SXE + 6.5, 2.4, 6.5), target: R(SX, 3, 6.5) },
   escenario: { pos: R(SX + 1.4, 2.7, 6.5), target: R(20, 2.2, 6.5) },
   backstage: { pos: R(0.6, 3.2, -0.2), target: R(SX + 1, 1, 8) },
+  mecTelon: { pos: R(16, 7.5, -4), target: R(SX + 1.8, 4.6, 6.5) },
   lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
   torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
 };
@@ -1204,9 +1373,10 @@ renderer.setAnimationLoop(() => {
 });
 
 // Arranque (admite #escena-N en el link)
-const m = location.hash.match(/escena-(\d+)/);
+const m = location.hash.match(/escena-(\d+)/), mm = location.hash.match(/mec-([\w-]+)/);
 camera.position.copy(VIEWS.iso.pos); controls.target.copy(VIEWS.iso.target);
 goScene(m ? SCENES.findIndex(s => s.n === +m[1]) : 0, { moveCam: !!m });
+if (mm) { const i = MECS.findIndex(x => x.id === mm[1]); if (i >= 0) goMec(i); }
 </script>
 
 </body>
