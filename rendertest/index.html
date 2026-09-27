@@ -266,6 +266,7 @@
       <label class="chk"><input type="checkbox" id="lyCotas" checked> Cotas</label>
       <label class="chk"><input type="checkbox" id="lyLabels" checked> Etiquetas</label>
       <label class="chk"><input type="checkbox" id="lyLights" checked> Luces</label>
+      <label class="chk"><input type="checkbox" id="lyProj" checked> Proyección</label>
       <span class="spacer"></span>
       <button class="tbtn" id="btnShow" aria-pressed="false">Modo show</button>
       <button class="tbtn" id="btnMeasure" aria-pressed="false">Medir</button>
@@ -500,6 +501,58 @@ let telFabricMat;
   const swE = new THREE.LineSegments(new THREE.EdgesGeometry(sw, 20), telon.edgeMat); swE.position.y = yt + .2; telHang.add(swE);
   telon.labelEl = label('Pelea telón', '', telHang, [0.3, yt + .9, 0]);
 }
+
+/* ───────── Proyector en el backstage: retroproyección sobre toda la tela tensa ───────── */
+const PROJ = { x: 0.6, y: (TELA.y0 + TELA.y1) / 2, z: (TELA.z0 + TELA.z1) / 2 };
+const scrW = TELA.z1 - TELA.z0, scrH = TELA.y1 - TELA.y0, throwD = TELA.x - PROJ.x - .35;
+const f1 = (n, d = 1) => n.toFixed(d).replace('.', ',');
+const proj = makeEl('proyector', {
+  nombre: 'Proyector · retroproyección', estado: 'plano',
+  medidas: ['En el backstage, detrás de la tela tensa y centrado', `Cubre toda la tela: ${f1(scrW)} × ${f1(scrH)} m (≈ ${Math.round(scrW * scrH)} m²)`,
+    `Distancia de tiro ≈ ${f1(throwD)} m → relación de tiro ≈ ${f1(throwD / scrW, 2)} (ancho) · ${f1(throwD / (scrH * 16 / 10), 2)} si el equipo es 16:10`,
+    'Altura ≈ 5,5 m, a la del centro de la tela: posición estimada'],
+  notas: 'Proyecta desde atrás: la imagen se configura espejada. Entre el proyector y la tela quedan el marco de caños y los tornapuntas: van a proyectar sombra sobre la imagen.'
+});
+let projScreen, projFrustum, projMode = 'on';
+{
+  const { x, y, z } = PROJ, lens = [x + .35, y, z];
+  addBox(proj, x - .35, x + .35, y - .22, y + .22, z - .3, z + .3, { face: .15 });
+  segs([[x, 0, z], [x, y - .22, z]], new THREE.LineDashedMaterial({ color: PURPLE, dashSize: .2, gapSize: .15 }), proj.group);
+  const C = [[TELA.y0, TELA.z0], [TELA.y0, TELA.z1], [TELA.y1, TELA.z1], [TELA.y1, TELA.z0]].map(([yy, zz]) => [TELA.x - .02, yy, zz]);
+  projFrustum = new THREE.Group(); proj.group.add(projFrustum);
+  segs(C.flatMap(c => [lens, c]), new THREE.LineBasicMaterial({ color: PURPLE, transparent: true, opacity: .55 }), projFrustum);
+  const tri = []; for (let i = 0; i < 4; i++) tri.push(...lens, ...C[i], ...C[(i + 1) % 4]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(tri, 3));
+  projFrustum.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: PURPLE, transparent: true, opacity: .05, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })));
+  var projCanvas = document.createElement('canvas'); projCanvas.width = 1200; projCanvas.height = 1080;
+  var pctx = projCanvas.getContext('2d');
+  var projTex = new THREE.CanvasTexture(projCanvas); projTex.colorSpace = THREE.SRGBColorSpace;
+  projTex.repeat.x = -1; projTex.offset.x = 1;              // la sala está espejada en z: se corrige para que la imagen se lea derecha desde la pista
+  const pm = new THREE.MeshBasicMaterial({ map: projTex, toneMapped: false, transparent: true, opacity: .92, side: THREE.DoubleSide });
+  projScreen = new THREE.Mesh(new THREE.PlaneGeometry(scrW, scrH), pm);
+  projScreen.rotation.y = Math.PI / 2; projScreen.position.set(TELA.x + .075, y, z); proj.group.add(projScreen);
+  proj.labelEl = label('Proyector', '', proj.group, [x, y + .6, z]);
+}
+const projVideo = Object.assign(document.createElement('video'), { src: '../assets/video/loop-ilusion-optica.mp4', muted: true, loop: true, playsInline: true, autoplay: true });
+projVideo.play().catch(() => {});
+addEventListener('pointerdown', () => { if (projVideo.paused) projVideo.play().catch(() => {}); }, { once: true });
+const projLogo = new Image(); projLogo.src = '../assets/img/logo-vaterfly.png';
+function drawProj(t) {
+  const c = pctx, w = 1200, h = 1080;
+  projScreen.visible = projFrustum.visible = projMode !== 'off' && projOn;
+  if (!projScreen.visible) return;
+  c.globalAlpha = 1; c.fillStyle = '#060608'; c.fillRect(0, 0, w, h);
+  if (projVideo.readyState >= 2) {
+    const vw = projVideo.videoWidth, vh = projVideo.videoHeight, k = Math.max(w / vw, h / vh);
+    c.globalAlpha = .75; c.drawImage(projVideo, (w - vw * k) / 2, (h - vh * k) / 2, vw * k, vh * k); c.globalAlpha = 1;
+  }
+  if (projLogo.naturalWidth) {
+    const lw = w * .62 * (1 + .03 * Math.sin(t * 2)), lh = lw * projLogo.naturalHeight / projLogo.naturalWidth;
+    c.drawImage(projLogo, (w - lw) / 2, (h - lh) / 2, lw, lh);
+  }
+  projTex.needsUpdate = true;
+}
+let projOn = true;
 
 /* ───────── Accesos de público (a los lados de la torre C) ───────── */
 const DOORS = [[2.6, 4.4], [7.8, 9.6]], DOOR_H = 2.4;
@@ -1080,10 +1133,11 @@ const MECS = [
       'De cada punta cuelga una performer con 2,5 m de cuerda. Apoyadas en la tela, cuando una baja la otra sube: se hacen contrapeso, y se balancean de lado una respecto de la otra.'],
     ubic: 'Sobre el escenario principal, pegado a la tela tensa. La percha cuelga delante de la tela, de un punto propio en el techo.',
     ficha: [['Tipo', 'Contrapeso entre 2 performers (percha balancín)'], ['Performers', '2'], ['Operadores / riggers', 'a definir'], ['Dimensiones', 'Tela 7,5 × 7,5 m · percha 1,5 m · cuerdas 2,5 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
-    el: ['telon'], cam: 'mecTelon', look: { contra: 1, wash: { c: '8a8fff', i: .12, aim: 'pista' }, parU: { i: .15, c: 'ffffff' } },
+    el: ['telon'], proj: 'off', cam: 'mecTelon', look: { contra: 1, wash: { c: '8a8fff', i: .12, aim: 'pista' }, parU: { i: .15, c: 'ffffff' } },
     pend: ['Recorrido vertical: ¿suben y bajan solo por el balancín de la percha (≈ ±0,4 m) o hay polea o motor?', 'Altura de la percha (supuesto: 8,6 m, apenas sobre el marco)',
       'Actualizar Notion: la ficha todavía dice que el marco gira 180° con swivel', 'Peso de las 2 performers: el contrapeso funciona si pesan parecido',
-      'La contra atraviesa también la tela fija: la sombra puede verse más apagada o doble', 'Operadores y riggers'],
+      'La contra atraviesa también la tela fija: la sombra puede verse más apagada o doble',
+      'Proyector y contra comparten la tela: durante la pelea el proyector va apagado o en negro (en este mecanismo se muestra apagado)', 'Operadores y riggers'],
     build() {
       const st = mecState, fx = TEL.xPegado + .1, px = TEL.xPegado + .95, py = 8.6, pz = TEL.z, L = 2.5, half = .75;
       const TH = 35 * Math.PI / 180, PS = 22 * Math.PI / 180;
@@ -1149,7 +1203,7 @@ function goScene(i, { moveCam = true } = {}) {
   mode = 'guion';
   current = Math.max(0, Math.min(SCENES.length - 1, i));
   const s = SCENES[current];
-  clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {});
+  clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {}); projMode = s.proj ?? 'on';
   const tp = s.tarima ?? TARIMA_HOME; tarTarget.set(tp[0], 0, tp[1]);
   const [bg, hc] = LUZ[s.luz ?? 'normal']; renderer.setClearColor(bg); hemi.color.set(hc);
   if (paused) anims.forEach(f => f(t));
@@ -1160,7 +1214,7 @@ function goScene(i, { moveCam = true } = {}) {
 function goMec(i, { moveCam = true } = {}) {
   const m = MECS[i]; if (!m || m.soon) return;
   mode = 'mec'; curMec = i;
-  clearScene(); m.build(); setActive(m.el); applyLook(m.look ?? {});
+  clearScene(); m.build(); setActive(m.el); applyLook(m.look ?? {}); projMode = m.proj ?? 'on';
   tarTarget.set(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
   renderer.setClearColor(LUZ.normal[0]); hemi.color.set(LUZ.normal[1]);
   if (paused) anims.forEach(f => f(t));
@@ -1185,7 +1239,7 @@ const tabG = document.getElementById('tabGuion'), tabM = document.getElementById
 tabG.addEventListener('click', () => { if (mode !== 'guion') goScene(current); });
 tabM.addEventListener('click', () => { if (mode !== 'mec') goMec(curMec); });
 
-const NAMES = { backstage: 'Backstage', marco: 'Marco de caños', accesos: 'Accesos de público', trussMusicos: 'Truss de músicos', escenario: 'Escenario', tela: 'Tela tensa', telon: 'Pelea telón', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
+const NAMES = { proyector: 'Proyector', backstage: 'Backstage', marco: 'Marco de caños', accesos: 'Accesos de público', trussMusicos: 'Truss de músicos', escenario: 'Escenario', tela: 'Tela tensa', telon: 'Pelea telón', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
 const detailEl = document.getElementById('detail');
 function renderMecDetail() {
   const m = MECS[curMec], st = mecState;
@@ -1278,6 +1332,7 @@ bindLayer('lyScene', v => sceneGroup.visible = v);
 bindLayer('lyCotas', v => cotaGroup.visible = v);
 bindLayer('lyLabels', v => vp.classList.toggle('hide-labels', !v));
 bindLayer('lyLights', v => { lightGroup.visible = v; if (!v) strobeFlash.intensity = 0; });
+bindLayer('lyProj', v => { projOn = v; });
 let showMode = false;
 const btnShow = document.getElementById('btnShow');
 btnShow.addEventListener('click', () => { showMode = !showMode; btnShow.setAttribute('aria-pressed', showMode); setActive(SCENES[current].el); });
@@ -1347,7 +1402,7 @@ const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (!paused) { t += dt; anims.forEach(f => f(t)); }
-  updateLights(dt, t);
+  updateLights(dt, t); drawProj(t);
   tar.group.position.lerp(tarTarget, paused ? 1 : Math.min(1, dt * 2.2));
   if (camTween) {
     const k = Math.min(1, (performance.now() - camTween.t0) / camTween.dur), e = ease(k);
