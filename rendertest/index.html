@@ -467,13 +467,13 @@ const marco = makeEl('marco', {
   marco.labelEl = label('Marco de caños', '', marco.group, [x - .2, 10.9, TELA.z0 + 1]);
 }
 
-/* ───────── Pelea telón: marco giratorio 7,5 × 7,5 m pegado a la tela tensa (Notion · Bruno) ───────── */
+/* ───────── Pelea telón: marco fijo 7,5 × 7,5 m pegado a la tela tensa (Notion · Bruno). No gira. ───────── */
 // Reemplaza a las 2 líneas de anclaje aéreo que había sobre la tela.
-const TEL = { side: 7.5, yb: STAGE.h + 0.3, z: (TELA.z0 + TELA.z1) / 2, xPegado: TELA.x + 0.4, xGiro: TELA.x + 3.95 };
+const TEL = { side: 7.5, yb: STAGE.h + 0.3, z: (TELA.z0 + TELA.z1) / 2, xPegado: TELA.x + 0.4 };
 const telon = makeEl('telon', {
   nombre: 'Pelea telón', estado: 'plano',
-  medidas: ['Marco cuadrado de 7,5 × 7,5 m (Layher) con truss arriba', 'Tela blanca tensada con cuerda por ojales', 'Cuelga de un swivel al centro del truss superior, con cable de acero al techo', 'Gira 180° · pegado a la tela tensa, sobre el escenario'],
-  notas: 'Borde inferior a 0,3 m del escenario (≈ 1,3 m del piso): supuesto. El mecanismo completo, con la percha y el giro, está en la pestaña Mecanismos.'
+  medidas: ['Marco cuadrado de 7,5 × 7,5 m (Layher) con truss arriba', 'Tela blanca tensada con cuerda por ojales', 'Cuelga fijo del techo con cable de acero: no gira', 'Pegado a la tela tensa, sobre el escenario'],
+  notas: 'Borde inferior a 0,3 m del escenario (≈ 1,3 m del piso): supuesto. El mecanismo de la pelea (percha de contrapeso) está en la pestaña Mecanismos.'
 });
 const telHang = new THREE.Group(); telon.group.add(telHang); telHang.position.set(TEL.xPegado, 0, TEL.z);
 const telRot = new THREE.Group(); telHang.add(telRot);
@@ -1068,66 +1068,58 @@ const LOOKS = {
 
 
 /* ───────── Mecanismos (fuente: Notion › Mecanismos y estructuras) ───────── */
-const mecState = { fase: 'giro', auto: true, angle: 0, eje: 'pegado' };
+const mecState = { auto: true, tilt: 0 };
 const MECS = [
-  { id: 'telon', t: 'Pelea telón', k: 'Marco giratorio 7,5 × 7,5 m + percha',
-    fuente: 'Notion › Mecanismos y estructuras › Pelea telón · actualizado por Bruno el 27/09',
+  { id: 'telon', t: 'Pelea telón', k: 'Tela pandereta 7,5 × 7,5 m + percha de contrapeso',
+    fuente: 'Notion › Mecanismos y estructuras › Pelea telón · actualizado por Bruno el 27/09 · aclaración de Juan: el telón no gira',
     escenas: '5 · Pandereta (texto de Mariano). En Notion figura como “¿14 · Cajón + Pelea?”: conviene corregirlo.',
-    desc: 'Estructura metálica cuadrada con un telón tenso tipo pandereta. Sobre la tela se desarrolla una pelea entre 2 mujeres. La estructura gira 180° y las performers pueden subir y bajar por la tela.',
-    func: ['Marco de Layher con tela blanca tensada por una cuerda a través de ojales.', 'Cuelga de un swivel al centro del truss superior; el swivel va al techo con un cable de acero. Gira 180°.',
+    desc: 'Estructura metálica cuadrada con una tela tensa tipo pandereta, fija, pegada a la tela del fondo. Sobre ella, 2 performers colgadas de una percha pelean: se balancean entre sí apoyadas en la tela y suben y bajan haciéndose contrapeso una a la otra.',
+    func: ['Marco de Layher con tela blanca tensada por una cuerda a través de ojales. Queda fijo: no gira.',
       'Una luz en trípode en el backstage ilumina toda la tela desde atrás: contraluz para las sombras.',
-      'Pelea: aparte del marco, de una cuerda cuelga una percha (caño de 1,5 m tomado al centro). De cada punta cuelga una performer con 2,5 m de cuerda y hacen una persecución.'],
-    ubic: 'Sobre el escenario principal, pegado a la tela tensa. Separa escenario y backstage.',
-    ficha: [['Tipo', 'a definir'], ['Performers', '2'], ['Operadores / riggers', 'a definir'], ['Dimensiones', '7,5 × 7,5 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+      'Percha: caño de 1,5 m colgado del techo por una cuerda, con el pivote al centro (a 0,75 m de cada punta). Funciona como un balancín.',
+      'De cada punta cuelga una performer con 2,5 m de cuerda. Apoyadas en la tela, cuando una baja la otra sube: se hacen contrapeso, y se balancean de lado una respecto de la otra.'],
+    ubic: 'Sobre el escenario principal, pegado a la tela tensa. La percha cuelga delante de la tela, de un punto propio en el techo.',
+    ficha: [['Tipo', 'Contrapeso entre 2 performers (percha balancín)'], ['Performers', '2'], ['Operadores / riggers', 'a definir'], ['Dimensiones', 'Tela 7,5 × 7,5 m · percha 1,5 m · cuerdas 2,5 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
     el: ['telon'], cam: 'mecTelon', look: { contra: 1, wash: { c: '8a8fff', i: .12, aim: 'pista' }, parU: { i: .15, c: 'ffffff' } },
-    pend: ['Altura del borde inferior del marco (supuesto: 0,3 m sobre el escenario)', 'Cómo gira 180° estando pegado a la tela fija: ver el choque marcado en rojo',
-      'Dónde cuelga la percha y a qué altura (supuesto: al frente del escenario, a 7,2 m)', 'Peso del marco y carga admisible del punto de colgado del swivel',
+    pend: ['Recorrido vertical: ¿suben y bajan solo por el balancín de la percha (≈ ±0,4 m) o hay polea o motor?', 'Altura de la percha (supuesto: 8,6 m, apenas sobre el marco)',
+      'Actualizar Notion: la ficha todavía dice que el marco gira 180° con swivel', 'Peso de las 2 performers: el contrapeso funciona si pesan parecido',
       'La contra atraviesa también la tela fija: la sombra puede verse más apagada o doble', 'Operadores y riggers'],
     build() {
-      const st = mecState, ax = st.eje === 'giro' ? TEL.xGiro : TEL.xPegado, R = TEL.side / 2;
-      telHang.position.x = ax;
-      const notes = [];
-      if (st.fase === 'giro') {
-        ring([ax, TEL.z], R, ORANGE, TEL.yb); ring([ax, TEL.z], R, 0x8a8a90, 0.03);
-        const zona = new THREE.Mesh(new THREE.CircleGeometry(R, 72), new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: .2, depthWrite: false, side: THREE.DoubleSide,
-          clippingPlanes: [new THREE.Plane(new THREE.Vector3(1, 0, 0), -(SXE - W / 2))] }));
-        zona.rotation.x = -Math.PI / 2; zona.position.set(ax, 0.04, TEL.z); sceneGroup.add(zona);
-        const over = ax + R - SXE;
-        const o = new THREE.Object3D(); o.position.set((SXE + ax + R) / 2, 0.4, TEL.z); sceneGroup.add(o); label(`Barre la pista · ${over.toFixed(1).replace('.', ',')} m`, 'fig', o);
-        notes.push([`Barrido: círculo de 7,5 m de diámetro alrededor del swivel.`]);
-        notes.push([`Sobresale ${over.toFixed(1).replace('.', ',')} m del frente del escenario, con el borde inferior a ≈ 1,3 m del piso: sin público debajo durante el giro.`, 'warn']);
-        if (ax - R < TELA.x) {
-          const d = ax - TELA.x, half = Math.sqrt(R * R - d * d);
-          const cm = new THREE.Mesh(new THREE.PlaneGeometry(2 * half, TEL.side), new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: .22, depthWrite: false, side: THREE.DoubleSide }));
-          cm.rotation.y = Math.PI / 2; cm.position.set(TELA.x + .1, TEL.yb + TEL.side / 2, TEL.z); sceneGroup.add(cm);
-          label('Choca con la tela fija', 'fig', cm, [0, TEL.side / 2 + .4, 0]);
-          notes.push(['Con el eje pegado, el giro de 180° choca con la tela fija y el marco de caños: pegado no puede girar.', 'warn']);
-        } else notes.push(['Con el eje a 3,95 m de la tela el giro no la toca, pero el telón queda delante del escenario, sobre la pista.', 'warn']);
-        anims.push(t => { if (st.auto) st.angle = (1 - Math.cos(t * .55)) / 2 * 180; telRot.rotation.y = st.angle * Math.PI / 180;
-          const out = document.getElementById('telAngOut'), rg = document.getElementById('telAng');
-          if (out) out.textContent = Math.round(st.angle) + '°'; if (rg && st.auto) rg.value = Math.round(st.angle); });
-        telRot.rotation.y = st.angle * Math.PI / 180;
-      } else {
-        telRot.rotation.y = 0;
-        const px = SXE + .1, py = 7.2, pz = TEL.z, th = .35, rr = .75 + 2.5 * Math.sin(th);
-        segs([[px, H, pz], [px, py, pz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sceneGroup);
-        const pg = new THREE.Group(); pg.position.set(px, py, pz); sceneGroup.add(pg);
-        pg.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 1.5), figMat(0xbfc0ff)));
-        label('Percha 1,5 m', 'fig air', pg, [0, .45, 0]);
-        ring([px, pz], rr, PURPLE, py - 2.5 * Math.cos(th)); ring([px, pz], rr, 0x8a8a90, 0.03);
-        const f1 = figure('Performer 1', [0, 0, 0], { color: PURPLE, air: true }), f2 = figure('Performer 2', [0, 0, 0], { color: ORANGE, air: true });
-        const r1 = dynLine(PURPLE), r2 = dynLine(PURPLE), c = new THREE.Vector3(px, py, pz), e = new THREE.Vector3(), hp = new THREE.Vector3(), u = new THREE.Vector3();
-        anims.push(t => {
-          const phi = t * 1.1 + .45 * Math.sin(t * .7); pg.rotation.y = phi; u.set(Math.sin(phi), 0, Math.cos(phi));
-          [[f1, r1, 1], [f2, r2, -1]].forEach(([f, r, sg]) => {
-            e.copy(c).addScaledVector(u, .75 * sg); hp.copy(c).addScaledVector(u, rr * sg); hp.y = py - 2.5 * Math.cos(th);
-            r(e, hp); f.position.set(hp.x, hp.y - 1.05, hp.z);
-          });
+      const st = mecState, fx = TEL.xPegado + .1, px = TEL.xPegado + .95, py = 8.6, pz = TEL.z, L = 2.5, half = .75;
+      const TH = 35 * Math.PI / 180, PS = 22 * Math.PI / 180;
+      segs([[px, H, pz], [px, py, pz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sceneGroup);
+      const pg = new THREE.Group(); pg.position.set(px, py, pz); sceneGroup.add(pg);
+      pg.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 2 * half), figMat(0xbfc0ff)));
+      const piv = new THREE.Mesh(new THREE.SphereGeometry(.08, 12, 8), figMat(WHITE)); piv.position.set(px, py, pz); sceneGroup.add(piv);
+      label('Percha 1,5 m · pivote al centro', 'fig air', piv, [0, .5, 0]);
+      // zona de trabajo sobre la tela
+      const yLo = py - half * Math.sin(TH) - L, yHi = py + half * Math.sin(TH) - L * Math.cos(PS), zr = half + L * Math.sin(PS) + .35;
+      const zona = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(2 * zr, yHi - yLo + 1.2)), dashMat(PURPLE, .2, .14));
+      zona.computeLineDistances(); zona.rotation.y = Math.PI / 2; zona.position.set(TEL.xPegado + .06, (yLo + yHi) / 2, pz); sceneGroup.add(zona);
+      label('Zona de trabajo sobre la tela', 'fig air', zona, [0, (yHi - yLo + 1.2) / 2 + .35, 0]);
+      const f1 = figure('Performer 1', [0, 0, 0], { color: PURPLE, air: true, horizontal: true });
+      const f2 = figure('Performer 2', [0, 0, 0], { color: ORANGE, air: true, horizontal: true });
+      const r1 = dynLine(PURPLE), r2 = dynLine(PURPLE), e = new THREE.Vector3(), hp = new THREE.Vector3();
+      const place = (t) => {
+        const th = st.auto ? TH * Math.sin(t * .8) : st.tilt * Math.PI / 180, ps = PS * Math.sin(t * 1.15);
+        if (st.auto) st.tilt = th * 180 / Math.PI;
+        pg.rotation.x = -th;
+        [[f1, r1, 1], [f2, r2, -1]].forEach(([f, r, sg]) => {
+          e.set(px, py + sg * half * Math.sin(th), pz + sg * half * Math.cos(th));
+          hp.set(px, e.y - L * Math.cos(ps), e.z + sg * L * Math.sin(ps));
+          r(e, hp); f.position.set(fx, hp.y - .1, hp.z);
         });
-        notes.push([`Radio de la persecución ≈ ${rr.toFixed(1).replace('.', ',')} m: con el eje al frente del escenario pasa a ≈ 0,4 m del telón.`]);
-        notes.push(['La percha queda dentro del barrido del telón: no pueden usarse a la vez.', 'warn']);
-      }
-      this.notes = notes;
+        const out = document.getElementById('perAngOut'), rg = document.getElementById('perAng');
+        if (out) out.textContent = Math.round(st.tilt) + '°'; if (rg && st.auto) rg.value = Math.round(st.tilt);
+      };
+      anims.push(place); place(t);
+      const dy = half * Math.sin(TH);
+      this.notes = [
+        [`Con una percha de 1,5 m, el balancín sube y baja a cada performer ≈ ±${dy.toFixed(1).replace('.', ',')} m (inclinación de ±35°). Para recorridos más largos hace falta polea o motor.`, 'warn'],
+        [`Con la percha a ${py.toString().replace('.', ',')} m, los arneses quedan entre ≈ ${yLo.toFixed(1).replace('.', ',')} y ${yHi.toFixed(1).replace('.', ',')} m: trabajan en la mitad alta de la tela.`],
+        [`Ancho de trabajo sobre la tela ≈ ${(2 * zr).toFixed(1).replace('.', ',')} m, dentro de los 6,8 m útiles del telón.`],
+        ['La percha cuelga de un punto propio en el techo, a ≈ 1 m delante de la tela: el marco no carga a las performers.'],
+      ];
     } },
   ...[['Cajón', 'Estructura del enfrentamiento aéreo'], ['Esfera / Cabeza', 'La cabeza que se parte'], ['Bungees', ''], ['Toroide', ''], ['Las monjas', ''], ['Péndulos', '']]
     .map(([t, k], i) => ({ id: 'm' + i, t, k: k || 'Ficha en Notion · sin modelo 3D todavía', soon: true })),
@@ -1142,7 +1134,7 @@ function clearScene() {
   sceneGroup.traverse(o => { if (o.isCSS2DObject) o.element.remove(); });
   sceneGroup.traverse(o => { if (o.geometry && o.geometry !== figGeo) o.geometry.dispose(); });
   sceneGroup.clear(); anims = []; for (const k in FIG) delete FIG[k];
-  telRot.rotation.y = 0; telHang.position.x = TEL.xPegado;
+
 }
 function setActive(ids) {
   for (const el of Object.values(EL)) {
@@ -1198,18 +1190,14 @@ const detailEl = document.getElementById('detail');
 function renderMecDetail() {
   const m = MECS[curMec], st = mecState;
   const note = ([txt, k]) => `<li class="${k ? 'w' : ''}"><span>${txt}${k ? '<span class="tag warn">Revisar</span>' : ''}</span></li>`;
-  const segB = (attr, val, txt, cur) => `<button class="seg" data-${attr}="${val}" aria-pressed="${cur === val}">${txt}</button>`;
   detailEl.innerHTML = `
     <div class="d-head"><span class="d-num">M${curMec + 1}</span><div><h1>${m.t}</h1><p class="meta">${m.k}</p></div></div>
     <p class="src">${m.fuente}</p>
     <p class="guion">${m.desc}</p>
     <h3>Controles</h3>
     <div class="ctl">
-      <div class="segrow">${segB('fase', 'giro', 'Giro del telón', st.fase)}${segB('fase', 'pelea', 'Persecución en percha', st.fase)}</div>
-      ${st.fase === 'giro' ? `
-      <label class="rng" for="telAng"><span>Ángulo</span><input type="range" id="telAng" min="0" max="180" step="1" value="${Math.round(st.angle)}"><output id="telAngOut">${Math.round(st.angle)}°</output></label>
-      <div class="segrow"><button class="tbtn" id="telAuto" aria-pressed="${st.auto}">${st.auto ? 'Giro automático' : 'Reanudar giro'}</button></div>
-      <div class="segrow"><span class="lbl-in">Eje</span>${segB('eje', 'pegado', 'Pegado a la tela', st.eje)}${segB('eje', 'giro', 'Adelantado 3,95 m', st.eje)}</div>` : ''}
+      <label class="rng" for="perAng"><span>Contrapeso</span><input type="range" id="perAng" min="-35" max="35" step="1" value="${Math.round(st.tilt)}"><output id="perAngOut">${Math.round(st.tilt)}°</output></label>
+      <div class="segrow"><button class="tbtn" id="perAuto" aria-pressed="${st.auto}">${st.auto ? 'Balanceo automático' : 'Reanudar balanceo'}</button></div>
     </div>
     <h3>En la sala</h3><ul class="notes">${(m.notes || []).map(note).join('')}</ul>
     <h3>Funcionamiento</h3><ul>${m.func.map(x => `<li><span>${x}</span></li>`).join('')}</ul>
@@ -1237,15 +1225,13 @@ detailEl.addEventListener('click', e => {
   if (e.target.id === 'next') goScene(current + 1);
   const c = e.target.closest('[data-el]'); if (c) showInfo(c.dataset.el);
   if (e.target.closest('[data-rider]')) showRider();
-  const f = e.target.closest('[data-fase]'); if (f) { mecState.fase = f.dataset.fase; goMec(curMec, { moveCam: false }); }
-  const ej = e.target.closest('[data-eje]'); if (ej) { mecState.eje = ej.dataset.eje; goMec(curMec, { moveCam: false }); }
-  if (e.target.closest('#telAuto')) { mecState.auto = !mecState.auto; renderMecDetail(); }
+  if (e.target.closest('#perAuto')) { mecState.auto = !mecState.auto; renderMecDetail(); }
 });
 detailEl.addEventListener('input', e => {
-  if (e.target.id !== 'telAng') return;
-  mecState.auto = false; mecState.angle = +e.target.value; telRot.rotation.y = mecState.angle * Math.PI / 180;
-  document.getElementById('telAngOut').textContent = e.target.value + '°';
-  const b = document.getElementById('telAuto'); if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Reanudar giro'; }
+  if (e.target.id !== 'perAng') return;
+  mecState.auto = false; mecState.tilt = +e.target.value; anims.forEach(f => f(t));
+  document.getElementById('perAngOut').textContent = e.target.value + '°';
+  const b = document.getElementById('perAuto'); if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Reanudar balanceo'; }
 });
 addEventListener('keydown', e => {
   if (e.target.closest('input,textarea')) return;
@@ -1271,7 +1257,7 @@ const VIEWS = {
   frente: { pos: R(SXE + 6.5, 2.4, 6.5), target: R(SX, 3, 6.5) },
   escenario: { pos: R(SX + 1.4, 2.7, 6.5), target: R(20, 2.2, 6.5) },
   backstage: { pos: R(0.6, 3.2, -0.2), target: R(SX + 1, 1, 8) },
-  mecTelon: { pos: R(16, 7.5, -4), target: R(SX + 1.8, 4.6, 6.5) },
+  mecTelon: { pos: R(14.5, 6.2, 1.5), target: R(SX + 1, 5.6, 6.5) },
   lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
   torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
 };
