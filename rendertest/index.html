@@ -313,7 +313,7 @@ const STAGE = { d: 2.3, h: 1.0, z0: 1.5, z1: 11.5 };   // prof. y altura estimad
 const SXE = SX + STAGE.d;                    // frente del escenario
 const TELA = { x: SX, z0: D / 2 - 3.4, z1: D / 2 + 3.4, y0: STAGE.h + 0.65, y1: STAGE.h + 7.15 };   // área útil de la tela de la pantalla / Pelea telón
 const INK = 0xe8e8ea, DIM = 0x4a4a52, ORANGE = 0xff6b3d, PURPLE = 0x8a8fff, WHITE = 0xf4f4f5;
-const TOP = { A: [10.0, 6, 0.55], B: [12.3, 6, 12.45], C: [19.5, 3, 6.1] };
+const TOP = { A: [12.3, 6, 0.55], B: [12.3, 6, 12.45], C: [19.5, 3, 6.1] };
 
 const vp = document.getElementById('viewport');
 let renderer;
@@ -620,10 +620,10 @@ function scaffold(el, { x0, z0, w, d, h, axis = 'x', bays = 2 }) {
   addBox(el, Math.min(ax, bx), Math.max(ax, bx), h - 0.06, h, Math.min(az, bz), Math.max(az, bz), { face: .22, edges: false });
   addBox(el, Math.min(ax, bx), Math.max(ax, bx), 0, h, Math.min(az, bz), Math.max(az, bz), { face: .02, edges: false });
 }
-const tA = makeEl('torreA', { nombre: 'Torre de andamio central · A', estado: 'plano', medidas: ['Doble de ancha (2 cuerpos) ≈ 2,6 × 1,0 m', 'Altura 6 m (un módulo menos que en el plano)', 'Contra la pared larga cercana, a mitad de sala'],
+const tA = makeEl('torreA', { nombre: 'Torre de andamio central · A', estado: 'plano', medidas: ['Doble de ancha (2 cuerpos) ≈ 2,6 × 1,0 m', 'Altura 6 m (un módulo menos que en el plano)', 'Contra la pared larga cercana, enfrentada a la torre B'],
   notas: 'En el plano medía 8 m; producción le sacó un módulo de andamio.' });
-scaffold(tA, { x0: 8.7, z0: 0.05, w: 2.6, d: 1.0, h: 6 });
-tA.labelEl = label('Torre A · 6 m', '', tA.group, [10, 6.7, 0.55]);
+scaffold(tA, { x0: 11.0, z0: 0.05, w: 2.6, d: 1.0, h: 6 });
+tA.labelEl = label('Torre A · 6 m', '', tA.group, [12.3, 6.7, 0.55]);
 const tB = makeEl('torreB', { nombre: 'Torre de andamio central · B', estado: 'plano', medidas: ['Doble de ancha (2 cuerpos) ≈ 2,6 × 1,0 m', 'Altura 6 m (un módulo menos que en el plano)', 'Contra la pared larga opuesta'],
   notas: 'Enfrentada a la torre A: ≈ 11 m de luz entre ambas.' });
 scaffold(tB, { x0: 11.0, z0: 11.95, w: 2.6, d: 1.0, h: 6 });
@@ -679,7 +679,7 @@ cota([0, 0.05, -0.5], [SX, 0.05, -0.5], '4 m backstage', [0, 0, 0.3]);
 cota([SXE + 0.35, 0.05, 0], [SXE + 0.35, 0.05, STAGE.z0], '1,5 m', [0.3, 0, 0]);
 cota([SXE + 0.35, 0.05, STAGE.z1], [SXE + 0.35, 0.05, D], '1,5 m', [0.3, 0, 0]);
 cota([SXE + 0.9, STAGE.h + 0.05, STAGE.z0], [SXE + 0.9, STAGE.h + 0.05, STAGE.z1], '10 m', [0.3, 0, 0]);
-cota([10, 6.3, 1.1], [12.3, 6.3, 11.9], '≈11 m entre torres', [0, 0.3, 0]);
+cota([12.3, 6.3, 1.1], [12.3, 6.3, 11.9], '≈11 m entre torres', [0, 0.3, 0]);
 
 /* ───────── Figuras y utilidades de escena ───────── */
 const figGeo = new THREE.CapsuleGeometry(0.22, 1.25, 4, 12);
@@ -793,7 +793,7 @@ const SCENES = [
     build() {
       dj('Milano Paolini');
       figure('Músico PVC', [9.5, 1.0, 6.5]); propBox(9.9, 10.5, 1.0, 2.2, 5.9, 7.1, 'Tubos PVC');
-      const c = path([[10, 6, 1.05], [12.3, 6, 11.95]]);
+      const c = path([[12.3, 6, 1.05], [12.3, 6, 11.95]]);
       const m = figure('Mono en bici', [0, 0, 0], { color: PURPLE, air: true });
       anims.push(t => { const k = (Math.sin(t * .35) + 1) / 2; const p = c.getPointAt(k); m.position.set(p.x, p.y - 1.95, p.z); });
     } },
@@ -808,9 +808,9 @@ const SCENES = [
     tec: ['Bungee ×2', 'Cañones de remeras', 'Brazos de colgado en torres'],
     pend: ['Radio de oscilación y zona de exclusión bajo cada bungee', 'Cantidad de remeras y recarga'],
     build() {
-      bungee('Bungee 1', [10, 6, 2.4], 1.35); bungee('Bungee 2', [12.3, 6, 10.6], -1.35);
-      arcs([10, 5, 2.4], [[9, 0, 6], [12, 0, 5], [15, 0, 4]]); arcs([12.3, 5, 10.6], [[9, 0, 9], [13, 0, 7.5], [16, 0, 10]]);
-      ring([10, 2.4], 1.2, PURPLE); ring([12.3, 10.6], 1.2, PURPLE);
+      bungee('Bungee 1', [12.3, 6, 2.4], 1.35); bungee('Bungee 2', [12.3, 6, 10.6], -1.35);
+      arcs([12.3, 5, 2.4], [[9, 0, 6], [12, 0, 5], [15, 0, 4]]); arcs([12.3, 5, 10.6], [[9, 0, 9], [13, 0, 7.5], [16, 0, 10]]);
+      ring([12.3, 2.4], 1.2, PURPLE); ring([12.3, 10.6], 1.2, PURPLE);
     } },
   { n: 6, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
     guion: 'Desfile de personajes. Estética y ritmo a definir.',
@@ -918,7 +918,7 @@ const SCENES = [
       dj('DJ');
       [[1.2, 2.2], [1.2, 3.6], [1.2, 9.4], [1.2, 10.8], [1.6, 4.7], [1.6, 8.3]].forEach(([x, z], i) => figure(i === 0 ? 'Elenco' : '', [SX + x, 1, z], { color: i % 2 ? WHITE : ORANGE }));
       figure('', [10.5, 1, 6.5]); figure('', [11.3, 1, 6.5], { color: WHITE });
-      figure('', [10, 6, 0.55], { color: PURPLE }); figure('', [12.3, 6, 12.45], { color: PURPLE }); figure('Trompetista', [19.5, 3, 6.1], { color: 0x9fb8ff });
+      figure('', [12.3, 6, 0.55], { color: PURPLE }); figure('', [12.3, 6, 12.45], { color: PURPLE }); figure('Trompetista', [19.5, 3, 6.1], { color: 0x9fb8ff });
     } },
 ];
 
@@ -1021,9 +1021,9 @@ truss([8.5, 10, 10.5], [18.5, 10, 10.5], 'T3');
 // Trusses laterales: 8 wash
 for (const z of [2.5, 10.5]) for (const x of [9.5, 12, 14.5, 17]) fixture('wash', [x, 9.45, z], z < 6 ? 'T2' : 'T3', 'wash');
 // Torres de 6 m: 2 beams + 1 estrobo cada una
-for (const x of [9.3, 10.7]) fixture('beam', [x, 6.45, 0.5], 'TA', 'beamTorre', { hang: false });
+for (const x of [11.6, 13.0]) fixture('beam', [x, 6.45, 0.5], 'TA', 'beamTorre', { hang: false });
 for (const x of [11.6, 13.0]) fixture('beam', [x, 6.45, 12.45], 'TB', 'beamTorre', { hang: false });
-fixture('strobe', [10, 5.6, 1.15], 'TA', 'strobe'); fixture('strobe', [12.3, 5.6, 11.85], 'TB', 'strobe');
+fixture('strobe', [12.3, 5.6, 1.15], 'TA', 'strobe'); fixture('strobe', [12.3, 5.6, 11.85], 'TB', 'strobe');
 // Seguidores: 2 en el piso, en trípode, uno en cada esquina del fondo
 for (const z of [0.7, 12.3]) {
   fixture('seg', [19.3, 1.9, z], 'PISO', 'seg', { hang: false });
