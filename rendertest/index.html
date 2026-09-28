@@ -311,7 +311,7 @@ const W = 20, D = 13, H = 15;
 const SX = 4;                                // backstage: el escenario se retira 4 m de la pared del fondo
 const STAGE = { d: 2.3, h: 1.0, z0: 1.5, z1: 11.5 };   // prof. y altura estimadas del plano · 1,5 m libres a cada lado
 const SXE = SX + STAGE.d;                    // frente del escenario
-const TELA = { x: SX, z0: D / 2 - 3.4, z1: D / 2 + 3.4, y0: STAGE.h + 0.65, y1: STAGE.h + 7.15 };   // área útil de la tela de la pantalla / Pelea telón
+const TELA = { x: SX, z0: D / 2 - 2.65, z1: D / 2 + 2.65, y0: STAGE.h + 0.65, y1: STAGE.h + 5.65 };   // área útil de la tela de la pantalla / Pelea telón
 const INK = 0xe8e8ea, DIM = 0x4a4a52, ORANGE = 0xff6b3d, PURPLE = 0x8a8fff, WHITE = 0xf4f4f5;
 const TOP = { A: [12.3, 6, 0.55], B: [12.3, 6, 12.45], C: [19.5, 3, 6.1] };
 
@@ -435,12 +435,12 @@ addBox(bst, SX, SXE, 0, 0.02, STAGE.z1, D, { face: .05 });
   label('Ingreso actores', '', o, [SX + 1.15, 0.4, STAGE.z0 / 2]); label('Ingreso actores', '', o, [SX + 1.15, 0.4, (STAGE.z1 + D) / 2]);
 }
 
-/* ───────── Pantalla · Pelea telón: marco Layher fijo de 7,5 × 7,5 m con tela tensada. Es la pantalla y el fondo del escenario (Notion · Bruno). ───────── */
-const TEL = { side: 7.5, yb: STAGE.h + 0.3, z: (TELA.z0 + TELA.z1) / 2, xPegado: TELA.x + 0.05 };
+/* ───────── Pantalla · Pelea telón: marco Layher fijo de 6 × 6 m con tela tensada. Es la pantalla y el fondo del escenario (Notion · Bruno). ───────── */
+const TEL = { side: 6, yb: STAGE.h + 0.3, z: (TELA.z0 + TELA.z1) / 2, xPegado: TELA.x + 0.05 };
 const telon = makeEl('telon', {
   nombre: 'Pantalla · Pelea telón', estado: 'plano',
-  medidas: ['Marco Layher de 7,5 × 7,5 m con truss arriba: es la pantalla y el fondo del escenario', 'Tela blanca tensada con cuerda por ojales (≈ 6,8 × 6,5 m útiles)', 'Recibe la retroproyección desde el backstage y la escena de pelea', 'Fijo: no gira. Cuelga del techo con cable de acero, sobre el escenario'],
-  notas: 'Borde inferior a 0,3 m del escenario (supuesto). Mide 7,5 m y el escenario 10 m: quedan 1,25 m abiertos a cada lado hacia el backstage. La percha de la pelea está en la pestaña Mecanismos.'
+  medidas: ['Marco Layher de 6 × 6 m con truss arriba: es la pantalla y el fondo del escenario', 'Lona blanca engomada tensada con cuerda por ojales (≈ 5,3 × 5 m útiles)', 'Recibe la retroproyección desde el backstage y la escena de pelea', 'Fijo: no gira. Cuelga del techo con cable de acero, sobre el escenario'],
+  notas: 'Borde inferior a 0,3 m del escenario (supuesto). Mide 6 m y el escenario 10 m: quedan 2 m abiertos a cada lado hacia el backstage. La percha de la pelea está en la pestaña Mecanismos.'
 });
 const telHang = new THREE.Group(); telon.group.add(telHang); telHang.position.set(TEL.xPegado, 0, TEL.z);
 const telRot = new THREE.Group(); telHang.add(telRot);
@@ -762,20 +762,14 @@ const SCENES = [
       propBox(12.4, 13.4, 0, 2.1, 3.0, 3.8, 'Tragamonedas');
       figure('', [12.1, 0, 3.4]); figure('', [13.7, 0, 3.4]); figure('', [12.9, 0, 4.2]);
     } },
-  { n: 1, t: 'Intro', k: 'Escena de apertura', el: ['torreC'], cam: 'iso',
+  { n: 1, t: 'Intro', k: 'Escena de apertura', el: ['torreC', 'techo'], cam: 'iso',
     guion: 'Una explosión “revela” un debris espacial: una nave con dos astronautas girando alrededor, sostenidos por una estructura aérea de toroide. A lo lejos entra volando el Capitán Psicodelia hasta el escenario.',
-    esp: [['Toroide colgado del techo sobre el centro de la pista, a ≈ 7 m', 1], ['Vuelo del Capitán desde la torre C (3 m) hasta el escenario', 1], ['Explosión en el centro del toroide', 1]],
+    esp: [['Toroide bajado desde el tubo del techo con el motor central, girando a ≈ 7 m (ficha de Bruno)'], ['Vuelo del Capitán desde la torre C (3 m) hasta el escenario', 1], ['Explosión en el centro del toroide', 1]],
     tec: ['Estructura toroide', 'Nave / debris', 'Sistema de vuelo', 'Efecto explosión'],
     pend: ['Punto de colgado y carga admisible del techo', 'Sistema de vuelo: tirolesa o motor con carro', 'Tipo de efecto para la explosión (apto interior)'],
     build() {
-      const c = [11, 7, 6.5];
-      const tor = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.07, 10, 80), figMat(0xbfc0ff)); tor.rotation.x = Math.PI / 2; tor.position.set(...c); sceneGroup.add(tor);
-      label('Toroide', 'fig air', tor, [0, 0, 0.6]);
-      ceilingHangs([[c[0] + 2.2, 7, c[2]], [c[0] - 2.2, 7, c[2]], [c[0], 7, c[2] + 2.2], [c[0], 7, c[2] - 2.2]]);
-      propBox(10.4, 11.6, 6.55, 7.45, 6.1, 6.9, 'Nave');
-      const a1 = figure('Astronauta', [0, 0, 0], { color: PURPLE, air: true }), a2 = figure('Astronauta', [0, 0, 0], { color: PURPLE, air: true });
-      anims.push(t => { for (const [f, ph] of [[a1, 0], [a2, Math.PI]]) { const a = t * .6 + ph; f.position.set(c[0] + Math.cos(a) * 2.2, 6.1, c[2] + Math.sin(a) * 2.2); } });
-      const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(...c); sceneGroup.add(flash);
+      const up = buildToroide({ auto: false, val: 100 }); anims.push(up); up(t);
+      const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(TOR.x, 7.2, TOR.z); sceneGroup.add(flash);
       anims.push(t => { const k = (t % 5) / 5; flash.scale.setScalar(0.2 + k * 3.2); flash.material.opacity = Math.max(0, 0.45 * (1 - k * 1.6)); });
       const cur = path([[19.4, 3.2, 6.1], [15, 6.6, 6.3], [9, 6.2, 6.5], [SX + 1.5, 1.2, 6.5]]);
       follow(figure('Cap. Psicodelia', [0, 0, 0], { color: ORANGE, air: true }), cur, 0.09);
@@ -853,8 +847,8 @@ const SCENES = [
       figure('Cap. Psicodelia', [10.9, 1, 6.5]);
       segs([[8.6, 0, 5.9], [8.9, 2.4, 6.2], [8.6, 0, 6.9], [8.9, 2.4, 6.6], [9.4, 0, 5.9], [8.9, 2.4, 6.2], [9.4, 0, 6.9], [8.9, 2.4, 6.6]], new THREE.LineBasicMaterial({ color: ORANGE }), sceneGroup);
       ring([10.9, 6.5], 3.5, ORANGE);
-      wallRunner('Correcaminos 1', null, t => 6.5 + Math.sin(t * .7) * 2.8, t => 5.2 + Math.sin(t * 1.3) * .6);
-      wallRunner('Correcaminos 2', null, t => 6.5 + Math.sin(t * .7 - .9) * 2.8, t => 5.4 + Math.cos(t * 1.1) * .6);
+      wallRunner('Correcaminos 1', null, t => 6.5 + Math.sin(t * .7) * 2.1, t => 5.2 + Math.sin(t * 1.3) * .6);
+      wallRunner('Correcaminos 2', null, t => 6.5 + Math.sin(t * .7 - .9) * 2.1, t => 5.4 + Math.cos(t * 1.1) * .6);
     } },
   { n: 12, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'telon'], cam: 'publico', luz: 'pico',
     guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
@@ -876,30 +870,20 @@ const SCENES = [
       const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 11, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.set(19.5, 3 + 5.5, 6.1); sceneGroup.add(beam);
     } },
-  { n: 14, t: 'Cajón + Pelea', k: 'Escena fusionada', el: ['telon'], cam: 'publico',
+  { n: 14, t: 'Cajón + Pelea', k: 'Escena fusionada', el: ['techo'], cam: 'publico',
     guion: 'Enfrentamiento aéreo entre dos tenistas. La pelea transcurre dentro de esta misma escena (antes eran dos escenas separadas).',
-    esp: [['Duelo de tenistas en danza vertical sobre la tela, uno por línea de anclaje', 1]],
+    esp: [['Duelo de tenistas en el Cajón, bajado desde el tubo del techo; pendula sobre la sala (ficha de Bruno)']],
     tec: ['Arneses aéreos ×2'], pend: ['Coreografía de pelea', 'Qué es el “cajón” en escena'],
     build() {
-      wallRunner('Tenista 1', null, t => 5.0 + Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.sin(t * 2.2) * .4);
-      wallRunner('Tenista 2', null, t => 8.2 - Math.sin(t * 1.1) * 1.4, t => 5.6 + Math.cos(t * 2.2) * .4);
+      const up = buildCajon({ auto: false, val: 100 }); anims.push(up); up(t);
     } },
-  { n: 15, t: 'Esfera / Cuatro caras', k: 'Escena', el: [], cam: 'lateral',
+  { n: 15, t: 'Esfera / Cabeza', k: 'Escena', el: ['escenario', 'telon'], cam: 'lateral',
     guion: 'Descienden 4 caras esculpidas. De cada una baja un personaje sin cara, con estructuras en los brazos que los hacen ver con brazos largos.',
-    esp: [['4 caras colgadas de motores en el techo, sobre las cuatro esquinas de la pista', 1], ['Bajan hasta ≈ 4,5 m; el personaje desciende debajo de cada una', 1]],
-    tec: ['4 caras esculpidas', '4 puntos motorizados', 'Extensiones de brazos'],
-    pend: ['Peso de cada cara', 'Motores y control de descenso', 'Cantidad de riggers'],
+    esp: [['Una cabeza de cartapesta baja sobre el escenario y se abre en 2: adentro, la esfera de hierro de 3 m (ficha de Bruno)'], ['De los orificios de la cabeza salen brazos y piernas de los 4 personajes sin cara']],
+    tec: ['Cabeza de cartapesta', 'Esfera de hierro Ø 3 m', '2 motores de cadena de 1,5 t', 'Extensiones de brazos'],
+    pend: ['Medidas de la cabeza', 'Si Mariano mantiene 4 personajes sin cara con 1 sola cabeza'],
     build() {
-      const P = [[9, 3.8], [9, 9.2], [15, 3.8], [15, 9.2]];
-      ceilingHangs(P.map(([x, z]) => [x, 11, z]));
-      const faceGeo = new THREE.IcosahedronGeometry(0.9, 1);
-      P.forEach(([x, z], i) => {
-        const f = new THREE.Mesh(faceGeo, figMat(0xbfc0ff)); f.scale.set(1, 1.25, .7); sceneGroup.add(f);
-        const p = figure(i === 0 ? 'Sin cara' : '', [x, 0, z], { color: PURPLE, air: true });
-        segs([[-.2, 1.35, 0], [-1.2, .5, 0], [.2, 1.35, 0], [1.2, .5, 0]], new THREE.LineBasicMaterial({ color: PURPLE }), p);
-        anims.push(t => { const k = (1 - Math.cos(((t * .25 + i * .08) % 1) * Math.PI * 2)) / 2; const y = 11 - k * 6.5; f.position.set(x, y, z); p.position.set(x, Math.max(0, y - 1.2 - 1.7 - k * 3), z); });
-      });
-      label('Caras esculpidas ×4', 'fig air', sceneGroup, [11, 12, 6.5]);
+      const up = buildCabeza({ auto: true, val: 0 }); anims.push(up); up(t);
     } },
   { n: 16, t: 'Persecución', k: 'Vaca-monja vs. Punky-carnicera', el: [], cam: 'iso',
     guion: 'Retorno de la persecución. Los dos personajes vienen apareciendo desde el principio del show.',
@@ -1043,13 +1027,13 @@ const strobeFlash = new THREE.PointLight(0xffffff, 0, 30, 2); lightGroup.add(str
 /* Patrones de apuntado: (fx, i, n, look) → (t, out) */
 const CARAS = [[9, 3.8], [9, 9.2], [15, 3.8], [15, 9.2]];
 function figTarget(name, out, fallback) {
-  const f = FIG[name]; if (f) { out.copy(f.position); out.y += f.userData.horizontal ? 0 : 1.1; if (f.userData.horizontal) out.x += 0.8; }
+  const f = FIG[name]; if (f) { f.getWorldPosition(out); root.worldToLocal(out); out.y += f.userData.horizontal ? 0 : 1.1; }
   else out.set(...fallback);
 }
 const AIM = {
   down: (fx) => (t, o) => o.set(fx.lens.x, 0, fx.lens.z),
   stage: (fx) => (t, o) => o.set(SX + 1.3, 1.0, fx.lens.z),
-  up: (fx) => (t, o) => o.set(TEL.xPegado + .12, 8.0, fx.lens.z),
+  up: (fx) => (t, o) => o.set(TEL.xPegado + .12, 6.8, fx.lens.z),
   telon: () => (t, o) => o.set(telHang.position.x, TEL.yb + TEL.side / 2, TEL.z),
   pista: (fx, i) => (t, o) => o.set(fx.lens.x + Math.sin(t * .3 + i) * 1.6, 0, 6.5 + (fx.lens.z - 6.5) * .35 + Math.cos(t * .25 + i * 1.3) * 1.4),
   fan: (fx, i) => (t, o) => o.set(11 + Math.sin(t * .45 + i * .7) * 6.5, 0, 6.5 + Math.cos(t * .37 + i * 1.1) * 4.8),
@@ -1058,7 +1042,8 @@ const AIM = {
   publico: (fx, i) => (t, o) => o.set(7 + (i % 4) * 3, 0, 2.5 + ((i * 3) % 9)),
   tarima: (fx, i) => (t, o) => o.set(10.9 + Math.sin(i * 2.1) * .6, 1.0, 6.5 + Math.cos(i * 2.1) * .5),
   circTarima: (fx, i) => (t, o) => { const a = t * .35 + i * 1.05; o.set(10.9 + Math.cos(a) * 2.6, 0, 6.5 + Math.sin(a) * 2.6); },
-  toroide: (fx, i) => (t, o) => { const a = t * .6 + i * 1.3; o.set(11 + Math.cos(a) * 2.2, 7, 6.5 + Math.sin(a) * 2.2); },
+  toroide: (fx, i) => (t, o) => { const a = t * .6 + i * 1.3; o.set(TOR.x + Math.cos(a) * 1.4, 7.2, TOR.z + Math.sin(a) * 1.4); },
+  cabeza: (fx, i) => (t, o) => o.set(CAB.x + .3, CAB.y + (i % 2 ? .8 : -.4), CAB.z + (i % 3 - 1) * 1.2),
   caras: (fx, i) => (t, o) => { const [x, z] = CARAS[i % 4]; o.set(x, 6.5, z); },
   tela: (fx, i, n) => (t, o) => o.set(TEL.xPegado + .04, 2.8 + (i % 3) * 2 + Math.sin(t * .5 + i) * .6, TELA.z0 + .3 + (i / Math.max(1, n - 1)) * (TELA.z1 - TELA.z0 - .6)),
   track: (fx, i, n, look) => (t, o) => figTarget(look.names[i % look.names.length], o, [SX + 1.3, 2, 6.5]),
@@ -1143,68 +1128,186 @@ const LOOKS = {
   11: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
   12: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
   13: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
-  14: { txt: 'Duelo sobre la tela: beams blancos barren la tela, violeta de fondo y un seguidor por tenista.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .75, aim: 'tela' }, parU: { i: .5, c: P.v }, seg: ['Tenista 1', 'Tenista 2'] },
-  15: { txt: 'Beams violetas y blancos clavados en las cuatro caras mientras bajan; seguidores en los personajes sin cara.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'caras' }, parU: { i: .4, c: P.v }, seg: ['Sin cara'] },
+  14: { txt: 'Duelo en el Cajón: los beams de las torres siguen a cada tenista mientras pendula, violeta de fondo y un seguidor por tenista.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Tenista 1', 'Tenista 2'] }, parU: { i: .5, c: P.v }, seg: ['Tenista 1', 'Tenista 2'] },
+  15: { txt: 'Beams violetas y blancos sobre la cabeza mientras baja y se abre; al abrirse, la esfera suma sus propias luces y láser.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'cabeza' }, parU: { i: .4, c: P.v } },
   16: { txt: 'Persecución: beams naranjas cruzados, estrobos y un seguidor para cada personaje.', wash: { c: [P.w, P.o], i: .5, aim: 'fan' }, beam: { c: P.o, i: .75, aim: 'cruz' }, strobe: 'on', seg: ['Vaca-monja', 'Punky-carnicera'] },
   17: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
 };
 
 
 /* ───────── Mecanismos (fuente: Notion › Mecanismos y estructuras) ───────── */
+/* ───────── Mecanismos del motor central y de la cabeza (fichas de Bruno en Notion, 28/09) ───────── */
+const sstep = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+function cycle(t, P) { const p = (t % P) / P; return p < .2 ? sstep(0, .2, p) : p < .8 ? 1 : 1 - sstep(.8, 1, p); }
+const MOTOR_Y = TOR.yPlane + .4;          // gancho del motor central, sobre el tubo
+const Y_GUARDA = TOR.yPlane + .1;         // percha guardada dentro del tubo, por encima del nivel de la tela
+const metal = c => new THREE.MeshStandardMaterial({ color: c, metalness: .6, roughness: .35 });
+
+// Toroide: percha de 2,25 m que gira; eje de astronautas de 1,75 m que gira sobre la percha; cada astronauta gira sobre sí
+function buildToroide(st, { yWork = 7.2 } = {}) {
+  const x = TOR.x, z = TOR.z;
+  const rig = new THREE.Group(); sceneGroup.add(rig);
+  rig.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 2.25), figMat(0xbfc0ff)));
+  const shell = new THREE.Mesh(new THREE.TorusGeometry(1.1, .09, 12, 72), metal(0xc9ccd6)); rig.add(shell);   // anillo de PVC pintado
+  const wheel = new THREE.Group(); rig.add(wheel);
+  wheel.add(new THREE.Mesh(new THREE.BoxGeometry(.06, 1.75, .06), metal(0xd0d0d8)));
+  const cw = [1, -1].map(sg => { const d = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .07, 20), figMat(0xffd36b)); wheel.add(d); return [d, sg]; });
+  const astro = [1, -1].map((sg, i) => { const f = figure(i ? 'Astronauta 2' : 'Astronauta 1', [0, 0, 0], { color: PURPLE, air: true }); wheel.add(f); f.position.set(0, sg * .875, 0); if (sg < 0) f.rotation.z = Math.PI; return f; });
+  label('Toroide', 'fig air', rig, [0, .3, 1.5]);
+  const cable = dynLine(0xff4a3a), top = new THREE.Vector3(x, MOTOR_Y, z), end = new THREE.Vector3();
+  return (t) => {
+    const k = st.auto ? cycle(t, 26) : st.val / 100; if (st.auto) st.val = k * 100;
+    const w = sstep(.85, 1, k), y = Y_GUARDA + (yWork - Y_GUARDA) * k;
+    rig.position.set(x, y, z); rig.rotation.y = t * .3 * w;
+    wheel.rotation.z = t * 1.3 * w;
+    astro.forEach(f => { f.children[0].rotation.y = t * 2.2 * w; });
+    const r = .3 + .5 * (.5 + .5 * Math.sin(t * 1.3)) * w;          // contrapesos que se alejan y acercan
+    cw.forEach(([d, sg]) => d.position.set(0, sg * r, 0));
+    cable(top, end.set(x, y + .05, z));
+  };
+}
+
+// Cajón: caja de aluminio 1,9 × 1,9 × 0,3 m que gira sobre su eje; percha de 2,25 m; péndulo desde el motor central
+function buildCajon(st, { yWork = 5.5 } = {}) {
+  const x = TOR.x, z = TOR.z, drop = 1.6;
+  const piv = new THREE.Group(); piv.position.set(x, MOTOR_Y, z); sceneGroup.add(piv);
+  const rig = new THREE.Group(); piv.add(rig);
+  rig.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 2.25), figMat(0xbfc0ff)));
+  segs([[0, 0, 1.125], [0, -drop, .95], [0, 0, -1.125], [0, -drop, -.95]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), rig);
+  const box = new THREE.Group(); box.position.y = -drop; rig.add(box);
+  const bg = new THREE.BoxGeometry(.3, 1.9, 1.9);
+  box.add(new THREE.Mesh(bg, metal(0x9aa0aa)));
+  box.add(new THREE.LineSegments(new THREE.EdgesGeometry(bg), new THREE.LineBasicMaterial({ color: INK })));
+  const led = [1, -1].map(sg => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ color: 0xff3fa4, toneMapped: false, side: THREE.DoubleSide }));
+    m.rotation.y = Math.PI / 2; m.position.x = sg * .155; box.add(m); return m; });
+  [1, -1].forEach((sg, i) => { const f = figure(i ? 'Tenista 2' : 'Tenista 1', [0, 0, 0], { color: i ? ORANGE : PURPLE, air: true, horizontal: true });
+    box.add(f); f.position.set(sg * .16, 0, 0); if (sg < 0) f.rotation.y = Math.PI; });
+  label('Cajón 1,9 × 1,9 m', 'fig air', rig, [0, .45, 1.7]);
+  const cable = dynLine(0xff4a3a), top = new THREE.Vector3(x, MOTOR_Y, z), p = new THREE.Vector3(), hue = new THREE.Color();
+  return (t) => {
+    const k = st.auto ? cycle(t, 28) : st.val / 100; if (st.auto) st.val = k * 100;
+    const w = sstep(.85, 1, k), y = Y_GUARDA + (yWork - Y_GUARDA) * k;
+    rig.position.set(0, y - MOTOR_Y, 0);
+    piv.rotation.x = .35 * Math.sin(t * .55) * w;
+    rig.rotation.y = t * .3 * w;
+    box.rotation.z = t * .9 * w;
+    led.forEach((m, i) => m.material.color.copy(hue.setHSL((t * .08 + i * .5) % 1, .9, .55)));
+    rig.getWorldPosition(p); root.worldToLocal(p); cable(top, p);
+  };
+}
+
+// Esfera / Cabeza: truss con riel bajado por 2 motores de cadena; esfera de hierro fija al truss; la cabeza se abre en 2 por el riel
+const CAB = { x: SX + 2.0, z: D / 2, y: STAGE.h + 2.2, rx: 1.7, ry: 2.1, rz: 1.9, open: 2.2, trussStore: 11.0, motorY: 11.6 };
+CAB.trussWork = CAB.y + CAB.ry + .6;
+function buildCabeza(st) {
+  const g = new THREE.Group(); sceneGroup.add(g);
+  const motMat = new THREE.MeshStandardMaterial({ color: 0xff4a3a, emissive: 0xff4a3a, emissiveIntensity: .35 });
+  const mz = [CAB.z - 1.3, CAB.z + 1.3];
+  mz.forEach(zz => { const m = new THREE.Mesh(new THREE.BoxGeometry(.4, .45, .4), motMat); m.position.set(CAB.x, CAB.motorY, zz); sceneGroup.add(m); });
+  segs(mz.flatMap(zz => [[CAB.x, CAB.motorY + .22, zz], [CAB.x, H, zz]]), dashMat(0x5c5c63, .25, .25), sceneGroup);
+  const lm = new THREE.Object3D(); lm.position.set(CAB.x, CAB.motorY + .6, CAB.z); sceneGroup.add(lm); label('2 motores de cadena · 1,5 t', 'fig', lm);
+  const chains = [dynLine(0xff4a3a), dynLine(0xff4a3a)];
+  // truss con riel
+  const L = 2 * (CAB.rz + CAB.open) + .4, h = L / 2, q = .15, tp = [];
+  for (const [yy, xx] of [[q, q], [q, -q], [-q, q], [-q, -q]]) tp.push([xx, yy, -h], [xx, yy, h]);
+  for (let i = 0, n = Math.round(L / .6); i < n; i++) { const z0 = -h + i * L / n, z1 = z0 + L / n; tp.push([q, i % 2 ? q : -q, z0], [q, i % 2 ? -q : q, z1], [-q, i % 2 ? q : -q, z0], [-q, i % 2 ? -q : q, z1]); }
+  segs(tp, new THREE.LineBasicMaterial({ color: INK }), g);
+  label('Truss con riel y 4 carros', 'fig', g, [0, .45, h - 1]);
+  // esfera de hierro Ø 3 m, fija al truss
+  const sph = new THREE.Group(); sph.position.y = -(CAB.ry + .6); g.add(sph);
+  sph.add(new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.SphereGeometry(1.5, 18, 12)), new THREE.LineBasicMaterial({ color: 0xa8aeb8 })));
+  segs([[0, 1.5, 0], [0, CAB.ry + .6 - q, 0]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sph);
+  const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); core.scale.setScalar(2.6); sph.add(core);
+  const lasers = new THREE.Group(); sph.add(lasers);
+  { const lp = []; for (let i = 0; i < 14; i++) { const a = i * 2.39, b = Math.acos(1 - 2 * ((i + .5) / 14)); const d = [Math.sin(b) * Math.cos(a), Math.cos(b), Math.sin(b) * Math.sin(a)];
+      lp.push([0, 0, 0], d.map(v => v * 6)); }
+    segs(lp, new THREE.LineBasicMaterial({ color: 0x33ff88, transparent: true, opacity: .0, blending: THREE.AdditiveBlending, depthWrite: false }), lasers); }
+  label('Esfera Ø 3 m', 'fig air', sph, [0, -1.9, 0]);
+  // cabeza de cartapesta en 2 mitades, colgadas de carros en el riel
+  const headMat = new THREE.MeshStandardMaterial({ color: 0xe6d6bd, roughness: .9, flatShading: true, side: THREE.DoubleSide });
+  const dark = new THREE.MeshBasicMaterial({ color: 0x141414, side: THREE.DoubleSide });
+  const hy = -(CAB.ry + .6);
+  const halves = [1, -1].map(sg => {
+    const hg = new THREE.Group(); g.add(hg);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20, sg > 0 ? 0 : Math.PI, Math.PI), headMat); m.scale.set(CAB.rx, CAB.ry, CAB.rz); m.position.y = hy; hg.add(m);
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(.28, 20), dark); eye.rotation.y = Math.PI / 2; eye.position.set(CAB.rx * .93, hy + .55, sg * .7); hg.add(eye);
+    const mouth = new THREE.Mesh(new THREE.PlaneGeometry(.55, .22), dark); mouth.rotation.y = Math.PI / 2; mouth.position.set(CAB.rx * .92, hy - .75, sg * .28); hg.add(mouth);
+    for (const cz of [.4, 1.5]) { const c = new THREE.Mesh(new THREE.BoxGeometry(.25, .15, .3), figMat(0xbfc0ff)); c.position.set(0, -q - .08, sg * cz); hg.add(c);
+      segs([[0, -q - .15, sg * cz], [0, hy + CAB.ry * Math.sqrt(1 - Math.min(.95, (cz / CAB.rz) ** 2)), sg * cz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), hg); }
+    // brazos y piernas que asoman por los orificios (personajes sin cara)
+    const limb = new THREE.CapsuleGeometry(.09, .7, 4, 8);
+    const arm = new THREE.Mesh(limb, figMat(ORANGE)); arm.rotation.x = Math.PI / 2; arm.position.set(.2, hy + .2, sg * (CAB.rz + .3)); hg.add(arm);
+    const leg = new THREE.Mesh(limb, figMat(ORANGE)); leg.position.set(.5, hy - CAB.ry - .2, sg * .6); hg.add(leg);
+    return [hg, sg];
+  });
+  label('Cabeza de cartapesta', 'fig', g, [CAB.rx + .3, hy + CAB.ry - .2, 0]);
+  return (t) => {
+    if (st.auto) { const p = (t % 30) / 30;
+      st.val = p < .15 ? 50 * sstep(0, .15, p) : p < .3 ? 50 : p < .45 ? 50 + 50 * sstep(.3, .45, p) : p < .65 ? 100 : p < .8 ? 100 - 50 * sstep(.65, .8, p) : p < .88 ? 50 : 50 - 50 * sstep(.88, 1, p); }
+    const kd = Math.min(1, st.val / 50), ko = Math.max(0, (st.val - 50) / 50);
+    const ty = CAB.trussStore + (CAB.trussWork - CAB.trussStore) * kd;
+    g.position.set(CAB.x, ty, CAB.z);
+    halves.forEach(([hg, sg]) => { hg.position.z = sg * ko * CAB.open; });
+    lasers.rotation.y = t * .6; lasers.children[0].material.opacity = .55 * ko;
+    core.material.color.setRGB(1.6 * ko, .7 * ko, .3 * ko);
+    chains.forEach((c, i) => c(new THREE.Vector3(CAB.x, CAB.motorY - .22, mz[i]), new THREE.Vector3(CAB.x, ty + q, mz[i])));
+  };
+}
+
 function syncRange(st, unit) {
   const out = document.getElementById('mecRangeOut'), rg = document.getElementById('mecRange');
   if (out) out.textContent = Math.round(st.val) + unit; if (rg && st.auto) rg.value = Math.round(st.val);
 }
 const MECS = [
-  { id: 'telon', t: 'Pelea telón', k: 'Tela pandereta 7,5 × 7,5 m + percha de contrapeso',
-    st: { auto: true, val: 0 }, range: { label: 'Contrapeso', min: -35, max: 35, unit: '°' },
-    fuente: 'Notion › Mecanismos y estructuras › Pelea telón · actualizado por Bruno el 27/09 · aclaración de Juan: el telón no gira',
-    escenas: '5 · Pandereta (texto de Mariano). En Notion figura como “¿14 · Cajón + Pelea?”: conviene corregirlo.',
-    desc: 'Estructura metálica cuadrada con una tela tensa tipo pandereta, fija: es la misma pantalla del fondo del escenario. Sobre ella, 2 performers colgadas de una percha pelean: se balancean entre sí apoyadas en la tela y suben y bajan haciéndose contrapeso una a la otra.',
-    func: ['Marco de Layher con tela blanca tensada por una cuerda a través de ojales. Queda fijo: no gira.',
+  { id: 'telon', t: 'Pelea telón', k: 'Pantalla 6 × 6 m + percha con poleas',
+    st: { auto: true, val: 0 }, range: { label: 'Contrapeso', min: -100, max: 100, unit: '%' },
+    fuente: 'Notion › Mecanismos y estructuras › Pelea telón · actualizado por Bruno el 27/09',
+    escenas: 'Sombras / Pelea telón (Notion) · 5 · Pandereta en el texto de Mariano.',
+    desc: 'Marco de Layher de 6 × 6 m con una lona blanca engomada tensada tipo pandereta: es la pantalla del fondo del escenario. Sobre ella, 2 performers colgadas de una percha se balancean entre sí apoyadas en la tela y suben y bajan haciéndose contrapeso con poleas.',
+    func: ['Marco de Layher de 6 × 6 m con lona blanca engomada, tensada con cuerda por ojales. Queda fijo.',
       'Una luz en trípode en el backstage ilumina toda la tela desde atrás: contraluz para las sombras.',
-      'Percha: caño de 1,5 m colgado del techo por una cuerda, con el pivote al centro (a 0,75 m de cada punta). Funciona como un balancín.',
-      'De cada punta cuelga una performer con 2,5 m de cuerda. Apoyadas en la tela, cuando una baja la otra sube: se hacen contrapeso, y se balancean de lado una respecto de la otra.'],
+      'Percha: caño de 1,5 m con un ojal al centro para colgarla y un mosquetón en cada punta. Cuelga de una cuerda, aparte del marco.',
+      'De cada punta, cuerda Dyneema de 6 mm y 2,5 m a un arnés con swivel. Con 2 poleas funciona como contrapeso (una sube cuando la otra baja) o con motor.'],
     ubic: 'Sobre el escenario principal: es el fondo que separa escenario y backstage. La percha cuelga delante de la tela, de un punto propio en el techo.',
-    ficha: [['Tipo', 'Contrapeso entre 2 performers (percha balancín)'], ['Performers', '2'], ['Operadores / riggers', 'a definir'], ['Dimensiones', 'Tela 7,5 × 7,5 m · percha 1,5 m · cuerdas 2,5 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+    ficha: [['Tipo', 'Contrapeso entre 2 performers (percha con poleas)'], ['Performers', '2'], ['Operadores / riggers', '2'], ['Dimensiones', 'Marco 6 × 6 m · percha 1,5 m · cuerdas 2,5 m'], ['Motorización', 'Motor de cadena de 2 t'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
     el: ['telon'], proj: 'off', cam: 'mecTelon', look: { contra: 1, wash: { c: '8a8fff', i: .12, aim: 'pista' }, parU: { i: .15, c: 'ffffff' } },
-    pend: ['Recorrido vertical: ¿suben y bajan solo por el balancín de la percha (≈ ±0,4 m) o hay polea o motor?', 'Altura de la percha (supuesto: 8,6 m, apenas sobre el marco)',
-      'Actualizar Notion: la ficha todavía dice que el marco gira 180° con swivel', 'Peso de las 2 performers: el contrapeso funciona si pesan parecido',
-      'Proyector y contra comparten la tela: durante la pelea el proyector va apagado o en negro (en este mecanismo se muestra apagado)', 'Operadores y riggers'],
+    pend: ['Notion dice que el marco gira 180° con swivel; Juan aclaró que no gira: unificar la ficha', 'Para qué es el motor de cadena de 2 t: ¿sube el marco o mueve la percha?',
+      'Altura de la percha (supuesto: 7,6 m, apenas sobre el marco)', 'Recorrido real con las poleas (supuesto: ±1,8 m)', 'Peso de las 2 performers: el contrapeso funciona si pesan parecido',
+      'Proyector y contra comparten la tela: durante la pelea el proyector va apagado o en negro', 'Telas negras a los costados: la pantalla deja 2 m abiertos a cada lado'],
     build() {
-      const st = this.st, fx = TEL.xPegado + .1, px = TEL.xPegado + .95, py = 8.6, pz = TEL.z, L = 2.5, half = .75;
-      const TH = 35 * Math.PI / 180, PS = 22 * Math.PI / 180;
+      const st = this.st, fx = TEL.xPegado + .1, px = TEL.xPegado + .95, py = TEL.yb + TEL.side + .3, pz = TEL.z, half = .75, A = 1.8;
+      const mid = (TELA.y0 + TELA.y1) / 2 + .3, PS = 18 * Math.PI / 180;
       segs([[px, H, pz], [px, py, pz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sceneGroup);
       const pg = new THREE.Group(); pg.position.set(px, py, pz); sceneGroup.add(pg);
       pg.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 2 * half), figMat(0xbfc0ff)));
-      const piv = new THREE.Mesh(new THREE.SphereGeometry(.08, 12, 8), figMat(WHITE)); piv.position.set(px, py, pz); sceneGroup.add(piv);
-      label('Percha 1,5 m · pivote al centro', 'fig air', piv, [0, .5, 0]);
-      // zona de trabajo sobre la tela
-      const yLo = py - half * Math.sin(TH) - L, yHi = py + half * Math.sin(TH) - L * Math.cos(PS), zr = half + L * Math.sin(PS) + .35;
-      const zona = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(2 * zr, yHi - yLo + 1.2)), dashMat(PURPLE, .2, .14));
-      zona.computeLineDistances(); zona.rotation.y = Math.PI / 2; zona.position.set(TEL.xPegado + .06, (yLo + yHi) / 2, pz); sceneGroup.add(zona);
-      label('Zona de trabajo sobre la tela', 'fig air', zona, [0, (yHi - yLo + 1.2) / 2 + .35, 0]);
-      const f1 = figure('Performer 1', [0, 0, 0], { color: PURPLE, air: true, horizontal: true });
-      const f2 = figure('Performer 2', [0, 0, 0], { color: ORANGE, air: true, horizontal: true });
+      for (const sg of [1, -1]) { const pul = new THREE.Mesh(new THREE.TorusGeometry(.09, .025, 8, 20), figMat(WHITE)); pul.position.set(0, -.08, sg * half); pg.add(pul); }
+      label('Percha 1,5 m · 2 poleas', 'fig air', pg, [0, .5, 0]);
+      const zr = half + (py - (mid - A)) * Math.sin(PS) + .3;
+      const zona = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(2 * zr, 2 * A + 1.4)), dashMat(PURPLE, .2, .14));
+      zona.computeLineDistances(); zona.rotation.y = Math.PI / 2; zona.position.set(TEL.xPegado + .06, mid + .2, pz); sceneGroup.add(zona);
+      label('Zona de trabajo sobre la tela', 'fig air', zona, [0, A + 1.05, 0]);
+      const f1p = figure('Performer 1', [0, 0, 0], { color: PURPLE, air: true, horizontal: true });
+      const f2p = figure('Performer 2', [0, 0, 0], { color: ORANGE, air: true, horizontal: true });
       const r1 = dynLine(PURPLE), r2 = dynLine(PURPLE), e = new THREE.Vector3(), hp = new THREE.Vector3();
       const place = (t) => {
-        const th = st.auto ? TH * Math.sin(t * .8) : st.val * Math.PI / 180, ps = PS * Math.sin(t * 1.15);
-        if (st.auto) st.val = th * 180 / Math.PI;
-        pg.rotation.x = -th;
-        [[f1, r1, 1], [f2, r2, -1]].forEach(([f, r, sg]) => {
-          e.set(px, py + sg * half * Math.sin(th), pz + sg * half * Math.cos(th));
-          hp.set(px, e.y - L * Math.cos(ps), e.z + sg * L * Math.sin(ps));
-          r(e, hp); f.position.set(fx, hp.y - .1, hp.z);
+        const c = st.auto ? Math.sin(t * .7) : st.val / 100, ps = PS * Math.sin(t * 1.15);
+        if (st.auto) st.val = c * 100;
+        [[f1p, r1, 1], [f2p, r2, -1]].forEach(([f, r, sg]) => {
+          const yh = mid + sg * A * c;
+          e.set(px, py - .08, pz + sg * half);
+          hp.set(px, yh, pz + sg * (half + (py - yh) * Math.sin(ps)));
+          r(e, hp); f.position.set(fx, yh - .1, hp.z);
         });
-        syncRange(st, '°');
+        syncRange(st, '%');
       };
       anims.push(place); place(t);
-      const dy = half * Math.sin(TH);
       this.notes = [
-        [`Con una percha de 1,5 m, el balancín sube y baja a cada performer ≈ ±${dy.toFixed(1).replace('.', ',')} m (inclinación de ±35°). Para recorridos más largos hace falta polea o motor.`, 'warn'],
-        [`Con la percha a ${py.toString().replace('.', ',')} m, los arneses quedan entre ≈ ${yLo.toFixed(1).replace('.', ',')} y ${yHi.toFixed(1).replace('.', ',')} m: trabajan en la mitad alta de la tela.`],
-        [`Ancho de trabajo sobre la tela ≈ ${(2 * zr).toFixed(1).replace('.', ',')} m, dentro de los 6,8 m útiles del telón.`],
-        ['La percha cuelga de un punto propio en el techo, a ≈ 1 m delante de la tela: el marco no carga a las performers.'],
+        [`Con las poleas, cada performer recorre ≈ ±${f1(A)} m (supuesto): de ≈ ${f1(mid - A)} a ${f1(mid + A)} m, casi toda la altura útil de la tela (${f1(TELA.y0)} a ${f1(TELA.y1)} m).`],
+        [`Tela útil ≈ ${f1(TELA.z1 - TELA.z0)} × ${f1(TELA.y1 - TELA.y0)} m dentro del marco de 6 × 6 m.`],
+        ['La percha cuelga de un punto propio en el techo, ≈ 1 m delante de la tela: el marco no carga a las performers.'],
+        ['Notion todavía dice que el marco gira 180°: acá está fijo, como aclaró Juan.', 'warn'],
+        ['La pantalla mide 6 m y el escenario 10 m: quedan 2 m abiertos a cada lado hacia el backstage.', 'warn'],
+        ['El recorrido de la Cabeza pasa por el mismo lugar que la percha: no pueden estar a la vez.', 'warn'],
       ];
     } },
   { id: 'agujero', t: 'Agujero negro', k: 'Bajada y subida por el tubo del tornado',
@@ -1213,7 +1316,7 @@ const MECS = [
     escenas: '1 · Planteamiento (texto de Mariano): el Capitán y los otros dos personajes son absorbidos por el agujero negro del techo.',
     desc: 'En el techo, una tela en espiral tipo tornado se cierra en un tubo central. Desde el tubo bajan los performers colgados del cable de un motor que está arriba de la parrilla; por el mismo camino pueden ser “absorbidos” hacia arriba.',
     func: ['Parrilla de truss en el plano de la escenografía, a 3 m bajo el techo de la carpa.', 'Tubo central colgado de la parrilla; la tela del tornado se cierra en su boca.',
-      'Motor (rojo en el boceto) arriba del tubo: el cable baja por adentro del tubo hasta el performer.', 'El performer baja desde el tubo hasta la pista y puede volver a subir.'],
+      'Motor (rojo en el boceto) arriba del tubo: el cable baja por adentro del tubo hasta el performer.', 'El mismo motor central baja el Toroide y el Cajón, que esperan guardados arriba de la tela.', 'El performer baja desde el tubo hasta la pista y puede volver a subir.'],
     ubic: 'Centrado sobre el espacio del show: a 8 m de la pantalla y a mitad del ancho de la sala.',
     ficha: [['Tipo', 'Vuelo vertical con motor'], ['Performers', 'a definir (Capitán + 2 personajes, según Mariano)'], ['Operadores / riggers', 'a definir'], ['Dimensiones', 'Tubo Ø 2,5 m · recorrido ≈ 9,8 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
     el: ['techo'], cam: 'mecAgujero', look: { wash: { c: '8a8fff', i: .18, aim: 'pista' }, beamTorre: { c: 'ffffff', i: .9, aim: 'track', names: ['Performer'] }, seg: ['Performer'] },
@@ -1238,9 +1341,83 @@ const MECS = [
         ['Baja en el centro de la pista: durante la bajada hay que despejar un círculo de ≈ 4 m de diámetro.', 'warn'],
         ['Por el mismo eje pasan el toroide (a 7 m) y las 4 caras: no pueden estar desplegados durante la bajada.', 'warn'],
         ['Los cuelgues de los trusses de luces suben hasta la carpa y atraviesan la tela del tornado.', 'warn'],
+        ['Comparte el motor central con el Toroide y el Cajón: uno por vez.'],
       ];
     } },
-  ...[['Cajón', 'Estructura del enfrentamiento aéreo'], ['Esfera / Cabeza', 'La cabeza que se parte'], ['Bungees', ''], ['Toroide', ''], ['Las monjas', ''], ['Péndulos', '']]
+  { id: 'cajon', t: 'Cajón', k: 'Caja aérea de 1,9 × 1,9 m que gira y pendula',
+    st: { auto: true, val: 0 }, range: { label: 'Bajada', min: 0, max: 100, unit: '%' },
+    fuente: 'Notion › Mecanismos y estructuras › Cajón · actualizado por Bruno el 28/09',
+    escenas: '14 · Cajón (Notion) · 7 · Cajón en el texto de Mariano.',
+    desc: 'Estructura aérea donde transcurre el enfrentamiento entre 2 tenistas. Pendula con un performer de cada lado y permite girar, subir y bajar.',
+    func: ['Cuadrado de aluminio de 1,9 × 1,9 × 0,3 m con un eje central que le permite girar.', 'Cada punta del eje cuelga con cable de acero de una percha de 2,25 m, y la percha cuelga del motor central.',
+      'Cada cara de 1,9 × 1,9 m tiene al medio un anclaje tipo chapa de escalada donde se clipa un actor.',
+      'Las caras llevan pantalla LED flexible de silicona con acrílico transparente; adentro, luces, láser y efectos.'],
+    ubic: 'Centro de la sala, con el motor central. Toda la obra queda guardado arriba de la tela del techo hasta su escena.',
+    ficha: [['Tipo', 'Aérea'], ['Performers', '2 (tenistas)'], ['Operadores / riggers', '1'], ['Dimensiones', '1,9 × 1,9 × 0,3 m · percha 2,25 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+    el: ['techo'], cam: 'mecCajon', look: { wash: { c: '8a8fff', i: .2, aim: 'pista' }, beamTorre: { c: 'ffffff', i: .9, aim: 'track', names: ['Tenista 1', 'Tenista 2'] }, seg: ['Tenista 1', 'Tenista 2'] },
+    pend: ['Peso del cajón con pantallas, luces y efectos', 'Largo del cable en la escena (supuesto: caja a ≈ 5,5 m del piso)', 'Amplitud del péndulo (supuesto: ±20°)',
+      'Dónde se clipan los tenistas: con ellos puestos el conjunto no pasa por el tubo', 'Alimentación y datos de las pantallas LED y luces a bordo (cable o batería)'],
+    build() {
+      const st = this.st, up = buildCajon(st); anims.push(t => { up(t); syncRange(st, '%'); }); up(t);
+      const Lw = MOTOR_Y - 5.5, sw = Lw * Math.sin(.35), clear = (MOTOR_Y - TOR.tubeBottom) * Math.tan(.35);
+      ring([TOR.x, TOR.z], sw + 1, ORANGE, .03);
+      const o = new THREE.Object3D(); o.position.set(TOR.x, .35, TOR.z + sw + 1.4); sceneGroup.add(o); label('Barrido del péndulo', 'fig', o);
+      this.notes = [
+        ['Pasa por el tubo de 2,5 m de canto: 1,9 × 0,3 m en planta. La percha de 2,25 m entra justa.'],
+        ['Con los tenistas clipados a las caras el conjunto mide ≈ 3,7 m de ancho: no pasa por el tubo. Se clipan abajo o bajan colgados.', 'warn'],
+        [`El péndulo (cable de ≈ ${f1(Lw)} m, ±20°) barre ≈ ±${f1(sw)} m sobre el público: despejar un círculo de ≈ ${f1(2 * (sw + 1), 0)} m de diámetro.`, 'warn'],
+        [`En la boca del tubo el cable se corre ≈ ${f1(clear)} m: entra en el radio de 1,25 m sin rozar.`],
+        ['Comparte el motor central con el Agujero negro y el Toroide: uno por vez.'],
+      ];
+    } },
+  { id: 'cabeza', t: 'Esfera / Cabeza', k: 'Cabeza que baja y se abre · esfera Ø 3 m',
+    st: { auto: true, val: 0 }, range: { label: 'Secuencia', min: 0, max: 100, unit: '%' },
+    fuente: 'Notion › Mecanismos y estructuras › Esfera / Cabeza · actualizado por Bruno el 28/09',
+    escenas: '15 · Esfera · Cara (Notion) · 3 · La Cabeza y 6 · Bloque de fiesta en el texto de Mariano.',
+    desc: 'Una cara esculpida desciende sobre el escenario; por sus orificios salen brazos y piernas. La cara se divide en 2 y adentro aparece una esfera de hierro con luces y láser.',
+    func: ['Truss con riel y 4 carros, bajado por 2 motores de cadena de 1,5 t.', 'La esfera de hierro va anclada fija al truss; la cabeza, independiente y por fuera, cuelga de los carros.',
+      'Una cuerda paralela al riel abre y cierra la cabeza, como una cortina.', 'La esfera es parte de la iluminación (luces, láser y humo) y se accede a ella desde el lado del backstage.'],
+    ubic: 'Sobre el escenario, delante de la pantalla.',
+    ficha: [['Tipo', 'Aérea'], ['Performers', '4 (personajes sin cara)'], ['Operadores / riggers', '1 rigger + 2 técnicos'], ['Dimensiones', 'Esfera Ø 3 m · cabeza a definir'], ['Peso aprox.', '500 kg'], ['Motorización', '2 motores de cadena de 1,5 t'], ['Origen', 'a definir']],
+    el: ['escenario', 'telon'], cam: 'mecCabeza', look: { wash: { c: '8a8fff', i: .2, aim: 'pista' }, beamTorre: { c: ['ffffff', '8a8fff'], i: .9, aim: 'cabeza' }, parU: { i: .2, c: '8a8fff' } },
+    pend: ['Medidas de la cabeza (supuesto: 3,8 m de ancho × 4,2 m de alto × 3,4 m de fondo)', 'Altura de guardado cuando está arriba', 'Si baja hasta apoyar en el escenario o queda colgada',
+      'Cómo se accede a la esfera desde el backstage si la pantalla queda en el medio', 'Por dónde entran y salen los 4 personajes sin cara'],
+    build() {
+      const st = this.st, up = buildCabeza(st); anims.push(t => { up(t); syncRange(st, '%'); }); up(t);
+      const over = CAB.x + CAB.rx - SXE, backGap = CAB.x - CAB.rx - TEL.xPegado, width = 2 * (CAB.rz + CAB.open);
+      this.notes = [
+        [`La cabeza (supuesta de 3,8 × 4,2 × 3,4 m) sobresale ≈ ${f1(over)} m del frente del escenario, sobre la pista.`, 'warn'],
+        [`Abierta, cada mitad se corre ≈ ${f1(CAB.open)} m por el riel: el conjunto ocupa ≈ ${f1(width)} m de ancho, casi todo el escenario.`],
+        [`Queda a ≈ ${f1(backGap, 2)} m de la pantalla y la tapa mientras está abajo.`, 'warn'],
+        ['Baja por el mismo lugar donde cuelga la percha del Pelea telón: no pueden estar a la vez.', 'warn'],
+        ['Los cuelgues de los 2 motores atraviesan el borde de la tela del tornado.', 'warn'],
+        ['500 kg de esfera más la cabeza y el truss sobre 2 motores de 1,5 t: verificar la carga del punto de colgado con el rigger.'],
+      ];
+    } },
+  { id: 'toroide', t: 'Toroide', k: 'Nave giratoria con 2 astronautas',
+    st: { auto: true, val: 0 }, range: { label: 'Bajada', min: 0, max: 100, unit: '%' },
+    fuente: 'Notion › Mecanismos y estructuras › Toroide · actualizado por Bruno el 28/09',
+    escenas: 'Intro (Notion) · 2 · Toroide y 8 · Epílogo en el texto de Mariano.',
+    desc: 'Estructura aérea con forma de toroide que sostiene a los 2 astronautas girando en el aire tras la explosión de la Intro.',
+    func: ['Cuelga de una percha que sube y baja desde el techo con el motor central.', 'La percha gira; el eje de los astronautas gira sobre el eje unido a la percha; y cada astronauta gira sobre sí.',
+      '2 ejes de auto (2,25 m la percha y 1,75 m el de los astronautas) unidos por un rodamiento.', 'Cada brazo lleva un contrapeso circular que se aleja y se acerca al centro por gravedad, para tomar velocidad.',
+      'El aspecto de nave o satélite es de PVC pintado con terminación metálica, para bajar el peso.'],
+    ubic: 'Aparece desde el techo en el centro de la sala. Durante la función queda guardado arriba de la tela; el rigger lo deja clipado al motor, junto al agujero negro, y lo baja con control remoto.',
+    ficha: [['Tipo', 'Aérea'], ['Performers', '2 (astronautas)'], ['Operadores / riggers', 'a definir'], ['Dimensiones', 'Ejes de 2,25 m y 1,75 m · anillo a definir'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+    el: ['techo'], cam: 'mecToroide', look: { wash: { c: '8a8fff', i: .15, aim: 'pista' }, beamTorre: { c: 'ffffff', i: 1, aim: 'toroide' }, seg: ['Astronauta 1', 'Astronauta 2'] },
+    pend: ['Diámetro del anillo de PVC (supuesto: 2,2 m, para que pase por el tubo)', 'Altura de trabajo (supuesto: centro a ≈ 7,2 m)', 'Cómo se guarda armado: con los astronautas no entra arriba de la tela',
+      'Si los astronautas suben ya clipados o se clipan abajo'],
+    build() {
+      const st = this.st, up = buildToroide(st); anims.push(t => { up(t); syncRange(st, '%'); }); up(t);
+      const span = 2 * (.875 + 1.7), low = 7.2 - span / 2, free = H - TOR.yPlane;
+      this.notes = [
+        [`Armado con los astronautas mide ≈ ${f1(span)} m de punta a punta: no entra arriba de la tela (≈ ${f1(free)} m libres hasta la carpa) ni pasa acostado por el tubo de 2,5 m.`, 'warn'],
+        [`Girando, los astronautas barren un círculo vertical de ≈ ${f1(span)} m: el punto más bajo queda a ≈ ${f1(low)} m del piso.`],
+        ['Sin astronautas, la percha de 2,25 m y el anillo de 2,2 m (supuesto) pasan por el tubo de 2,5 m.'],
+        ['Comparte el motor central con el Agujero negro y el Cajón: uno por vez.'],
+      ];
+    } },
+  ...[['Bungees', ''], ['Las monjas', ''], ['Péndulos', '']]
     .map(([t, k], i) => ({ id: 'm' + i, t, k: k || 'Ficha en Notion · sin modelo 3D todavía', soon: true })),
 ];
 
@@ -1377,6 +1554,9 @@ const VIEWS = {
   escenario: { pos: R(SX + 1.4, 2.7, 6.5), target: R(20, 2.2, 6.5) },
   backstage: { pos: R(0.6, 3.2, -0.2), target: R(SX + 1, 1, 8) },
   mecTelon: { pos: R(14.5, 6.2, 1.5), target: R(SX + 1, 5.6, 6.5) },
+  mecCajon: { pos: R(19, 2.2, 0.5), target: R(TOR.x, 6.5, 6.5) },
+  mecToroide: { pos: R(19, 3.5, 1), target: R(TOR.x, 7.5, 6.5) },
+  mecCabeza: { pos: R(14.5, 4.5, 1.5), target: R(SX + 2, 4.5, 6.5) },
   mecAgujero: { pos: R(19, 1.8, 0.6), target: R(SX + 8, 9.5, 6.5) },
   lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
   torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
