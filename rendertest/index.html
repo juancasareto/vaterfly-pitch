@@ -253,7 +253,7 @@
   <aside class="scenes" aria-label="Guion y mecanismos">
     <div class="tabs" role="tablist" aria-label="Qué mostrar">
       <button role="tab" id="tabGuion" aria-selected="true">Guion · 18</button>
-      <button role="tab" id="tabMec" aria-selected="false">Mecanismos · 7</button>
+      <button role="tab" id="tabMec" aria-selected="false">Mecanismos</button>
     </div>
     <ol id="sceneList"></ol>
   </aside>
@@ -267,6 +267,7 @@
       <label class="chk"><input type="checkbox" id="lyLabels" checked> Etiquetas</label>
       <label class="chk"><input type="checkbox" id="lyLights" checked> Luces</label>
       <label class="chk"><input type="checkbox" id="lyProj" checked> Proyección</label>
+      <label class="chk"><input type="checkbox" id="lyTecho" checked> Techo</label>
       <span class="spacer"></span>
       <button class="tbtn" id="btnShow" aria-pressed="false">Modo show</button>
       <button class="tbtn" id="btnMeasure" aria-pressed="false">Medir</button>
@@ -553,6 +554,75 @@ function drawProj(t) {
   projTex.needsUpdate = true;
 }
 let projOn = true;
+
+/* ───────── Techo: tela en tornado + parrilla + tubo central (bocetos de Juan, 27/09) ───────── */
+// La línea fina de los bocetos = plano de la escenografía, 2 m bajo el techo de la carpa.
+const TOR = { x: SX + 8, z: D / 2, yPlane: H - 2, tubeR: 0.6, tubeBottom: 10.5, arms: 8, Rx: 7.6, Rz: 6.2, gx: [8, 16], gz: [3.5, 9.5] };
+const techo = makeEl('techo', {
+  nombre: 'Techo · tornado de tela', estado: 'plano',
+  medidas: ['Tela en espiral tipo tornado, de 8 brazos, que se cierra en un tubo central', 'Plano de la escenografía a 2 m bajo el techo de la carpa (≈ 13 m)',
+    'Parrilla de truss ≈ 8 × 6 m (supuesto) · tubo Ø 1,2 m con la boca a ≈ 10,5 m (supuesto)', 'Motor arriba del tubo: el cable baja por adentro y por ahí bajan los performers'],
+  notas: 'Medidas leídas de los bocetos: a confirmar. El alto de la carpa (15 m) también es un supuesto.'
+});
+let techoMat;
+{
+  const g = techo.group, yT = TOR.yPlane + .2, q = .15;
+  // parrilla de truss (celeste en el boceto)
+  const tp = [];
+  const boxTruss = (a, b) => {
+    const alongX = Math.abs(b[0] - a[0]) > Math.abs(b[2] - a[2]);
+    const off = alongX ? [[0, q, q], [0, q, -q], [0, -q, q], [0, -q, -q]] : [[q, q, 0], [-q, q, 0], [q, -q, 0], [-q, -q, 0]];
+    const P = (p, o) => [p[0] + o[0], p[1] + o[1], p[2] + o[2]];
+    for (const o of off) tp.push(P(a, o), P(b, o));
+    const L = Math.hypot(b[0] - a[0], b[2] - a[2]), n = Math.round(L / .6);
+    for (let i = 0; i < n; i++) { const Q = k => [a[0] + (b[0] - a[0]) * k, a[1], a[2] + (b[2] - a[2]) * k];
+      tp.push(P(Q(i / n), off[i % 2 ? 0 : 1]), P(Q((i + 1) / n), off[i % 2 ? 1 : 0])); }
+  };
+  for (const z of [TOR.gz[0], TOR.z, TOR.gz[1]]) boxTruss([TOR.gx[0], yT, z], [TOR.gx[1], yT, z]);
+  for (let x = TOR.gx[0]; x <= TOR.gx[1] + 1e-6; x += 2) boxTruss([x, yT, TOR.gz[0]], [x, yT, TOR.gz[1]]);
+  segs(tp, techo.edgeMat, g);
+  const hang = []; for (const x of [TOR.gx[0], TOR.x, TOR.gx[1]]) for (const z of [TOR.gz[0], TOR.gz[1]]) hang.push([x, yT + q, z], [x, H, z]);
+  segs(hang, new THREE.LineDashedMaterial({ color: 0x5c5c63, dashSize: .25, gapSize: .25 }), g);
+  // amarillo del boceto: ¿plataforma de acceso?
+  const pf = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2, .08, TOR.gz[1] - TOR.gz[0])), new THREE.LineDashedMaterial({ color: 0xe8c86a, dashSize: .2, gapSize: .12 }));
+  pf.computeLineDistances(); pf.position.set(TOR.gx[1] - 1, yT + q + .05, TOR.z); g.add(pf);
+  const pfm = new THREE.Mesh(new THREE.BoxGeometry(2, .06, TOR.gz[1] - TOR.gz[0]), new THREE.MeshBasicMaterial({ color: 0xe8c86a, transparent: true, opacity: .18, depthWrite: false }));
+  pfm.position.copy(pf.position); g.add(pfm);
+  label('¿Plataforma? (amarillo del boceto)', 'fig', pf, [0, .45, 0]);
+  // motor (rojo) sobre el tubo
+  const mg = new THREE.BoxGeometry(.6, .45, .6);
+  const mot = new THREE.Mesh(mg, new THREE.MeshStandardMaterial({ color: 0xff4a3a, emissive: 0xff4a3a, emissiveIntensity: .35 }));
+  mot.position.set(TOR.x, yT + q + .25, TOR.z); g.add(mot);
+  label('Motor', 'fig', mot, [0, .55, 0]);
+  // tubo central
+  const tl = yT - TOR.tubeBottom, tg = new THREE.CylinderGeometry(TOR.tubeR, TOR.tubeR, tl, 32, 1, true);
+  const tube = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: .08, side: THREE.DoubleSide, depthWrite: false }));
+  tube.position.set(TOR.x, TOR.tubeBottom + tl / 2, TOR.z); tube.userData.el = 'techo'; pickables.push(tube); g.add(tube);
+  const te = new THREE.LineSegments(new THREE.EdgesGeometry(tg, 30), techo.edgeMat); te.position.copy(tube.position); g.add(te);
+  const rim = []; for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI * 2; rim.push(new THREE.Vector3(TOR.x + Math.cos(a) * TOR.tubeR, TOR.tubeBottom, TOR.z + Math.sin(a) * TOR.tubeR)); }
+  g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rim), techo.edgeMat));
+  label('Tubo · Ø 1,2 m', 'fig', tube, [TOR.tubeR + .6, -tl / 2, 0]);
+  // tela en tornado: 8 brazos que giran y se hunden hacia la boca del tubo
+  techoMat = new THREE.MeshStandardMaterial({ color: 0xf2f0ee, roughness: .9, side: THREE.DoubleSide, transparent: true, opacity: .5, depthWrite: false });
+  const U = 48, V = 8, bw = (Math.PI * 2 / TOR.arms) * .62, twist = 2.3, drop = TOR.yPlane - .1 - TOR.tubeBottom;
+  const Pt = (a0, u, v) => {
+    const k = Math.pow(1 - u, 1.2), rx = TOR.tubeR + .02 + (TOR.Rx - TOR.tubeR) * k, rz = TOR.tubeR + .02 + (TOR.Rz - TOR.tubeR) * k;
+    const th = a0 + v * bw * (0.35 + .65 * (1 - u)) + twist * Math.pow(u, .9);
+    const y = TOR.yPlane - .1 - drop * Math.pow(u, 2.6) - .45 * Math.sin(Math.PI * v) * Math.sin(Math.PI * Math.min(1, u * 1.3));
+    return [TOR.x + Math.cos(th) * rx, y, TOR.z + Math.sin(th) * rz];
+  };
+  const border = new THREE.LineBasicMaterial({ color: 0xbfc0c6 });
+  for (let a = 0; a < TOR.arms; a++) {
+    const a0 = a * Math.PI * 2 / TOR.arms, pos = [], idx = [];
+    for (let i = 0; i <= U; i++) for (let j = 0; j <= V; j++) pos.push(...Pt(a0, i / U, j / V));
+    for (let i = 0; i < U; i++) for (let j = 0; j < V; j++) { const A = i * (V + 1) + j, B = A + V + 1; idx.push(A, B, A + 1, B, B + 1, A + 1); }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setIndex(idx); bg.computeVertexNormals();
+    const band = new THREE.Mesh(bg, techoMat); band.userData.el = 'techo'; pickables.push(band); g.add(band);
+    for (const v of [0, 1]) { const line = []; for (let i = 0; i <= U; i++) line.push(new THREE.Vector3(...Pt(a0, i / U, v))); g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(line), border)); }
+  }
+  const o = new THREE.Object3D(); o.position.set(TOR.x, TOR.yPlane + 1.1, TOR.gz[0] - 1.5); g.add(o);
+  techo.labelEl = label('Techo · tornado de tela', '', o);
+}
 
 /* ───────── Accesos de público (a los lados de la torre C) ───────── */
 const DOORS = [[2.6, 4.4], [7.8, 9.6]], DOOR_H = 2.4;
@@ -1121,9 +1191,13 @@ const LOOKS = {
 
 
 /* ───────── Mecanismos (fuente: Notion › Mecanismos y estructuras) ───────── */
-const mecState = { auto: true, tilt: 0 };
+function syncRange(st, unit) {
+  const out = document.getElementById('mecRangeOut'), rg = document.getElementById('mecRange');
+  if (out) out.textContent = Math.round(st.val) + unit; if (rg && st.auto) rg.value = Math.round(st.val);
+}
 const MECS = [
   { id: 'telon', t: 'Pelea telón', k: 'Tela pandereta 7,5 × 7,5 m + percha de contrapeso',
+    st: { auto: true, val: 0 }, range: { label: 'Contrapeso', min: -35, max: 35, unit: '°' },
     fuente: 'Notion › Mecanismos y estructuras › Pelea telón · actualizado por Bruno el 27/09 · aclaración de Juan: el telón no gira',
     escenas: '5 · Pandereta (texto de Mariano). En Notion figura como “¿14 · Cajón + Pelea?”: conviene corregirlo.',
     desc: 'Estructura metálica cuadrada con una tela tensa tipo pandereta, fija, pegada a la tela del fondo. Sobre ella, 2 performers colgadas de una percha pelean: se balancean entre sí apoyadas en la tela y suben y bajan haciéndose contrapeso una a la otra.',
@@ -1139,7 +1213,7 @@ const MECS = [
       'La contra atraviesa también la tela fija: la sombra puede verse más apagada o doble',
       'Proyector y contra comparten la tela: durante la pelea el proyector va apagado o en negro (en este mecanismo se muestra apagado)', 'Operadores y riggers'],
     build() {
-      const st = mecState, fx = TEL.xPegado + .1, px = TEL.xPegado + .95, py = 8.6, pz = TEL.z, L = 2.5, half = .75;
+      const st = this.st, fx = TEL.xPegado + .1, px = TEL.xPegado + .95, py = 8.6, pz = TEL.z, L = 2.5, half = .75;
       const TH = 35 * Math.PI / 180, PS = 22 * Math.PI / 180;
       segs([[px, H, pz], [px, py, pz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sceneGroup);
       const pg = new THREE.Group(); pg.position.set(px, py, pz); sceneGroup.add(pg);
@@ -1155,16 +1229,15 @@ const MECS = [
       const f2 = figure('Performer 2', [0, 0, 0], { color: ORANGE, air: true, horizontal: true });
       const r1 = dynLine(PURPLE), r2 = dynLine(PURPLE), e = new THREE.Vector3(), hp = new THREE.Vector3();
       const place = (t) => {
-        const th = st.auto ? TH * Math.sin(t * .8) : st.tilt * Math.PI / 180, ps = PS * Math.sin(t * 1.15);
-        if (st.auto) st.tilt = th * 180 / Math.PI;
+        const th = st.auto ? TH * Math.sin(t * .8) : st.val * Math.PI / 180, ps = PS * Math.sin(t * 1.15);
+        if (st.auto) st.val = th * 180 / Math.PI;
         pg.rotation.x = -th;
         [[f1, r1, 1], [f2, r2, -1]].forEach(([f, r, sg]) => {
           e.set(px, py + sg * half * Math.sin(th), pz + sg * half * Math.cos(th));
           hp.set(px, e.y - L * Math.cos(ps), e.z + sg * L * Math.sin(ps));
           r(e, hp); f.position.set(fx, hp.y - .1, hp.z);
         });
-        const out = document.getElementById('perAngOut'), rg = document.getElementById('perAng');
-        if (out) out.textContent = Math.round(st.tilt) + '°'; if (rg && st.auto) rg.value = Math.round(st.tilt);
+        syncRange(st, '°');
       };
       anims.push(place); place(t);
       const dy = half * Math.sin(TH);
@@ -1173,6 +1246,39 @@ const MECS = [
         [`Con la percha a ${py.toString().replace('.', ',')} m, los arneses quedan entre ≈ ${yLo.toFixed(1).replace('.', ',')} y ${yHi.toFixed(1).replace('.', ',')} m: trabajan en la mitad alta de la tela.`],
         [`Ancho de trabajo sobre la tela ≈ ${(2 * zr).toFixed(1).replace('.', ',')} m, dentro de los 6,8 m útiles del telón.`],
         ['La percha cuelga de un punto propio en el techo, a ≈ 1 m delante de la tela: el marco no carga a las performers.'],
+      ];
+    } },
+  { id: 'agujero', t: 'Agujero negro', k: 'Bajada y subida por el tubo del tornado',
+    st: { auto: true, val: 0 }, range: { label: 'Bajada', min: 0, max: 100, unit: '%' },
+    fuente: 'Bocetos del techo (Juan, 27/09) · todavía no tiene ficha en Notion',
+    escenas: '1 · Planteamiento (texto de Mariano): el Capitán y los otros dos personajes son absorbidos por el agujero negro del techo.',
+    desc: 'En el techo, una tela en espiral tipo tornado se cierra en un tubo central. Desde el tubo bajan los performers colgados del cable de un motor que está arriba de la parrilla; por el mismo camino pueden ser “absorbidos” hacia arriba.',
+    func: ['Parrilla de truss en el plano de la escenografía, a 2 m bajo el techo de la carpa.', 'Tubo central colgado de la parrilla; la tela del tornado se cierra en su boca.',
+      'Motor (rojo en el boceto) arriba del tubo: el cable baja por adentro del tubo hasta el performer.', 'El performer baja desde el tubo hasta la pista y puede volver a subir.'],
+    ubic: 'Centrado sobre el espacio del show: a 8 m de la tela tensa y a mitad del ancho de la sala.',
+    ficha: [['Tipo', 'Vuelo vertical con motor'], ['Performers', 'a definir (Capitán + 2 personajes, según Mariano)'], ['Operadores / riggers', 'a definir'], ['Dimensiones', 'Tubo Ø 1,2 m (supuesto) · recorrido ≈ 10,5 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+    el: ['techo'], cam: 'mecAgujero', look: { wash: { c: '8a8fff', i: .18, aim: 'pista' }, beamTorre: { c: 'ffffff', i: .9, aim: 'track', names: ['Performer'] }, seg: ['Performer'] },
+    pend: ['Alto real de la carpa y qué carga admite su estructura', 'Diámetro y largo del tubo', 'Medidas de la parrilla', 'Qué es el panel amarillo del boceto (¿plataforma de acceso?)',
+      'Hasta dónde baja el performer: pista, tarima o queda en el aire', 'Cuántos brazos tiene la tela y si cubre todo el techo o solo el centro',
+      'Los cuelgues de los trusses de luces atraviesan la tela: colgarlos de la parrilla o pasar por la tela'],
+    build() {
+      const st = this.st, x = TOR.x, z = TOR.z, yTop = TOR.tubeBottom + .3, yMot = TOR.yPlane + .6;
+      segs([[x, TOR.tubeBottom, z], [x, 0, z]], dashMat(ORANGE, .3, .22), sceneGroup);
+      ring([x, z], 1.5, ORANGE, .03);
+      const o = new THREE.Object3D(); o.position.set(x, .35, z + 1.9); sceneGroup.add(o); label('Zona de descenso · despejar público', 'fig', o);
+      const f = figure('Performer', [x, yTop, z], { color: PURPLE, air: true }); const cable = dynLine(0xff4a3a), top = new THREE.Vector3(x, yMot, z), hd = new THREE.Vector3();
+      const place = (t) => {
+        if (st.auto) { const p = (t % 16) / 16, e = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          st.val = 100 * (p < .375 ? e(p / .375) : p < .5 ? 1 : p < .875 ? 1 - e((p - .5) / .375) : 0); }
+        const y = yTop - (st.val / 100) * yTop; f.position.set(x, y, z); hd.set(x, y + 1.7, z); cable(top, hd);
+        syncRange(st, '%');
+      };
+      anims.push(place); place(t);
+      this.notes = [
+        [`Recorrido ≈ ${f1(yTop)} m, desde la boca del tubo (≈ ${f1(TOR.tubeBottom)} m) hasta el piso de la pista.`],
+        ['Baja en el centro de la pista: durante la bajada hay que despejar un círculo de ≈ 3 m de diámetro.', 'warn'],
+        ['Por el mismo eje pasan el toroide (a 7 m) y las 4 caras: no pueden estar desplegados durante la bajada.', 'warn'],
+        ['Los cuelgues de los trusses de luces suben hasta la carpa y atraviesan la tela del tornado.', 'warn'],
       ];
     } },
   ...[['Cajón', 'Estructura del enfrentamiento aéreo'], ['Esfera / Cabeza', 'La cabeza que se parte'], ['Bungees', ''], ['Toroide', ''], ['Las monjas', ''], ['Péndulos', '']]
@@ -1226,6 +1332,7 @@ function goMec(i, { moveCam = true } = {}) {
 /* ───────── UI ───────── */
 const listEl = document.getElementById('sceneList');
 function renderList() {
+  tabM.textContent = `Mecanismos · ${MECS.length}`;
   tabG.setAttribute('aria-selected', mode === 'guion'); tabM.setAttribute('aria-selected', mode === 'mec');
   if (mode === 'mec') {
     listEl.innerHTML = MECS.map((m, i) => `<li><button data-m="${i}" aria-current="${i === curMec}" ${m.soon ? 'disabled' : ''}><span class="s-num">M${i + 1}</span><span class="s-t">${m.t}</span><span class="s-k">${m.k}</span></button></li>`).join('');
@@ -1239,10 +1346,10 @@ const tabG = document.getElementById('tabGuion'), tabM = document.getElementById
 tabG.addEventListener('click', () => { if (mode !== 'guion') goScene(current); });
 tabM.addEventListener('click', () => { if (mode !== 'mec') goMec(curMec); });
 
-const NAMES = { proyector: 'Proyector', backstage: 'Backstage', marco: 'Marco de caños', accesos: 'Accesos de público', trussMusicos: 'Truss de músicos', escenario: 'Escenario', tela: 'Tela tensa', telon: 'Pelea telón', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
+const NAMES = { techo: 'Techo · tornado', proyector: 'Proyector', backstage: 'Backstage', marco: 'Marco de caños', accesos: 'Accesos de público', trussMusicos: 'Truss de músicos', escenario: 'Escenario', tela: 'Tela tensa', telon: 'Pelea telón', torreA: 'Torre A · 8 m', torreB: 'Torre B · 8 m', torreC: 'Torre C · 3 m', tarima: 'Tarima móvil' };
 const detailEl = document.getElementById('detail');
 function renderMecDetail() {
-  const m = MECS[curMec], st = mecState;
+  const m = MECS[curMec], st = m.st, rg = m.range;
   const note = ([txt, k]) => `<li class="${k ? 'w' : ''}"><span>${txt}${k ? '<span class="tag warn">Revisar</span>' : ''}</span></li>`;
   detailEl.innerHTML = `
     <div class="d-head"><span class="d-num">M${curMec + 1}</span><div><h1>${m.t}</h1><p class="meta">${m.k}</p></div></div>
@@ -1250,8 +1357,8 @@ function renderMecDetail() {
     <p class="guion">${m.desc}</p>
     <h3>Controles</h3>
     <div class="ctl">
-      <label class="rng" for="perAng"><span>Contrapeso</span><input type="range" id="perAng" min="-35" max="35" step="1" value="${Math.round(st.tilt)}"><output id="perAngOut">${Math.round(st.tilt)}°</output></label>
-      <div class="segrow"><button class="tbtn" id="perAuto" aria-pressed="${st.auto}">${st.auto ? 'Balanceo automático' : 'Reanudar balanceo'}</button></div>
+      <label class="rng" for="mecRange"><span>${rg.label}</span><input type="range" id="mecRange" min="${rg.min}" max="${rg.max}" step="1" value="${Math.round(st.val)}"><output id="mecRangeOut">${Math.round(st.val)}${rg.unit}</output></label>
+      <div class="segrow"><button class="tbtn" id="mecAuto" aria-pressed="${st.auto}">${st.auto ? 'Animación automática' : 'Reanudar animación'}</button></div>
     </div>
     <h3>En la sala</h3><ul class="notes">${(m.notes || []).map(note).join('')}</ul>
     <h3>Funcionamiento</h3><ul>${m.func.map(x => `<li><span>${x}</span></li>`).join('')}</ul>
@@ -1279,13 +1386,12 @@ detailEl.addEventListener('click', e => {
   if (e.target.id === 'next') goScene(current + 1);
   const c = e.target.closest('[data-el]'); if (c) showInfo(c.dataset.el);
   if (e.target.closest('[data-rider]')) showRider();
-  if (e.target.closest('#perAuto')) { mecState.auto = !mecState.auto; renderMecDetail(); }
+  if (e.target.closest('#mecAuto')) { const m = MECS[curMec]; m.st.auto = !m.st.auto; renderMecDetail(); }
 });
 detailEl.addEventListener('input', e => {
-  if (e.target.id !== 'perAng') return;
-  mecState.auto = false; mecState.tilt = +e.target.value; anims.forEach(f => f(t));
-  document.getElementById('perAngOut').textContent = e.target.value + '°';
-  const b = document.getElementById('perAuto'); if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Reanudar balanceo'; }
+  if (e.target.id !== 'mecRange') return;
+  const m = MECS[curMec]; m.st.auto = false; m.st.val = +e.target.value; anims.forEach(f => f(t));
+  const b = document.getElementById('mecAuto'); if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = 'Reanudar animación'; }
 });
 addEventListener('keydown', e => {
   if (e.target.closest('input,textarea')) return;
@@ -1312,6 +1418,7 @@ const VIEWS = {
   escenario: { pos: R(SX + 1.4, 2.7, 6.5), target: R(20, 2.2, 6.5) },
   backstage: { pos: R(0.6, 3.2, -0.2), target: R(SX + 1, 1, 8) },
   mecTelon: { pos: R(14.5, 6.2, 1.5), target: R(SX + 1, 5.6, 6.5) },
+  mecAgujero: { pos: R(19, 1.8, 0.6), target: R(SX + 8, 9.5, 6.5) },
   lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
   torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
 };
@@ -1333,6 +1440,7 @@ bindLayer('lyCotas', v => cotaGroup.visible = v);
 bindLayer('lyLabels', v => vp.classList.toggle('hide-labels', !v));
 bindLayer('lyLights', v => { lightGroup.visible = v; if (!v) strobeFlash.intensity = 0; });
 bindLayer('lyProj', v => { projOn = v; });
+bindLayer('lyTecho', v => { techo.group.visible = v; });
 let showMode = false;
 const btnShow = document.getElementById('btnShow');
 btnShow.addEventListener('click', () => { showMode = !showMode; btnShow.setAttribute('aria-pressed', showMode); setActive(SCENES[current].el); });
@@ -1397,12 +1505,13 @@ function resize() {
 new ResizeObserver(resize).observe(vp); resize();
 
 // Loop
-const clock = new THREE.Clock();
+const clock = new THREE.Clock(), _camDir = new THREE.Vector3();
 const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (!paused) { t += dt; anims.forEach(f => f(t)); }
   updateLights(dt, t); drawProj(t);
+  techoMat.opacity = camera.getWorldDirection(_camDir).y < -.9 ? .06 : .5;   // mirando en planta la tela no tapa
   tar.group.position.lerp(tarTarget, paused ? 1 : Math.min(1, dt * 2.2));
   if (camTween) {
     const k = Math.min(1, (performance.now() - camTween.t0) / camTween.dur), e = ease(k);
