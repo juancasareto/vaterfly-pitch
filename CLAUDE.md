@@ -36,6 +36,13 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
   (control deslizante), `build()` y `notes` (choques detectados). Los mecanismos del motor central y la cabeza
   se arman con `buildToroide`, `buildCajon`, `buildCabeza`, que también usan las escenas.
 - **Luces:** `fixture(type, pos, rig, grupo)` + `applyLook(look)`. Rider en `showRider()`.
+- **Personajes:** se están pasando de cápsula (`figure()`) a humano articulado (en desarrollo: si `humano()` todavía
+  no está en `rendertest/index.html`, es que Bruno lo tiene en local sin publicar; no duplicarlo). Todo personaje nuevo se crea con
+  `humano(nombre, [x, y, z], { h, face, ropa })`: **nombre** + **referencia de vestuario** (la imagen que pasa
+  producción) traducida a un objeto de ropa como `ROPA_70` (piel, pelo, remera, short, medias, zapatillas, accesorios).
+  Altura sin dato = supuesto, marcado en la ficha. El movimiento va con acciones (`ACC`: poses clave alrededor de un
+  contacto) y física real donde se nota (saltos y pelota con g = 9,81). Ejemplo: voleibolistas del Warm up (`pepper`).
+  La foto de referencia **no** se sube al repo: el vestuario se modela en código.
 - **Convención visual:** blanco = según plano / definido por producción · naranja = activo en la escena ·
   **violeta punteado = propuesta, a validar**. Los supuestos van en "Pendiente de definir" de cada ficha.
 
