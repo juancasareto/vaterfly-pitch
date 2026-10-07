@@ -252,7 +252,7 @@
 
   <aside class="scenes" aria-label="Guion y mecanismos">
     <div class="tabs" role="tablist" aria-label="Qué mostrar">
-      <button role="tab" id="tabGuion" aria-selected="true">Guion · 18</button>
+      <button role="tab" id="tabGuion" aria-selected="true">Guion · 19</button>
       <button role="tab" id="tabMec" aria-selected="false">Mecanismos</button>
     </div>
     <ol id="sceneList"></ol>
@@ -790,7 +790,7 @@ function vestir(H, R) {
   const rem = R.remera ? tela(R.remera.c, R.remera.rough ?? .8) : piel, mangas = R.remera?.mangas, largas = mangas === 'largas' || mangas === 'campana';
   [H.M.head, H.M.neck].forEach(m => m.material = piel); H.M.visor.visible = false;
   H.arms.forEach(a => { a.m.hand.material = piel; a.m.upper.material = a.m.fore.material = a.m.jEl.material = largas ? rem : piel; a.m.jSh.material = mangas ? rem : piel; });
-  const pierna = R.pantalon ? tela(R.pantalon.c) : R.habito ? tela(R.habito) : piel;   // con falda: piernas de piel (y medias si hay)
+  const pierna = R.pantalon ? tela(R.pantalon.c, R.pantalon.rough ?? .8) : R.habito ? tela(R.habito) : piel;   // con falda: piernas de piel (y medias si hay)
   H.legs.forEach(l => { l.m.thigh.material = l.m.shin.material = l.m.jKn.material = pierna; l.m.foot.material = piel; });
   // cara: nariz para leer hacia dónde mira
   add(H.neck, new THREE.BoxGeometry(.012 * h, .02 * h, .016 * h), piel, [0, d.headY - .002 * h, .057 * h]);
@@ -820,7 +820,7 @@ function vestir(H, R) {
       if (R.short.ribete) add(l.hip, aro(.05 * h, .0035 * h), tela(R.short.ribete), [0, -.08 * h, 0]);
     }); }
   // pantalón largo con tiras (bondage)
-  if (R.pantalon) { H.M.pelvis.material = tela(R.pantalon.c);
+  if (R.pantalon) { H.M.pelvis.material = tela(R.pantalon.c, R.pantalon.rough ?? .8);
     if (R.pantalon.rayas) { const m = tela(R.pantalon.rayas, .6);
       H.legs.forEach(l => {
         [.45, .8].forEach(f => add(l.hip, aro(.041 * h, .0025 * h), m, [0, -d.thigh * f, 0]));
@@ -885,6 +885,28 @@ function vestir(H, R) {
     const visor = new THREE.MeshStandardMaterial({ color: R.casco.visor, roughness: .12, metalness: .6, emissive: 0x5a2a8a, emissiveIntensity: .45 });
     add(H.neck, new THREE.SphereGeometry(.081 * h, 20, 14, Math.PI / 2 - .9, 1.8, Math.PI * .28, Math.PI * .34), visor, [0, hy + .002 * h, -.004 * h]);
     add(H.neck, new THREE.TorusGeometry(.06 * h, .01 * h, 8, 24).rotateX(Math.PI / 2), tela(R.casco.c, .4), [0, hy - .07 * h, 0]);   // cuello del casco
+  }
+  if (R.gorra) {   // gorra de capitán con brillos: copa, banda, visera y una corona de puntas adelante
+    const g = new THREE.MeshStandardMaterial({ color: R.gorra.c, metalness: .75, roughness: .28, emissive: R.gorra.c, emissiveIntensity: .12 }), y0 = hy + .06 * h;
+    add(H.neck, new THREE.CylinderGeometry(.088 * h, .062 * h, .04 * h, 28).scale(1, 1, 1.08), g, [0, y0 - .006 * h, -.004 * h], [-.14, 0, 0]);   // copa ancha y plana
+    add(H.neck, new THREE.CylinderGeometry(.09 * h, .09 * h, .006 * h, 28).scale(1, 1, 1.08), g, [0, y0 + .015 * h, -.007 * h], [-.14, 0, 0]);
+    const visera = add(H.neck, new THREE.CylinderGeometry(.068 * h, .068 * h, .005 * h, 24, 1, false, -Math.PI / 2, Math.PI), g, [0, y0 - .028 * h, .024 * h], [.3, 0, 0]); visera.scale.set(1, 1, .75);
+    const cono = new THREE.ConeGeometry(.007 * h, .045 * h, 6).translate(0, .022 * h, 0);
+    [-.03, -.015, 0, .015, .03].forEach((x, i) => add(H.neck, cono, g, [x * h, y0 + .016 * h, .062 * h], [-.35, 0, -x * 6]).scale.setScalar(i === 2 ? 1.4 : 1));
+  }
+  if (R.gafasLed) { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(R.gafasLed).multiplyScalar(2.5), toneMapped: false });   // anteojos LED: brillan
+    [1, -1].forEach(sx => add(H.neck, new THREE.TorusGeometry(.016 * h, .0035 * h, 6, 5), m, [sx * .021 * h, hy + .012 * h, .059 * h], [0, 0, Math.PI / 2]));
+    add(H.neck, new THREE.BoxGeometry(.012 * h, .003 * h, .003 * h), m, [0, hy + .016 * h, .062 * h]); }
+  if (R.brazaletes) H.arms.forEach(a => {   // brazaletes plateados en el antebrazo, con aros dorados
+    add(a.el, tubo(.027 * h, .025 * h, .08 * h), new THREE.MeshStandardMaterial({ color: R.brazaletes.c, metalness: .8, roughness: .25 }), [0, -H.d.fore * .55, 0]);
+    [-.5, -.72].forEach(f => add(a.el, aro(.0275 * h, .003 * h), new THREE.MeshStandardMaterial({ color: R.brazaletes.aros, metalness: .8, roughness: .3 }), [0, H.d.fore * f, 0])); });
+  if (R.peluches) {   // peluches enganchados al traje (pecho, hombro, cadera)
+    const lugares = [[H.chest, [.05, .045, 1]], [H.chest, [-.09, .1, .6]], [H.pelvis, [.085, .0, .5]]];
+    R.peluches.forEach((c, i) => { const [padre, [px, py, fz]] = lugares[i % lugares.length], m = tela(c, .95), g = new THREE.Group();
+      const zf = padre === H.chest ? chestR(py * h) * .62 * fz + .03 * h : .07 * h; g.position.set(px * h, py * h, zf); padre.add(g);
+      add(g, new THREE.SphereGeometry(.03 * h, 10, 8), m); add(g, new THREE.SphereGeometry(.022 * h, 10, 8), m, [0, .035 * h, .004 * h]);
+      [1, -1].forEach(sx => add(g, new THREE.SphereGeometry(.009 * h, 8, 6), m, [sx * .015 * h, .053 * h, 0]));
+      [1, -1].forEach(sx => add(g, new THREE.SphereGeometry(.003 * h, 6, 4), tela(0x111111, .5), [sx * .008 * h, .039 * h, .02 * h])); });
   }
   if (R.cofia) {   // cofia de enfermera con cruz roja
     const c = add(H.neck, new THREE.BoxGeometry(.1 * h, .032 * h, .05 * h), tela(R.cofia, .7), [0, hy + .07 * h, .012 * h], [-.35, 0, 0]);
@@ -1048,7 +1070,7 @@ function pepper(A, B, { apexPase = 4.0, apexArmado = 4.4, tRemate = .55 } = {}) 
   return { ball, periodo: P };
 }
 
-/* ───────── Escena 4 · La Monja y la Punk ─────────
+/* ───────── Escena 5 · La Monja y la Punk ─────────
    1) La Monja entra girando sobre la tarima móvil, que queda centrada debajo del tubo del techo.
    2) La Punk aparece en el borde de la torre A, enganchada por la espalda a una cuerda que baja por el tubo.
    3) Se larga: péndulo con gravedad real. El motor va soltando cuerda (≈ 6,1 → 7,5 m) y un freno (aire + técnico)
@@ -1374,6 +1396,11 @@ function tragamonedas(ruta) {
    Marcha: el pie apoyado queda quieto en el piso (fase del paso atada a la distancia recorrida). */
 const ROPA_ENFERMERA = { piel: 0xe8c3a3, pelo: { tipo: 'largo', c: 0x6b4426 }, remera: { c: 0xf6f6f2, mangas: true, ribete: 0xd63a3a },
   falda: { c: 0xf6f6f2, ruedo: .3 }, medias: { c: 0xf4f4f4 }, zapas: { c: 0xf4f4f4 }, cofia: 0xf6f6f2 };   // enfermera clásica (supuesto: sin referencia)
+// Capitán Psicodelia (referencia de producción): traje blanco, gorra de capitán plateada con brillos y corona, peluca roja,
+// anteojos LED rojos, brazaletes plateados con aros dorados, muñequeras negras, peluches enganchados y pantalón plateado.
+const ROPA_CAPITAN = { piel: 0x8a5a3c, pelo: { tipo: 'afro', c: 0xd8402c }, gorra: { c: 0xd9dbe0 }, gafasLed: 0xff3020,
+  remera: { c: 0xf4f2ee, mangas: 'largas' }, pantalon: { c: 0xcfd2d8, rough: .25 }, zapas: { c: 0xf2f2f2 }, munequeras: [0x151515, 0x151515],
+  brazaletes: { c: 0xd9dbe0, aros: 0xd4af37 }, peluches: [0xf2d9a0, 0xe0a070, 0xf5e6c0] };
 const ROPA_PUBLICO_2 = { piel: 0xc99a74, pelo: { tipo: 'corto', c: 0x1e1610 }, remera: { c: 0xb8432f, mangas: true }, pantalon: { c: 0x3a3a3a }, zapas: { c: 0x222222 } };
 // marcha genérica: el pie apoyado va hacia atrás a la velocidad del cuerpo; en el aire avanza y se levanta.
 // f = distancia / largo del ciclo · fAlza ≠ f: pasos en el lugar (los pies quedan quietos y solo se levantan alternados)
@@ -1471,6 +1498,108 @@ function enfermera(pos) {
   return { ENF, PUB };
 }
 
+/* ───────── Presentación (escena 1) ─────────
+   Un personaje parado sobre la torre A, iluminado solo por un seguidor, le habla al público; se tira en un péndulo
+   sobre la gente y el agujero del techo lo "absorbe": el motor central recoge el cable por el tubo (Agujero negro).
+   Después, otro personaje repite la acción desde la torre B.
+   Física: péndulo de largo variable θ'' = −(g/L)·sen θ − (2·L'/L)·θ' − freno·θ'. Al acortarse el cable el vaivén
+   se acelera y se achica: entra derecho al tubo. Freno: un técnico con cuerda guía (supuesto). */
+function escenaPresentacion() {
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), Y = new THREE.Vector3(0, 1, 0);
+  const FRENO = .4, RECOGE = .1, VEL = .9, LMIN = .25, H_ = 1.75, CARRERA = 4;   // freno 1/s · el motor recoge desde el salto, hasta 0,9 m/s · salen corriendo a ≈ 4 m/s
+  const HABLA = 5.5, ATRAS = .6, SALTO = 6.4;   // habla hasta 5,5 s; toma carrera 0,6 m desde el fondo de la plataforma y salta a los 6,4 s
+  const MOTOR = new THREE.Vector3(PIVOTE.x, MOTOR_Y, PIVOTE.z);
+  const persona = (nombre, color, pie) => {
+    const H = humano(nombre, [0, 0, 0], { h: H_, ropa: ROPA_CAPITAN }); H.feet0 = H.feet.map(f => [...f]);   // los dos vestidos de Capitán Psicodelia
+    const W = new THREE.Group(); sceneGroup.add(W); W.add(H.g); H.g.position.y = -H.d.hipY;   // W = arnés
+    const hipP = H.d.hipY, A0 = new THREE.Vector3(pie[0], pie[1] + hipP, pie[2]);
+    const dir = new THREE.Vector3(A0.x - PIVOTE.x, 0, A0.z - PIVOTE.z).normalize(), FONDO = A0.clone().addScaledVector(dir, ATRAS);
+    const L0 = A0.distanceTo(PIVOTE);
+    // vuelo a 480 Hz, en el plano vertical que pasa por la torre y el tubo (x: distancia horizontal al eje del tubo).
+    // Sale corriendo hacia el centro: vuela libre con la cuerda floja hasta que se tensa; desde ahí, péndulo.
+    // La cuerda solo tira (no empuja) y el motor la va recogiendo.
+    const DT = 1 / 480, N = Math.ceil(16 / DT), XX = new Float32Array(N), YY = new Float32Array(N), LL = new Float32Array(N);
+    const hz0 = Math.hypot(A0.x - PIVOTE.x, A0.z - PIVOTE.z);
+    { let x = hz0, y = A0.y, vx = -CARRERA, vy = .8, L = L0;
+      for (let i = 0; i < N; i++) { const t = i * DT, ld = L > LMIN ? -VEL * sm((t - RECOGE) / .5) : 0;
+        XX[i] = x; YY[i] = y; LL[i] = L;
+        L = Math.max(LMIN, L + ld * DT); vy -= GRAV * DT; x += vx * DT; y += vy * DT;
+        const dy = y - PIVOTE.y, d = Math.hypot(x, dy);
+        if (d > L) { const nx = x / d, ny = dy / d; x = nx * L; y = PIVOTE.y + ny * L;   // cuerda tensa
+          const vr = vx * nx + vy * ny; if (vr > 0) { vx -= vr * nx; vy -= vr * ny; }
+          const k = 1 - (FRENO + 2 * Math.max(0, 1.5 - L)) * DT; vx *= k; vy *= k; } } }   // freno; adentro del tubo el cable lo guía
+    let tL = 16; for (let i = 0; i < N; i++) if (LL[i] <= LMIN + 1e-4) { tL = i * DT; break; }   // cuando la cuerda llega a la boca del tubo
+    const FIN = SALTO + tL + (hipP + .6 + LMIN) / VEL;   // momento en que desaparece adentro del tubo
+    const at = (A, tau) => { const x = Math.min(N - 1.001, Math.max(0, tau / DT)), i = x | 0; return A[i] + (A[i + 1] - A[i]) * (x - i); };
+    const tubo = dynLine(PURPLE), cuerda = dynLine(PURPLE), pos = new THREE.Vector3(), up = new THREE.Vector3(), fw = new THREE.Vector3(), xa = new THREE.Vector3(), M4 = new THREE.Matrix4();
+    const qPie = new THREE.Quaternion(), qAire = new THREE.Quaternion(), giro = new THREE.Quaternion(), ojo = new THREE.Vector3();
+    const orient = (q, u, f) => { fw.copy(f).addScaledVector(u, -f.dot(u)).normalize(); xa.crossVectors(u, fw); M4.makeBasis(xa, u, fw); return q.setFromRotationMatrix(M4); };
+    orient(qPie, Y, dir.clone().negate());   // parado en la torre, mirando a la sala
+    { const pts = []; for (let tv = 0; tv <= 2.6; tv += .1) { const x = at(XX, tv); pts.push([PIVOTE.x + x * dir.x, at(YY, tv), PIVOTE.z + x * dir.z]); } path(pts); }   // arco del primer vaivén (propuesta)
+    // carrera natural: f = fase del ciclo (2 pasos), k = intensidad. Pie apoyado poco tiempo (va hacia atrás con el cuerpo);
+    // en el vuelo de la pierna el talón patea atrás, la rodilla sube adelante y el pie vuelve a apoyar adelante del cuerpo.
+    const ZANCADA = 1.3, APOYO = .38, PASO_ = ZANCADA * APOYO;
+    const K = [[0, -PASO_ / 2, 0], [.3, -PASO_ / 2 - .14, .44], [.68, PASO_ / 2 + .12, .3], [1, PASO_ / 2, 0]];   // [w, z, alto] del pie en el aire
+    const correr = (f, k) => {
+      H.feet.forEach((p, i) => { const u = ((f + i * .5) % 1 + 1) % 1, f0 = H.feet0[i]; let z, y;
+        if (u < APOYO) { z = PASO_ / 2 - PASO_ * u / APOYO; y = 0; }
+        else { const w = (u - APOYO) / (1 - APOYO); let j = 0; while (w > K[j + 1][0]) j++;
+          const a = K[j], b = K[j + 1], e = .5 - .5 * Math.cos(Math.PI * (w - a[0]) / (b[0] - a[0])); z = a[1] + (b[1] - a[1]) * e; y = a[2] + (b[2] - a[2]) * e; }
+        p[0] = f0[0] * (1 - .35 * k); p[1] = f0[1] + z * k; p[2] = y * k; });   // los pies pisan casi sobre la misma línea
+      const s = Math.sin(2 * Math.PI * f);
+      return { pose: { drop: .07 + .035 * Math.cos(4 * Math.PI * f) * k, lean: 4 + 12 * k, aL: [25 + 60 * s * k, 12, 80 + 15 * k], aR: [25 - 60 * s * k, 12, 80 + 15 * k] }, giro: .22 * s * k };   // brazo opuesto a su pierna
+    };
+    let torsion = 0;
+    return { FIN, upd: tau => {   // tau: tiempo desde que le toca a este personaje (negativo: espera a oscuras en su torre)
+      let pp, visible = true, arriba = -1;   // arriba ≥ 0: en el aire (mira al frente; al ser absorbido, levanta la cabeza)
+      if (tau < SALTO) {
+                pos.copy(FONDO).lerp(A0, tau < HABLA ? 0 : ((tau - HABLA) / (SALTO - HABLA)) ** 2); W.quaternion.copy(qPie);
+        const habla = tau > .5 && tau < HABLA - .3 ? 1 : 0, s1 = Math.sin(tau * 2.6), s2 = Math.sin(tau * 1.9 + 1);
+        pp = P_({ drop: .03, lean: 3, aL: [25 + 35 * habla * (.5 + .5 * s2), 15, 40 + 30 * habla], aR: [40 + 50 * habla * (.5 + .5 * s1), 20 + 10 * s2 * habla, 50 + 30 * habla] });
+        torsion = 0;
+        if (tau > HABLA) { const d = ATRAS * ((tau - HABLA) / (SALTO - HABLA)) ** 2, kk = sm((tau - HABLA) / .25);   // toma carrera: la fase va atada a la distancia (no patina)
+          const r = correr(d / ZANCADA + .1, kk); pp = mixPose(pp, P_(r.pose), kk); torsion = r.giro; }
+        else H.feet.forEach((p, i) => { p[0] = H.feet0[i][0]; p[1] = H.feet0[i][1]; p[2] = 0; });
+        ojo.set(13, 1.6, 6.5);   // mira a la gente de la pista
+      } else {
+        const tv = tau - SALTO, x = at(XX, tv), L = at(LL, tv);
+        const adentro = Math.max(0, tv - tL), centra = 1 - sm(adentro / .8);   // ya en la boca: sube derecho por el tubo
+        pos.set(PIVOTE.x + x * dir.x * centra, at(YY, tv) + VEL * adentro, PIVOTE.z + x * dir.z * centra);
+        up.subVectors(PIVOTE, pos); if (up.y < .05 || adentro > 0) up.set(0, 1, 0); up.normalize();
+        const th = Math.atan2(x, PIVOTE.y - at(YY, tv));
+        orient(qAire, up, fw.copy(dir).multiplyScalar(-Math.cos(th)).addScaledVector(Y, -Math.sin(th)));
+        const absorbe = sm((L0 - L) / (L0 - 1.2));   // cuanto más sube, más "abducido": se afloja y gira sobre la cuerda
+        giro.setFromAxisAngle(Y, 1.5 * tv * tv / 8 * absorbe); qAire.multiply(giro);
+        W.quaternion.slerpQuaternions(qPie, qAire, sm(tv / .45));
+        // corre en el aire, muy rápido y revoleando los brazos; al ser abducido se afloja
+        const sigue = 1 - absorbe, r = correr(ATRAS / ZANCADA + .1 + tv * 2.2, sigue);   // sigue corriendo en el aire, a ≈ 2 zancadas por segundo
+        pp = mixPose(P_({ ...r.pose, drop: 0, toe: 15 }), P_({ drop: 0, lean: -10, aL: [150, 45, 25], aR: [150, 45, 25], tuck: 0, toe: 40 }), absorbe);
+        torsion = r.giro;
+        visible = tau < FIN;   // cuando ya entró en el tubo, desaparece
+        arriba = absorbe;
+      }
+      W.position.copy(pos); W.visible = visible; W.updateMatrixWorld(true);
+      // mira al público mientras habla y pasa de a poco a mirar al frente al tomar carrera; en el aire no mira a un punto
+      // (la boca del tubo le queda casi encima y la cabeza saltaría)
+      const mirar = arriba < 0 ? 1 - sm((tau - (HABLA - .2)) / .6) : 0;
+      posar(H, pp, null);
+      if (mirar > 0) { const nx = H.neck.rotation.x, ny = H.neck.rotation.y; posar(H, pp, ojo); H.neck.rotation.x = nx + (H.neck.rotation.x - nx) * mirar; H.neck.rotation.y = ny + (H.neck.rotation.y - ny) * mirar; }
+      H.chest.rotation.y = torsion; H.pelvis.rotation.y = -.45 * torsion;   // hombros contra cadera
+      H.neck.rotation.y -= torsion;                                         // el cuello compensa: la cabeza queda quieta mientras corre
+      if (arriba > 0) H.neck.rotation.x -= .55 * arriba;                    // abducido: levanta la cabeza hacia el agujero
+      tubo(MOTOR, PIVOTE); cuerda(PIVOTE, pos);   // la cuerda baja del motor por el tubo y sale por la boca
+      return visible;
+    } };
+  };
+  const A = persona('Personaje A', ORANGE, [12.3, 6, 0.95]), B = persona('Personaje B', WHITE, [12.3, 6, 12.05]);
+  const T_B = A.FIN + .8, TOTAL = T_B + B.FIN + 3;   // B empieza cuando A ya desapareció
+  // seguidores: cada uno se prende solo cuando le toca a su personaje y se apaga al entrar al agujero
+  const segs = FX.filter(f => f.grp === 'seg');
+  anims.push(t => { const tt = ((t % TOTAL) + TOTAL) % TOTAL;
+    const vA = A.upd(tt), vB = B.upd(tt - T_B), luzA = tt < A.FIN, luzB = tt >= A.FIN && tt < T_B + B.FIN;
+    segs.forEach((f, i) => { f.tInt = (i % 2 === 0 ? luzA && vA : luzB && vB) ? .95 : 0; }); });
+}
+
 const dashMat = (c, ds = .32, gs = .2) => new THREE.LineDashedMaterial({ color: c, dashSize: ds, gapSize: gs });
 function curveOf(pts, closed = false) {
   const v = pts.map(p => new THREE.Vector3(...p));
@@ -1543,16 +1672,29 @@ const SCENES = [
       enfermera([14.5, 0, 9.4]);
       tragamonedas([[12, 0, 3.3], [16.8, 0, 3.3], [17.6, 0, 5.8], [16.2, 0, 7.3], [12.4, 0, 7.3], [11, 0, 5.4]]);
     } },
-  { n: 1, t: 'Intro', k: 'Escena de apertura', el: ['torreC', 'techo'], cam: 'iso',
-    guion: 'Una explosión “revela” un debris espacial: el Toroide, con dos astronautas que quedaron flotando en el espacio unidos al dispositivo. Gira primero muy lento, se va acelerando y desaparece por el agujero del techo girando rápido. A lo lejos entra volando el Capitán Psicodelia hasta el escenario.',
+  { n: 1, t: 'Presentación', k: 'Escena', el: ['torreA', 'torreB', 'techo'], cam: 'iso', luz: 'frio',
+    guion: 'Un personaje, únicamente iluminado con un proyector, parado sobre la torre A, le dice unas palabras al público, se tira en un péndulo sobre la gente y sube por el agujero del techo como si este lo abdujera. Luego otro personaje, parado sobre la torre B, repite la acción y también es succionado por el agujero del techo.',
+    esp: [['Personaje A en la torre A (6 m), solo con un seguidor: habla al público. El de la torre B espera a oscuras'],
+      ['Toma carrera sobre la plataforma y se tira corriendo, enganchado al cable del motor central que baja por el tubo (Agujero negro): péndulo sobre la gente, corriendo en el aire y revoleando los brazos'],
+      ['Cuando entra al agujero se apaga su seguidor; recién ahí se ilumina el Personaje B, que repite la acción', 1],
+      ['El motor recoge el cable: el vaivén se acelera y se achica hasta que entra derecho al tubo, girando, como abducido'],
+      ['Un técnico frena el péndulo con una cuerda guía', 1]],
+    tec: ['Motor central (Agujero negro) con cable por el tubo', 'Roldana o giratorio en la boca del tubo', 'Arnés ×2', 'Seguidor / proyector sobre cada personaje'],
+    pend: ['Quiénes son los dos personajes (vestidos como el Capitán Psicodelia, según la referencia)', 'Texto que dicen al público', 'Altura de los personajes (supuesto 1,75 m)',
+      'Velocidad del motor al recoger (supuesto 0,9 m/s, desde el salto) y freno del péndulo (supuesto: técnico con cuerda guía)',
+      'Saltan corriendo (≈ 4 m/s): el péndulo pasa sobre el público a ≈ 25 km/h, con los pies a ≈ 3,2 m del piso. Zona despejada en la línea A–B. Al saltar corriendo el cable queda flojo un instante: el motor tiene que recogerlo',
+      'Si el péndulo usa el motor central, el Toroide de la escena siguiente no puede estar colgado: hay que reengancharlo en el cambio'],
+    build() { escenaPresentacion(); } },
+  { n: 2, t: 'Intro', k: 'Escena de apertura', el: ['techo'], cam: 'iso',
+    guion: 'Una explosión “revela” un debris espacial: el Toroide, con dos astronautas que quedaron flotando en el espacio unidos al dispositivo. Gira primero muy lento, se va acelerando y desaparece por el agujero del techo girando rápido.',
     esp: [['Toroide bajado del motor central por el tubo del techo, con el eje fijo a ≈ 6 m del piso', 1],
       ['Mecanismo: percha (como la del Cajón) con swivel, eje fijo de 2,30 m y eje móvil de 1,75 m con un astronauta en cada punta; el resto es escenografía'],
       ['Giros lentos y simultáneos: la percha gira por el swivel, el eje móvil gira sobre el fijo, cada aro de cintura gira sobre el brazo y cada astronauta sobre su propio eje'],
       ['Las arandelas de los brazos caen por gravedad y el giro va a tirones; el motor del eje lo acelera hasta ≈ una vuelta cada 3 s', 1],
       ['Todos los giros son simultáneos: la percha (swivel) acompaña al eje móvil, lenta al principio y rápida cuando acelera', 1],
       ['Sube girando; justo antes de entrar al tubo el eje móvil frena vertical y los aros alinean a los astronautas con el eje fijo, mientras la percha y los astronautas siguen girando rápido: así entra', 1],
-      ['Vuelo del Capitán desde la torre C (3 m) hasta el escenario', 1], ['Explosión en el centro del toroide', 1]],
-    tec: ['Toroide: percha con swivel, eje fijo de truss 2,30 m, eje móvil 1,75 m, 2 aros de cintura, 2 arandelas', 'Motor en el eje móvil (acelera el giro)', 'Motor en el swivel (la percha gira junto con el eje, supuesto)', 'Astronautas ×2 con arnés', 'Sistema de vuelo', 'Efecto explosión'],
+      ['Explosión en el centro del toroide', 1]],
+    tec: ['Toroide: percha con swivel, eje fijo de truss 2,30 m, eje móvil 1,75 m, 2 aros de cintura, 2 arandelas', 'Motor en el eje móvil (acelera el giro)', 'Motor en el swivel (la percha gira junto con el eje, supuesto)', 'Astronautas ×2 con arnés', 'Efecto explosión'],
     pend: ['Medidas (de Bruno: eje fijo 2,30 m, eje móvil 1,75 m · supuesto: percha a 2,40 m del eje, astronautas 1,75 m, aros de cintura Ø 0,56 m)',
       'Tubo: con el eje móvil vertical y los astronautas alineados, entra con ≈ 2 cm de margen (radio 1,23 m contra 1,25 m). Muy justo; girando el eje móvil no entra',
       'Choque: guardado con la percha en el tubo, el astronauta de abajo asoma ≈ 0,9 m por debajo de la boca (el conjunto mide ≈ 4,1 m de alto y el tubo 2,5 m)',
@@ -1560,21 +1702,19 @@ const SCENES = [
       'Carga en los astronautas a una vuelta cada 3 s: ≈ 1,4 g abajo y ≈ 0,6 g arriba',
       'Escenografía: tiene que quedar fuera de lo que barren los astronautas (hoy: aros de truss chicos y pantallas en las puntas, LED en la percha)',
       'Cables de la percha: girando rápido, los astronautas pasan a ≈ 6 cm. Muy justo: separar un poco más las puntas del eje fijo o ensayar la amplitud de brazos y piernas',
-      'Punto de colgado y carga admisible del techo', 'Sistema de vuelo: tirolesa o motor con carro', 'Tipo de efecto para la explosión (apto interior)'],
+      'Punto de colgado y carga admisible del techo', 'Tipo de efecto para la explosión (apto interior)'],
     build() {
       const up = buildToroide({}, { escena: true }); anims.push(up); up(t);
       const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(TOR.x, TORO.yWork, TOR.z); sceneGroup.add(flash);
       anims.push(t => { const k = (((t % TORO_T.TOTAL) + TORO_T.TOTAL) % TORO_T.TOTAL - TORO_T.llega) / 1.6; flash.visible = k > 0 && k < 1; flash.scale.setScalar(0.3 + k * 4); flash.material.opacity = Math.max(0, 0.5 * (1 - k)); });   // la explosión cuando llega
-      const cur = path([[19.4, 3.2, 6.1], [15, 6.6, 6.3], [9, 6.2, 6.5], [SX + 1.5, 1.2, 6.5]]);
-      follow(figure('Cap. Psicodelia', [0, 0, 0], { color: ORANGE, air: true }), cur, 0.09);
     } },
-  { n: 2, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario'], cam: 'publico',
-    guion: 'Bloque de 30 min de High Energy. Personaje y detalles a definir; probablemente Chicho Sarli (ver escena 9).',
+  { n: 3, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario'], cam: 'publico',
+    guion: 'Bloque de 30 min de High Energy. Personaje y detalles a definir; probablemente Chicho Sarli (ver escena 10).',
     esp: [['DJ en cabina sobre el escenario', 1], ['Pista libre para el público']],
     tec: ['Sonido DJ'], pend: ['Confirmar si el DJ es Chicho Sarli u otro personaje'],
     build() { dj('DJ · a confirmar'); } },
-  { n: 3, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
-    guion: 'Milano Paolini toma la cabina. En paralelo, un músico toca techno con un dispositivo de tubos de PVC. En el aire aparece un mono en bicicleta volando: es el astronauta de la escena 1, que reingresa transformado.',
+  { n: 4, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
+    guion: 'Milano Paolini toma la cabina. En paralelo, un músico toca techno con un dispositivo de tubos de PVC. En el aire aparece un mono en bicicleta volando: es el astronauta de la escena 2, que reingresa transformado.',
     esp: [['Milano Paolini en cabina'], ['Músico de tubos PVC sobre la tarima móvil en el centro de la pista', 1], ['Mono en bicicleta sobre cable tendido entre las torres A y B (6 m, ≈ 11 m de luz)', 1]],
     tec: ['Dispositivo de tubos PVC', 'Cable entre torres', 'Bicicleta aérea'],
     pend: ['Cálculo de la línea entre torres y anclaje de las torres al piso', 'Microfoneo de los tubos PVC'],
@@ -1585,7 +1725,7 @@ const SCENES = [
       const m = figure('Mono en bici', [0, 0, 0], { color: PURPLE, air: true });
       anims.push(t => { const k = (Math.sin(t * .35) + 1) / 2; const p = c.getPointAt(k); m.position.set(p.x, p.y - 1.95, p.z); });
     } },
-  { n: 4, t: 'La monja', k: 'Escena', el: ['tarima', 'torreA', 'techo'], tarima: [TOR.x, TOR.z], cam: 'iso',
+  { n: 5, t: 'La monja', k: 'Escena', el: ['tarima', 'torreA', 'techo'], tarima: [TOR.x, TOR.z], cam: 'iso',
     guion: 'Entra en escena la Monja. Coreografía y duración a definir.',
     esp: [['La Monja entra sobre la tarima móvil, girando, y la tarima queda centrada debajo del tubo del techo'],
       ['Desde la torre A se larga una Punk con arnés, colgada de una cuerda que sale por el agujero del tubo'],
@@ -1603,7 +1743,7 @@ const SCENES = [
       'Revoleo sobre la pista a ≈ 20 km/h: a radio máximo los pies van a ≈ 2,5 m del piso, pero al arrancar y al frenar bajan hasta ≈ 1,75 m. Hace falta un círculo libre de ≈ 10 m de diámetro, sin público',
       'Carga del punto del techo con péndulo y revoleo (fuerzas dinámicas, no solo el peso)'],
     build() { escenaMonja(); } },
-  { n: 5, t: 'Cañón de remeras', k: 'Escena', el: ['torreA', 'torreB'], cam: 'iso',
+  { n: 6, t: 'Cañón de remeras', k: 'Escena', el: ['torreA', 'torreB'], cam: 'iso',
     guion: 'Dos performers en bungee disparan remeras al público con pistolas / cañones. Reemplaza a la vieja “guerra de cubos”.',
     esp: [['Un bungee colgado de cada torre de 6 m, con brazo hacia la pista', 1], ['Disparos de remeras hacia el centro de la pista']],
     tec: ['Bungee ×2', 'Cañones de remeras', 'Brazos de colgado en torres'],
@@ -1613,7 +1753,7 @@ const SCENES = [
       arcs([12.3, 5, 2.4], [[9, 0, 6], [12, 0, 5], [15, 0, 4]]); arcs([12.3, 5, 10.6], [[9, 0, 9], [13, 0, 7.5], [16, 0, 10]]);
       ring([12.3, 2.4], 1.2, PURPLE); ring([12.3, 10.6], 1.2, PURPLE);
     } },
-  { n: 6, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
+  { n: 7, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
     guion: 'Desfile de personajes. Estética y ritmo a definir.',
     esp: [['Circuito: escenario → escalera → vuelta por la pista → tarima → escalera opuesta', 1], ['Tarima como punto de pose al fondo de la pista', 1]],
     tec: ['Pasillo despejado en la pista'], pend: ['Estética', 'Ritmo y cantidad de personajes', 'Cómo se abre paso entre el público'],
@@ -1621,12 +1761,12 @@ const SCENES = [
       const c = path([[SX + 1.4, 1, 3], [SXE + .3, 1, 2.15], [SXE + 1.2, 0, 2.15], [10.5, 0, 2.6], [15.5, 1.0, 6.5], [10.5, 0, 10.4], [SXE + 1.2, 0, 10.85], [SXE + .3, 1, 10.85], [SX + 1.4, 1, 10]], { color: ORANGE, closed: true });
       for (let i = 0; i < 5; i++) follow(figure(i === 0 ? 'Personajes' : '', [0, 0, 0]), c, 0.035, i * 0.2);
     } },
-  { n: 7, t: 'Casamiento', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
+  { n: 8, t: 'Casamiento', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
     guion: 'Escena de casamiento. Interviene el vestuario de Novios (traje y vestido, V19 en catálogo).',
     esp: [['Tarima en el centro de la pista como altar, rodeada por el público', 1]],
     tec: ['Vestuario Novios (V19)'], pend: ['Oficiante / personajes que acompañan'],
     build() { figure('Novio', [10.5, 1, 6.5]); figure('Novia', [11.3, 1, 6.5], { color: WHITE }); ring([10.9, 6.5], 3, ORANGE); } },
-  { n: 8, t: 'Vals', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
+  { n: 9, t: 'Vals', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
     guion: 'Vals: continuación del arco del casamiento.',
     esp: [['Los novios bailan sobre la tarima en el centro de la pista', 1]],
     tec: [], pend: ['Duración'],
@@ -1635,17 +1775,17 @@ const SCENES = [
       anims.push(t => { const r = .38; a.position.set(10.9 + Math.cos(t * .9) * r, 1, 6.5 + Math.sin(t * .9) * r); b.position.set(10.9 - Math.cos(t * .9) * r, 1, 6.5 - Math.sin(t * .9) * r); });
       ring([10.9, 6.5], 3, ORANGE);
     } },
-  { n: 9, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario'], cam: 'escenario',
+  { n: 10, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario'], cam: 'escenario',
     guion: 'Entra Chicho Sarli, personaje bien porteño con estética Miami años 90. Ingresa disparando billetes con pistolas lanza billetes (E16 en catálogo). 30 min de su set.',
     esp: [['Chicho Sarli entra por la escalera lateral y dispara billetes hacia la pista', 1], ['Luego toma la cabina']],
     tec: ['Pistolas lanza billetes (E16)', 'Sonido DJ'], pend: ['Limpieza de billetes antes de la escena siguiente'],
     build() { propBox(SX + 1.55, SX + 2.2, 1.0, 1.95, 5.6, 7.4, 'Cabina DJ'); figure('Chicho Sarli', [SX + 2.0, 1.0, 3.2], { color: WHITE }); arcs([SX + 2.1, 2.4, 3.2], [[9, 0, 3], [11, 0, 6], [10, 0, 10], [14, 0, 5]]); } },
-  { n: 10, t: 'Warm music', k: 'Transición', el: ['escenario'], cam: 'iso',
+  { n: 11, t: 'Warm music', k: 'Transición', el: ['escenario'], cam: 'iso',
     guion: 'Bloque de música más contenido, de transición. DJ y duración a definir.',
     esp: [['Cabina DJ en el escenario'], ['Momento para reposicionar la tarima al centro', 1]],
     tec: ['Sonido DJ'], pend: ['DJ', 'Duración', 'Personaje del bloque'],
     build() { dj('DJ · a definir'); } },
-  { n: 11, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
+  { n: 12, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
     guion: 'Se mete una escalera dentro del público y el Capitán Psicodelia invita a todos a subirse; entre staff y público se arma un mosh mutuo. En paralelo, en el aire, dos performers femeninas corren tipo correcaminos: una persecución, un enfrentamiento aéreo.',
     esp: [['Escalera junto a la tarima, en el centro de la pista', 1], ['Zona de mosh alrededor de la tarima (radio ≈ 3,5 m)', 1], ['Correcaminos en danza vertical sobre el Pelea telón', 1]],
     tec: ['Escalera de mosh', 'Arneses de danza vertical ×2', 'Staff de contención'],
@@ -1657,7 +1797,7 @@ const SCENES = [
       wallRunner('Correcaminos 1', null, t => 6.5 + Math.sin(t * .7) * 2.1, t => 5.2 + Math.sin(t * 1.3) * .6);
       wallRunner('Correcaminos 2', null, t => 6.5 + Math.sin(t * .7 - .9) * 2.1, t => 5.4 + Math.cos(t * 1.1) * .6);
     } },
-  { n: 12, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'telon'], cam: 'publico', luz: 'pico',
+  { n: 13, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'telon'], cam: 'publico', luz: 'pico',
     guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
     esp: [['Cuenta regresiva proyectada sobre la pantalla', 1], ['Línea de efectos al frente del escenario', 1]],
     tec: ['Proyección / pantalla', 'Efecto “fuegos artificiales”'],
@@ -1668,7 +1808,7 @@ const SCENES = [
       for (let i = 0; i < 7; i++) { const z = 1.5 + i * 10 / 6; const m = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1, 8, 1, true), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, opacity: .7 })); m.position.set(SXE - .1, 1.5, z); sceneGroup.add(m); fs.push(m); }
       anims.push(t => fs.forEach((m, i) => { const s = 0.6 + 1.6 * Math.abs(Math.sin(t * 3 + i)); m.scale.set(1, s, 1); m.position.y = 1 + s / 2; }));
     } },
-  { n: 13, t: 'El trompetista peposo', k: 'Escena · bajón', el: ['torreC'], cam: 'escenario', luz: 'frio',
+  { n: 14, t: 'El trompetista peposo', k: 'Escena · bajón', el: ['torreC'], cam: 'escenario', luz: 'frio',
     guion: 'Bajón repentino después del pico. Clima nocturno, frío. Aparece “el trompetista peposo”, que toca trompeta con delay.',
     esp: [['Trompetista arriba de la torre C, de frente al escenario y con la sala a oscuras', 1], ['Un único haz cenital sobre él', 1]],
     tec: ['Micrófono de trompeta + delay', 'Seguidor o cenital'], pend: ['Cambio de luces pico → frío'],
@@ -1677,7 +1817,7 @@ const SCENES = [
       const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 11, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.set(19.5, 3 + 5.5, 6.1); sceneGroup.add(beam);
     } },
-  { n: 14, t: 'Cajón', k: 'Escena', el: ['techo'], cam: 'publico',
+  { n: 15, t: 'Cajón', k: 'Escena', el: ['techo'], cam: 'publico',
     guion: 'Baja el Cajón del techo lentamente y queda flotando en el centro del espacio, sobre la cabeza de los espectadores. Los performers lo hacen hamacar en un gran péndulo, después empiezan a girar mientras pendulan y del Cajón sale humo, luces y láser. Un quick release suelta una punta del eje y el Cajón sigue pendulando de forma irregular, con sensación de peligro.',
     esp: [['Baja de canto, con los performers sentados en el aire a cada lado, colgados del arnés y con las suelas contra el Cajón (referencia de producción)'],
       ['Abajo gira a horizontal: un performer queda parado arriba y el otro colgado cabeza abajo; el eje queda a ≈ 5,5 m del piso', 1],
@@ -1697,7 +1837,7 @@ const SCENES = [
     build() {
       const up = buildCajon({}, { escena: true }); anims.push(up); up(t);
     } },
-  { n: 15, t: 'Esfera / Cabeza', k: 'Escena', el: ['escenario', 'telon'], cam: 'lateral',
+  { n: 16, t: 'Esfera / Cabeza', k: 'Escena', el: ['escenario', 'telon'], cam: 'lateral',
     guion: 'Descienden 4 caras esculpidas. De cada una baja un personaje sin cara, con estructuras en los brazos que los hacen ver con brazos largos.',
     esp: [['Una cabeza de cartapesta baja sobre el escenario y se abre en 2: adentro, la esfera de hierro de 3 m (ficha de Bruno)'], ['De los orificios de la cabeza salen brazos y piernas de los 4 personajes sin cara']],
     tec: ['Cabeza de cartapesta', 'Esfera de hierro Ø 3 m', '2 motores de cadena de 1,5 t', 'Extensiones de brazos'],
@@ -1705,7 +1845,7 @@ const SCENES = [
     build() {
       const up = buildCabeza({ auto: true, val: 0 }); anims.push(up); up(t);
     } },
-  { n: 16, t: 'Persecución', k: 'Vaca-monja vs. Punky-carnicera', el: [], cam: 'iso',
+  { n: 17, t: 'Persecución', k: 'Vaca-monja vs. Punky-carnicera', el: [], cam: 'iso',
     guion: 'Retorno de la persecución. Los dos personajes vienen apareciendo desde el principio del show.',
     esp: [['Persecución en circuito por el perímetro de la pista', 1]],
     tec: [], pend: ['En qué escenas anteriores aparecen', 'Si se suma un tramo aéreo'],
@@ -1714,7 +1854,7 @@ const SCENES = [
       follow(figure('Vaca-monja', [0, 0, 0], { color: WHITE }), c, 0.05, 0.1);
       follow(figure('Punky-carnicera', [0, 0, 0]), c, 0.05, 0);
     } },
-  { n: 17, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'tarima', 'torreA', 'torreB', 'torreC', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
+  { n: 18, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'tarima', 'torreA', 'torreB', 'torreC', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
     guion: 'Van entrando todos los personajes para el cierre coral, con “Hella Good” (remix) sonando.',
     esp: [['Personajes en escenario, tarima y torres', 1], ['Público al centro de la pista']],
     tec: ['Todos los vestuarios'], pend: ['Orden de entrada', 'Cantidad total de personajes en escena'],
@@ -1935,23 +2075,24 @@ function showRider() {
 const P = { o: 'ff6b3d', v: '8a8fff', m: 'ff3fa4', c: '3fd8ff', a: 'ffa040', w: 'ffffff', r: 'ff2a1a', b: '4a6bff', g: 'ffd36b', t: 'ffe2bf' };
 const LOOKS = {
   0:  { txt: 'Baños cálidos ámbar y magenta que respiran lento. Beams apagados, uplight ámbar sobre la tela.', wash: { c: [P.a, P.m], i: .6, aim: 'pista' }, parF: { i: .2 }, parU: { i: .4, c: P.a } },
-  1:  { txt: 'Sala casi a oscuras. Beams blancos giran alrededor del toroide, estrobos en la explosión y los dos seguidores toman al Capitán en vuelo.', wash: { c: P.v, i: .15, aim: 'pista' }, beam: { c: P.w, i: 1, aim: 'toroide' }, strobe: 'on', parU: { i: .45, c: P.v }, seg: ['Cap. Psicodelia'] },
-  2:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
-  3:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
-  4:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y un seguidor para la Monja y otro para la Punk.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja', 'Punk'] },
-  5:  { txt: 'Beams de las torres siguen a cada bungee; el truss frontal barre la pista. Estrobos en cada disparo.', wash: { c: P.o, i: .5, aim: 'fan' }, beam: { c: P.w, i: .9, aim: 'fan' }, beamTorre: { c: P.o, i: 1, aim: 'track', names: ['Bungee 1', 'Bungee 2'] }, strobe: 'on', parU: { i: .4, c: P.o }, seg: ['Bungee 1', 'Bungee 2'] },
-  6:  { txt: 'Pasarela rosa: wash magenta, beams violeta cruzados y seguidores sobre la cabeza del desfile.', wash: { c: P.m, i: .6, aim: 'pista' }, beam: { c: P.v, i: .7, aim: 'cruz' }, parF: { i: .4 }, parU: { i: .4, c: P.m }, seg: ['Personajes'] },
-  7:  { txt: 'Blanco cálido de ceremonia sobre la tarima, uplight blanco en la tela, sin beams.', wash: { c: P.t, i: .55, aim: 'tarima' }, parF: { i: .3 }, parU: { i: .6, c: P.w }, seg: ['Novio', 'Novia'] },
-  8:  { txt: 'Vals en ámbar: beams dorados giran lentos alrededor de la tarima y los seguidores acompañan a los novios.', wash: { c: P.a, i: .45, aim: 'tarima' }, beam: { c: P.g, i: .45, aim: 'circTarima' }, parU: { i: .45, c: P.a }, seg: ['Novio', 'Novia'] },
-  9:  { txt: 'Miami 90: cian y magenta a fondo, beams rápidos, estrobos y seguidores sobre Chicho Sarli.', wash: { c: [P.c, P.m], i: .75, aim: 'fan' }, beam: { c: [P.m, P.c], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .6, c: P.c }, seg: ['Chicho Sarli'] },
-  10: { txt: 'Transición contenida: ámbar bajo, beams fijos hacia el piso.', wash: { c: P.a, i: .35, aim: 'pista' }, beam: { c: P.a, i: .25, aim: 'down' }, parU: { i: .4, c: P.a } },
-  11: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
-  12: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
-  13: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
-  14: { txt: 'Cajón: los beams de las torres siguen a cada performer mientras pendula, violeta de fondo y un seguidor por performer. Al final, el humo, las luces y el láser salen del propio Cajón.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Performer 1', 'Performer 2'] }, parU: { i: .5, c: P.v }, seg: ['Performer 1', 'Performer 2'] },
-  15: { txt: 'Beams violetas y blancos sobre la cabeza mientras baja y se abre; al abrirse, la esfera suma sus propias luces y láser.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'cabeza' }, parU: { i: .4, c: P.v } },
-  16: { txt: 'Persecución: beams naranjas cruzados, estrobos y un seguidor para cada personaje.', wash: { c: [P.w, P.o], i: .5, aim: 'fan' }, beam: { c: P.o, i: .75, aim: 'cruz' }, strobe: 'on', seg: ['Vaca-monja', 'Punky-carnicera'] },
-  17: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
+  1:  { txt: 'Sala a oscuras. Solo un seguidor sobre el personaje al que le toca: el de la torre B queda a oscuras hasta que el A desaparece, y cada seguidor se apaga cuando su personaje entra al agujero.', wash: { c: P.v, i: .04, aim: 'pista' }, seg: ['Personaje A', 'Personaje B'] },
+  2:  { txt: 'Sala casi a oscuras. Beams blancos giran alrededor del toroide, estrobos en la explosión y los dos seguidores toman a los astronautas.', wash: { c: P.v, i: .15, aim: 'pista' }, beam: { c: P.w, i: 1, aim: 'toroide' }, strobe: 'on', parU: { i: .45, c: P.v }, seg: ['Astronauta 1', 'Astronauta 2'] },
+  3:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
+  4:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
+  5:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y un seguidor para la Monja y otro para la Punk.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja', 'Punk'] },
+  6:  { txt: 'Beams de las torres siguen a cada bungee; el truss frontal barre la pista. Estrobos en cada disparo.', wash: { c: P.o, i: .5, aim: 'fan' }, beam: { c: P.w, i: .9, aim: 'fan' }, beamTorre: { c: P.o, i: 1, aim: 'track', names: ['Bungee 1', 'Bungee 2'] }, strobe: 'on', parU: { i: .4, c: P.o }, seg: ['Bungee 1', 'Bungee 2'] },
+  7:  { txt: 'Pasarela rosa: wash magenta, beams violeta cruzados y seguidores sobre la cabeza del desfile.', wash: { c: P.m, i: .6, aim: 'pista' }, beam: { c: P.v, i: .7, aim: 'cruz' }, parF: { i: .4 }, parU: { i: .4, c: P.m }, seg: ['Personajes'] },
+  8:  { txt: 'Blanco cálido de ceremonia sobre la tarima, uplight blanco en la tela, sin beams.', wash: { c: P.t, i: .55, aim: 'tarima' }, parF: { i: .3 }, parU: { i: .6, c: P.w }, seg: ['Novio', 'Novia'] },
+  9:  { txt: 'Vals en ámbar: beams dorados giran lentos alrededor de la tarima y los seguidores acompañan a los novios.', wash: { c: P.a, i: .45, aim: 'tarima' }, beam: { c: P.g, i: .45, aim: 'circTarima' }, parU: { i: .45, c: P.a }, seg: ['Novio', 'Novia'] },
+  10: { txt: 'Miami 90: cian y magenta a fondo, beams rápidos, estrobos y seguidores sobre Chicho Sarli.', wash: { c: [P.c, P.m], i: .75, aim: 'fan' }, beam: { c: [P.m, P.c], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .6, c: P.c }, seg: ['Chicho Sarli'] },
+  11: { txt: 'Transición contenida: ámbar bajo, beams fijos hacia el piso.', wash: { c: P.a, i: .35, aim: 'pista' }, beam: { c: P.a, i: .25, aim: 'down' }, parU: { i: .4, c: P.a } },
+  12: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
+  13: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
+  14: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
+  15: { txt: 'Cajón: los beams de las torres siguen a cada performer mientras pendula, violeta de fondo y un seguidor por performer. Al final, el humo, las luces y el láser salen del propio Cajón.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Performer 1', 'Performer 2'] }, parU: { i: .5, c: P.v }, seg: ['Performer 1', 'Performer 2'] },
+  16: { txt: 'Beams violetas y blancos sobre la cabeza mientras baja y se abre; al abrirse, la esfera suma sus propias luces y láser.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'cabeza' }, parU: { i: .4, c: P.v } },
+  17: { txt: 'Persecución: beams naranjas cruzados, estrobos y un seguidor para cada personaje.', wash: { c: [P.w, P.o], i: .5, aim: 'fan' }, beam: { c: P.o, i: .75, aim: 'cruz' }, strobe: 'on', seg: ['Vaca-monja', 'Punky-carnicera'] },
+  18: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
 };
 
 
@@ -1964,7 +2105,7 @@ const Y_GUARDA = TOR.yPlane + .1;         // percha guardada dentro del tubo, po
 const metal = c => new THREE.MeshStandardMaterial({ color: c, metalness: .6, roughness: .35 });
 
 // Toroide: percha de 2,25 m que gira; eje de astronautas de 1,75 m que gira sobre la percha; cada astronauta gira sobre sí
-/* ───────── Toroide (escena 1 · Intro) ─────────
+/* ───────── Toroide (escena 2 · Intro) ─────────
    Mecanismo (lo que importa): percha + 2 ejes. El resto es escenografía por fuera de lo que se mueve.
    · Percha: igual a la del Cajón. Barra de 2,30 m con eslingas a una argolla, swivel al motor central (gira lento) y
      cables verticales desde sus puntas hasta las puntas del eje fijo.
@@ -2092,7 +2233,7 @@ function buildToroide(st, { escena = false } = {}) {
 }
 
 // Cajón: caja de aluminio 1,9 × 1,9 × 0,3 m que gira sobre su eje; percha de 2,25 m; péndulo desde el motor central
-/* ───────── Cajón (escena 14) ─────────
+/* ───────── Cajón (escena 15) ─────────
    Cuadrado de 1,9 × 1,9 × 0,3 m con un eje en el medio: el eje atraviesa dos lados, sobresale y de sus puntas
    bajan dos cables verticales desde la percha. El cajón gira sobre el eje; todo el conjunto pendula del motor central.
    Percha a 2,8 m sobre el eje: un performer parado (1,75 m + brazos arriba ≈ 2,4 m desde el eje) no llega al caño.
@@ -2181,7 +2322,7 @@ function cajonModelo(c) {
   label('Cajón 1,9 × 1,9 m', 'fig air', box, [0, .6, 1.4]);
   return { leds, luces, laser };
 }
-/* Coreografía (escena 14, 74 s en loop):
+/* Coreografía (escena 15, 74 s en loop):
    0–12 s baja lento de canto, con los performers sentados en el aire contra las caras (como en la foto);
    abajo de la boca del tubo gira a horizontal y los performers se paran: uno arriba, el otro colgado cabeza abajo.
    15–33 s lo hamacan a lo largo de la sala: el de arriba se agacha en los extremos y se para abajo (bombeo), hasta ±22°.
@@ -2652,6 +2793,7 @@ function renderList() {
 }
 listEl.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) goScene(+b.dataset.i); const mb = e.target.closest('button[data-m]'); if (mb) goMec(+mb.dataset.m); });
 const tabG = document.getElementById('tabGuion'), tabM = document.getElementById('tabMec');
+tabG.textContent = `Guion · ${SCENES.length}`;
 tabG.addEventListener('click', () => { if (mode !== 'guion') goScene(current); });
 tabM.addEventListener('click', () => { if (mode !== 'mec') goMec(curMec); });
 

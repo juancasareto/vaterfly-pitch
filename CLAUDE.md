@@ -16,7 +16,7 @@ Las dos páginas tienen una barrera de contraseña **cosmética** (está en el c
 
 - **Mecanismos:** Notion › VATERFLY › *Mecanismos y estructuras*. Una subpágina por mecanismo, la completa Bruno
   (ficha, descripción, funcionamiento, ubicación, especificaciones). Cuando cambia, se pasa al visor.
-- **Guion:** el visor todavía usa las 18 escenas del guion del 31/08. El texto nuevo de Mariano (8 escenas) está en Notion /
+- **Guion:** el visor usa las 18 escenas del guion del 31/08 más la Presentación (escena 01, agregada por producción): 19 en total. El texto nuevo de Mariano (8 escenas) está en Notion /
   carpeta privada de Juan; pasar el visor a esas 8 escenas está pendiente.
 - **Planta:** las decisiones de planta las da Juan (ver "Planta actual").
 
