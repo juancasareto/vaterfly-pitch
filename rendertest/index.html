@@ -694,6 +694,545 @@ function figure(name, p, { color = ORANGE, air = false, horizontal = false } = {
   if (name) label(name, 'fig' + (air ? ' air' : ''), g, horizontal ? [1.0, 0.6, 0] : [0, 2.05, 0]);
   return g;
 }
+/* ───────── Humano articulado ─────────
+   Maniquí técnico con esqueleto: pelvis → columna → pecho → cuello y cabeza · hombros → codos → muñecas ·
+   caderas → rodillas → tobillos. Proporciones antropométricas (Winter) escaladas a la altura `h` en metros.
+   Las piernas van por IK de dos huesos: el pie apoyado queda clavado en el piso, no patina ni lo atraviesa.
+   Ejes locales: +z hacia donde mira, +y arriba. Poses en grados: brazo [flexión, abducción, codo] con
+   flexión 0 = colgando, 90 = al frente, 180 = arriba, negativa = atrás; lean + = torso hacia adelante;
+   drop = cuánto baja la pelvis (m); toe = punta del pie; tuck = cuánto recoge las piernas en el aire. */
+const GRAV = 9.81, DEG = Math.PI / 180;
+const clamp1 = v => Math.max(-1, Math.min(1, v));
+const keepGeo = g => { g.userData.keep = true; return g; };   // geometrías compartidas: clearScene no las libera
+const jointMat = new THREE.MeshStandardMaterial({ color: 0x2a2a31, roughness: .6 });
+const humCache = {};
+function humDims(h) {
+  return humCache[h] ??= (() => {
+    const d = { h, ankle: .039 * h, shin: .246 * h, thigh: .245 * h, hipY: .53 * h, hipHalf: .05 * h,
+      lumbar: .05 * h, chestY: .15 * h, shY: .088 * h, shHalf: .11 * h, neckY: .1 * h, headY: .105 * h,
+      upper: .186 * h, fore: .146 * h, foot: .152 * h };
+    const cap = (r, len) => keepGeo(new THREE.CapsuleGeometry(r, Math.max(.01, len - 2 * r), 4, 10));
+    const ball = r => keepGeo(new THREE.SphereGeometry(r, 10, 8));
+    const cyl = (rt, rb, len, flat = 1) => keepGeo(new THREE.CylinderGeometry(rt, rb, len, 14).scale(1, 1, flat));
+    d.chestH = d.shY + .02 * h;
+    d.geo = {
+      pelvis: cyl(.075 * h, .068 * h, .075 * h, .7), abdomen: cyl(.074 * h, .072 * h, d.chestY, .62),
+      chest: cyl(.095 * h, .076 * h, d.chestH, .62), neck: cyl(.025 * h, .028 * h, .07 * h),
+      head: keepGeo(new THREE.SphereGeometry(.058 * h, 16, 12).scale(.9, 1.12, 1)),
+      visor: keepGeo(new THREE.BoxGeometry(.085 * h, .018 * h, .03 * h)),
+      thigh: cap(.04 * h, d.thigh), shin: cap(.029 * h, d.shin), upper: cap(.026 * h, d.upper), fore: cap(.021 * h, d.fore),
+      hand: keepGeo(new THREE.CapsuleGeometry(.017 * h, .045 * h, 3, 8).scale(1, 1, .55)),
+      foot: keepGeo(new THREE.BoxGeometry(.05 * h, d.ankle, d.foot)),
+      jSh: ball(.03 * h), jEl: ball(.024 * h), jKn: ball(.034 * h)
+    };
+    return d;
+  })();
+}
+function hGrp(parent, x, y, z, order) { const o = new THREE.Group(); o.position.set(x, y, z); if (order) o.rotation.order = order; parent.add(o); return o; }
+function hPart(parent, geo, mat, y = 0, x = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; }
+function humano(name, p, { color = ORANGE, h = 1.9, face = 0, ropa } = {}) {
+  const d = humDims(h), q = d.geo, mat = figMat(color), M = {};   // M: mallas por parte del cuerpo, para vestirlas
+  const g = new THREE.Group(); g.position.set(...p); g.rotation.y = face; sceneGroup.add(g);
+  const pelvis = hGrp(g, 0, d.hipY, 0); M.pelvis = hPart(pelvis, q.pelvis, mat, .01 * h);
+  const spine = hGrp(pelvis, 0, d.lumbar, 0); M.abdomen = hPart(spine, q.abdomen, mat, d.chestY / 2);
+  const chest = hGrp(spine, 0, d.chestY, 0); M.chest = hPart(chest, q.chest, mat, d.chestH / 2);
+  const neck = hGrp(chest, 0, d.neckY, 0, 'YXZ'); M.neck = hPart(neck, q.neck, mat, .035 * h);
+  M.head = hPart(neck, q.head, mat, d.headY); M.visor = hPart(neck, q.visor, jointMat, d.headY + .012 * h, 0, .046 * h);
+  const arm = i => { const sg = i ? -1 : 1;
+    const sh = hGrp(chest, sg * d.shHalf, d.shY, 0); const jSh = hPart(sh, q.jSh, jointMat); const upper = hPart(sh, q.upper, mat, -d.upper / 2);
+    const el = hGrp(sh, 0, -d.upper, 0); const jEl = hPart(el, q.jEl, jointMat); const fore = hPart(el, q.fore, mat, -d.fore / 2);
+    const wr = hGrp(el, 0, -d.fore, 0); const hand = hPart(wr, q.hand, mat, -.045 * h);
+    return { sh, el, wr, palm: hGrp(wr, 0, -.05 * h, 0), sg, m: { jSh, upper, jEl, fore, hand } }; };
+  const leg = i => { const sg = i ? -1 : 1;
+    const hip = hGrp(pelvis, sg * d.hipHalf, 0, 0, 'ZXY'); const thigh = hPart(hip, q.thigh, mat, -d.thigh / 2);
+    const knee = hGrp(hip, 0, -d.thigh, 0); const jKn = hPart(knee, q.jKn, jointMat); const shin = hPart(knee, q.shin, mat, -d.shin / 2);
+    const ank = hGrp(knee, 0, -d.shin, 0); const foot = hPart(ank, q.foot, mat, -d.ankle / 2, 0, d.foot * .3);
+    return { hip, knee, ank, sg, m: { thigh, jKn, shin, foot } }; };
+  if (name) { label(name, 'fig', g, [0, h + .3, 0]); if (!FIG[name]) FIG[name] = g; }
+  const H = { g, d, pelvis, spine, chest, neck, M, arms: [arm(0), arm(1)], legs: [leg(0), leg(1)], face,
+    feet: [[.085 * h, .03 * h], [-.085 * h, -.03 * h]] };   // pies apoyados (x, z locales)
+  if (ropa) vestir(H, ropa);
+  posar(H, READY);
+  return H;
+}
+/* ───────── Vestuario ─────────
+   Viste el maniquí: cambia el material de cada parte (piel, remera, short, medias, zapatillas) y suma
+   accesorios colgados de las articulaciones, así acompañan el movimiento. Medidas relativas a la altura h. */
+const tela = (c, rough = .8) => matCache['tela' + c + rough] ??= new THREE.MeshStandardMaterial({ color: c, roughness: rough, emissive: c, emissiveIntensity: .12 });
+const texCache = {};
+function numeroTex(txt, fg, bg) {   // dorsal: número en una textura de canvas (una por combinación)
+  return texCache[[txt, fg, bg]] ??= numeroTexNueva(txt, fg, bg);
+}
+function numeroTexNueva(txt, fg, bg) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 160; const x = cv.getContext('2d');
+  if (bg != null) { x.fillStyle = '#' + bg.toString(16).padStart(6, '0'); x.beginPath(); x.ellipse(128, 80, 92, 74, 0, 0, Math.PI * 2); x.fill(); }
+  x.fillStyle = '#' + fg.toString(16).padStart(6, '0'); x.font = '900 120px "Arial Black", Impact, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 128, 86);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function estampado(c) {   // estampado abstracto de remera punk (sin logos de bandas)
+  return matCache['estampa' + c] ??= (() => {
+    const cv = document.createElement('canvas'); cv.width = 96; cv.height = 160; const x = cv.getContext('2d'), hex = '#' + c.toString(16).padStart(6, '0');
+    x.fillStyle = '#0c0c0d'; x.fillRect(0, 0, 96, 160); x.fillStyle = hex; x.fillRect(8, 20, 80, 34);
+    x.beginPath(); x.arc(48, 100, 30, 0, Math.PI * 2); x.fill(); x.fillStyle = '#f2f0ea'; x.fillRect(14, 30, 68, 6); x.fillRect(14, 42, 50, 6);
+    x.beginPath(); x.arc(48, 96, 14, 0, Math.PI * 2); x.fill(); x.fillStyle = '#0c0c0d'; x.fillRect(40, 92, 5, 6); x.fillRect(51, 92, 5, 6);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshStandardMaterial({ map: t, roughness: .85 });
+  })();
+}
+function vestir(H, R) {
+  const h = H.d.h, d = H.d, piel = tela(R.piel, .6);
+  const add = (parent, geo, mat, [x, y, z] = [0, 0, 0], rot) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (rot) m.rotation.set(...rot); parent.add(m); return m; };
+  const tubo = (rt, rb, len, flat = 1, open = false) => new THREE.CylinderGeometry(rt, rb, len, 16, 1, open).scale(1, 1, flat);
+  const aro = (r, tube) => new THREE.TorusGeometry(r, tube, 6, 24).rotateX(Math.PI / 2);
+  const chestR = y => .076 * h + (.019 * h) * y / d.chestH;   // radio del pecho a la altura y (malla cónica)
+  const doble = c => matCache['doble' + c] ??= new THREE.MeshStandardMaterial({ color: c, roughness: .85, emissive: c, emissiveIntensity: .12, side: THREE.DoubleSide });
+  // remera / musculosa / campera / hábito. mangas: true = cortas · 'largas' · 'campana' (hábito)
+  const rem = R.remera ? tela(R.remera.c, R.remera.rough ?? .8) : piel, mangas = R.remera?.mangas, largas = mangas === 'largas' || mangas === 'campana';
+  [H.M.head, H.M.neck].forEach(m => m.material = piel); H.M.visor.visible = false;
+  H.arms.forEach(a => { a.m.hand.material = piel; a.m.upper.material = a.m.fore.material = a.m.jEl.material = largas ? rem : piel; a.m.jSh.material = mangas ? rem : piel; });
+  const pierna = R.pantalon ? tela(R.pantalon.c) : R.habito ? tela(R.habito) : piel;
+  H.legs.forEach(l => { l.m.thigh.material = l.m.shin.material = l.m.jKn.material = pierna; l.m.foot.material = piel; });
+  // cara: nariz para leer hacia dónde mira
+  add(H.neck, new THREE.BoxGeometry(.012 * h, .02 * h, .016 * h), piel, [0, d.headY - .002 * h, .057 * h]);
+  if (R.remera) {
+    const rib = tela(R.remera.ribete ?? R.remera.c);
+    H.M.chest.material = H.M.abdomen.material = rem;
+    if (!R.toca) add(H.chest, aro(.03 * h, .006 * h), rib, [0, d.chestH - .004 * h, 0]).scale.set(1.15, 1, .95);   // cuello redondo
+    if (mangas === true) H.arms.forEach(a => {
+      add(a.sh, tubo(.034 * h, .033 * h, .07 * h), rem, [0, -.03 * h, 0]);
+      add(a.sh, aro(.033 * h, .004 * h), rib, [0, -.065 * h, 0]);
+    });
+    if (mangas === 'campana') H.arms.forEach(a => add(a.el, new THREE.CylinderGeometry(.026 * h, .07 * h, .13 * h, 18, 1, true), doble(R.remera.c), [0, -d.fore + .03 * h, 0]));
+    (R.remera.franjas ?? []).map(f => f * h).forEach(y => add(H.chest, tubo(chestR(y) + .002 * h, chestR(y + .014 * h) + .002 * h, .014 * h, .64, true), tela(R.remera.franjaC), [0, y, 0]));
+    if (R.remera.num) {
+      const [nx, ny, nw] = R.remera.numPos ?? [0, .05, .075], y = ny * h, n = add(H.chest, new THREE.PlaneGeometry(nw * h, nw * .63 * h), matCache['num' + R.remera.num + R.remera.numC + R.remera.numBg] ??= new THREE.MeshStandardMaterial({ map: numeroTex(R.remera.num, R.remera.numC, R.remera.numBg), transparent: true, roughness: .8 }), [nx * h, y, chestR(y) * .62 * Math.sqrt(1 - (nx * h / chestR(y)) ** 2) + .005 * h]);
+      n.scale.x = -1;   // la sala está espejada en z: sin esto el número se lee al revés
+    }
+    if (R.remera.abierta) {   // campera abierta: se ve la remera de abajo con un estampado rojo
+      const y = .055 * h; add(H.chest, new THREE.PlaneGeometry(.06 * h, .1 * h), estampado(R.remera.abierta), [0, y, chestR(y) * .62 + .003 * h]);
+      add(H.spine, new THREE.PlaneGeometry(.05 * h, d.chestY * .9), tela(0x0c0c0d), [0, d.chestY * .5, .074 * h * .62 + .003 * h]);
+    }
+  }
+  // short corto con ribete
+  if (R.short) { const sh = tela(R.short.c); H.M.pelvis.material = sh;
+    H.legs.forEach(l => {
+      add(l.hip, tubo(.046 * h, .05 * h, .083 * h), sh, [0, -.04 * h, 0]);
+      if (R.short.ribete) add(l.hip, aro(.05 * h, .0035 * h), tela(R.short.ribete), [0, -.08 * h, 0]);
+    }); }
+  // pantalón largo con tiras (bondage)
+  if (R.pantalon) { H.M.pelvis.material = tela(R.pantalon.c);
+    if (R.pantalon.rayas) { const m = tela(R.pantalon.rayas, .6);
+      H.legs.forEach(l => {
+        [.45, .8].forEach(f => add(l.hip, aro(.041 * h, .0025 * h), m, [0, -d.thigh * f, 0]));
+        add(l.knee, aro(.031 * h, .0025 * h), m, [0, -.04 * h, 0]);
+        [1, -1].forEach(s => add(l.knee, new THREE.BoxGeometry(.003 * h, d.shin * .4, .003 * h), m, [s * .012 * h, -d.shin * .25, .029 * h]));
+      }); } }
+  // medias largas con rayas
+  if (R.medias) H.legs.forEach(l => {
+    add(l.knee, tubo(.034 * h, .031 * h, d.shin * .78), tela(R.medias.c), [0, -d.shin * .61, 0]);
+    (R.medias.rayas ?? []).forEach((c, i) => add(l.knee, tubo(.0345 * h, .0343 * h, .012 * h), tela(c), [0, -d.shin * .26 - i * .02 * h, 0]));
+  });
+  // zapatillas
+  if (R.zapas) { const z = R.zapas, zm = tela(z.c, .6), suela = tela(z.suela ?? 0xf2f0ea, .9);
+    H.legs.forEach(l => {
+      l.m.foot.material = zm;
+      add(l.ank, new THREE.BoxGeometry(.055 * h, .012 * h, d.foot * 1.04), suela, [0, -d.ankle + .006 * h, d.foot * .3]);
+      if (z.alta) add(l.ank, tubo(.034 * h, .036 * h, .06 * h), zm, [0, .005 * h, -.004 * h]);
+      if (z.punta) add(l.ank, new THREE.BoxGeometry(.052 * h, .026 * h, .03 * h), tela(z.punta, .6), [0, -d.ankle + .02 * h, d.foot * .78]);
+      if (z.rayas) [1, -1].forEach(s => [0, 1].forEach(k => add(l.ank, new THREE.BoxGeometry(.002 * h, .006 * h, .045 * h), tela(z.rayas), [s * .026 * h, -d.ankle * .45, d.foot * (.22 + k * .1)], [-.7, 0, 0])));
+    }); }
+  // borcegos altos con cordones
+  if (R.botas) { const bm = tela(R.botas.c, .35), cm = tela(R.botas.cordones ?? 0xeeeeee, .6);
+    H.legs.forEach(l => {
+      l.m.foot.material = bm;
+      add(l.knee, tubo(.034 * h, .033 * h, d.shin * .55), bm, [0, -d.shin * .725, 0]);
+      add(l.ank, new THREE.BoxGeometry(.056 * h, .014 * h, d.foot * 1.05), tela(0x050505, .9), [0, -d.ankle + .007 * h, d.foot * .3]);
+      for (let k = 0; k < 7; k++) add(l.knee, new THREE.BoxGeometry(.03 * h, .003 * h, .003 * h), cm, [0, -d.shin * (.5 + k * .065), .0335 * h], [0, 0, k % 2 ? .35 : -.35]);
+    }); }
+  // muñequeras, mangas de brazo
+  (R.munequeras ?? []).forEach((c, i) => H.arms.forEach(a => add(a.el, tubo(.025 * h, .025 * h, .014 * h), tela(c), [0, -d.fore + .02 * h + i * .014 * h, 0])));
+  if (R.mangasBrazo) H.arms.forEach(a => {
+    add(a.sh, tubo(.03 * h, .029 * h, .06 * h), tela(R.mangasBrazo), [0, -d.upper * .72, 0]);
+    add(a.el, tubo(.026 * h, .024 * h, .085 * h), tela(R.mangasBrazo), [0, -d.fore * .42, 0]);
+  });
+  // pelo
+  const hy = d.headY, pelo = tela(R.pelo?.c ?? 0, .95);
+  if (R.pelo?.tipo === 'largo') {
+    add(H.neck, new THREE.SphereGeometry(.061 * h, 16, 12, 0, Math.PI * 2, 0, Math.PI * .58), pelo, [0, hy + .004 * h, -.004 * h], [-.35, 0, 0]).scale.set(.95, 1.12, 1.04);
+    add(H.neck, new THREE.CapsuleGeometry(.04 * h, .07 * h, 4, 10).scale(1.25, 1, .55), pelo, [0, hy - .045 * h, -.03 * h]);
+  } else if (R.pelo?.tipo === 'cresta') {   // cresta punk: púas a lo largo de la línea media, más altas arriba
+    const cono = new THREE.ConeGeometry(.014 * h, 1, 6).translate(0, .5, 0);
+    for (let i = 0; i < 13; i++) { const a = .55 - i * .2, dir = new THREE.Vector3(0, Math.cos(a), Math.sin(a));
+      for (const x of [-.007, .007]) { const len = (.07 + .11 * Math.max(0, Math.cos(a - .1))) * h * (x > 0 ? 1 : .85);
+        const m = add(H.neck, cono, pelo, [x * h, hy + .062 * h * dir.y, .055 * h * dir.z]); m.scale.y = len;
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().add(new THREE.Vector3(x * 4, 0, 0)).normalize()); } }
+  } else if (R.pelo?.tipo === 'afro') add(H.neck, new THREE.SphereGeometry(.074 * h, 14, 10), pelo, [0, hy + .012 * h, -.012 * h]).scale.set(1.08, .92, 1.02);
+  if (R.vincha) add(H.neck, aro(.055 * h, .0075 * h), tela(R.vincha), [0, hy + .032 * h, .002 * h], [-.18, 0, 0]).scale.set(.98, 1, 1.08);
+  if (R.anteojos) { const m = tela(R.anteojos, .3);
+    [1, -1].forEach(s => add(H.neck, new THREE.TorusGeometry(.012 * h, .0018 * h, 6, 16), m, [s * .02 * h, hy + .012 * h, .058 * h]));
+    add(H.neck, new THREE.BoxGeometry(.016 * h, .002 * h, .002 * h), m, [0, hy + .016 * h, .061 * h]); }
+  if (R.bigote) add(H.neck, new THREE.CapsuleGeometry(.0065 * h, .03 * h, 3, 8), tela(R.bigote, .95), [0, hy - .021 * h, .057 * h], [0, 0, Math.PI / 2]);
+  if (R.sombrero) { const s = tela(R.sombrero, .9);
+    add(H.neck, tubo(.05 * h, .057 * h, .05 * h), s, [0, hy + .052 * h, -.004 * h]);
+    add(H.neck, new THREE.CylinderGeometry(.058 * h, .088 * h, .022 * h, 24, 1, true), s, [0, hy + .022 * h, -.004 * h]).material.side = THREE.DoubleSide;
+    if (R.pin) add(H.neck, new THREE.CircleGeometry(.009 * h, 16), tela(R.pin, .5), [0, hy + .055 * h, .052 * h], [-.12, 0, 0]);
+  }
+  if (R.toca) {   // toca blanca que enmarca la cara + velo negro + cuello blanco sobre los hombros
+    const blanco = doble(R.toca.c), negro = doble(R.toca.velo), abre = 1.9, faceL = Math.PI / 2 + abre / 2;
+    add(H.neck, new THREE.SphereGeometry(.064 * h, 20, 14, faceL, Math.PI * 2 - abre, 0, Math.PI * .7), blanco, [0, hy + .002 * h, -.002 * h]).scale.set(.95, 1.12, 1.05);
+    add(H.neck, new THREE.SphereGeometry(.069 * h, 20, 14, faceL + .25, Math.PI * 2 - abre - .5, 0, Math.PI * .62), negro, [0, hy + .006 * h, -.006 * h]).scale.set(.97, 1.14, 1.08);
+    add(H.neck, new THREE.BoxGeometry(.12 * h, .2 * h, .012 * h), negro, [0, hy - .1 * h, -.068 * h], [.12, 0, 0]);
+    add(H.chest, new THREE.CylinderGeometry(.045 * h, .125 * h, .085 * h, 24, 1, true).scale(1, 1, .72), blanco, [0, d.chestH - .02 * h, .004 * h]);
+  }
+  if (R.habito) {   // pollera larga: cono abierto colgado de la cintura; posar() le ajusta el largo y el vuelo
+    const geo = new THREE.CylinderGeometry(.08 * h, .2 * h, 1, 28, 4, true).translate(0, -.5, 0);
+    const mesh = add(H.pelvis, geo, doble(R.habito), [0, .05 * h, 0]);
+    const pos = geo.attributes.position, dirs = [];
+    for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), r = Math.hypot(x, z) || 1; dirs.push([x / r, z / r, -pos.getY(i)]); }
+    H.pollera = { mesh, dirs, rT: .08 * h, rB: .2 * h, top: .05 * h };
+  }
+  if (R.tachas) {   // tachas de la campera: hombros, solapas y mangas
+    const g = new THREE.SphereGeometry(.0055 * h, 6, 4), m = tela(R.tachas, .25), y0 = d.chestH - .012 * h;
+    for (let k = 0; k < 14; k++) { const a = (k / 14) * Math.PI * 2; if (Math.abs(Math.sin(a)) > .9 && Math.cos(a) > -.3 && Math.sin(a) > 0) continue;
+      add(H.chest, g, m, [Math.cos(a) * chestR(y0) * 1.02, y0, Math.sin(a) * chestR(y0) * .64]); }
+    for (const x of [-.036, .036]) for (let y = .015; y < .1; y += .012) add(H.chest, g, m, [x * h, y * h, chestR(y * h) * .62 * Math.sqrt(1 - (x * h / chestR(y * h)) ** 2) + .003 * h]);
+    H.arms.forEach(a => [-.04, -.09].forEach(y => { for (let k = 0; k < 7; k++) { const t = k / 7 * Math.PI * 2; add(a.sh, g, m, [Math.cos(t) * .028 * h, y * h, Math.sin(t) * .028 * h]); } }));
+  }
+  if (R.arnes) {   // arnés: cinturón, perneras y argolla en la espalda (ahí engancha la cuerda)
+    const m = tela(R.arnes, .5);
+    add(H.pelvis, aro(.077 * h, .006 * h), m, [0, .03 * h, 0]).scale.set(1, 1, .74);
+    H.legs.forEach(l => add(l.hip, aro(.044 * h, .005 * h), m, [0, -.05 * h, 0]));
+    add(H.pelvis, new THREE.TorusGeometry(.014 * h, .003 * h, 6, 16), tela(0xb8b8b8, .3), [0, .045 * h, -.058 * h]);
+  }
+  if (R.medalla) {   // medalla colgada del cuello: cinta en V + disco
+    [1, -1].forEach(s => { const a = new THREE.Vector3(s * .03 * h, d.chestH + .002 * h, .035 * h), b = new THREE.Vector3(0, .03 * h, chestR(.03 * h) * .62 + .004 * h);
+      const c = add(H.chest, new THREE.BoxGeometry(.008 * h, a.distanceTo(b), .002 * h), tela(s > 0 ? 0xc0392b : 0xf2f0ea), a.clone().add(b).multiplyScalar(.5));
+      c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), a.clone().sub(b).normalize()); });
+    add(H.chest, new THREE.CylinderGeometry(.021 * h, .021 * h, .003 * h, 20), tela(R.medalla, .35), [0, .022 * h, chestR(.022 * h) * .62 + .006 * h], [Math.PI / 2, 0, 0]);
+  }
+}
+// Vestuario de los voleibolistas: referencia de época (años 70) que pasó producción. Colores aproximados.
+const ROPA_70 = {
+  v69: { piel: 0xe2b48f, pelo: { tipo: 'largo', c: 0x6b4a2b }, vincha: 0x3f9a84, anteojos: 0xc8b27a, bigote: 0x5a3b22,
+    remera: { c: 0xf0a04b, ribete: 0x2f6fb0, mangas: true, num: '69', numC: 0x2f6fb0 },
+    short: { c: 0x5fb8c9, ribete: 0xe8c64a }, medias: { c: 0xd9733a, rayas: [0x2f6fb0, 0x2f6fb0] },
+    zapas: { c: 0xeeeeea, rayas: 0x2f6fb0, suela: 0xc9a46a }, munequeras: [0xd9733a, 0x2f6fb0, 0xf2f0ea] },
+  v77: { piel: 0x9a6a48, pelo: { tipo: 'afro', c: 0x2b1d14 }, sombrero: 0x77774a, pin: 0xf3d23a, bigote: 0x2b1d14,
+    remera: { c: 0xc99a3a, ribete: 0x5a3a1e, franjas: [.026, .046], franjaC: 0x5a3a1e, num: '77', numC: 0x5a3a1e, numBg: 0xf2f0ea, numPos: [-.03, .08, .042] },
+    short: { c: 0xc8ab7c }, medias: { c: 0xf2f0ea, rayas: [0xb03a2e, 0xb03a2e, 0xb03a2e] },
+    zapas: { c: 0x8a8a86, alta: true, punta: 0xf2f0ea }, mangasBrazo: 0xf2f0ea, medalla: 0xd4af37 }
+};
+// Posición de espera: rodillas flexionadas, torso adelante, antebrazos al frente.
+const READY = { drop: .1, lift: 0, lean: 15, chest: 0, aL: [35, 12, 75], aR: [35, 12, 75], toe: 0, tuck: 0 };
+const _look = new THREE.Vector3();
+function posar(H, P, look) {
+  const d = H.d, L1 = d.thigh, L2 = d.shin;
+  const py = d.hipY - P.drop + P.lift, pz = -P.drop * .45;   // al agacharse la cadera va atrás para no perder el equilibrio
+  H.pelvis.position.set(0, py, pz);
+  H.spine.rotation.x = P.lean * .45 * DEG; H.chest.rotation.x = (P.lean * .55 + P.chest) * DEG;
+  [P.aL, P.aR].forEach(([fl, ab, el], i) => { const a = H.arms[i]; a.sh.rotation.set(-fl * DEG, 0, a.sg * ab * DEG); a.el.rotation.x = -el * DEG; });
+  H.legs.forEach((l, i) => {
+    const kp = P.pieZ == null ? 0 : P.pieK ?? 1, toe = P.toe * DEG;   // pieZ / pieY: pies apoyados fuera del piso (contra una pared), con peso pieK
+    const fx = H.feet[i][0], fz = H.feet[i][1] + ((P.pieZ ?? 0) - H.feet[i][1]) * kp;
+    let ay = d.ankle + Math.sin(toe) * d.foot * .7;              // talón levantado: el pie pivota sobre la punta
+    if (kp) ay += ((P.pieY ?? ay) - ay) * kp;
+    ay = Math.max(ay, py - (L1 + L2) * (.985 - P.tuck));         // en el aire el pie cuelga de la cadera
+    const dx = fx - l.sg * d.hipHalf, dy = ay - py, dz = fz - pz;
+    const abd = Math.atan2(dx, -dy), r = Math.hypot(dx, dy);
+    const dist = Math.min(Math.hypot(r, dz), (L1 + L2) * .9995), phi = Math.atan2(dz, r);
+    const a = Math.acos(clamp1((L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist)));
+    const k = Math.PI - Math.acos(clamp1((L1 * L1 + L2 * L2 - dist * dist) / (2 * L1 * L2)));
+    l.hip.rotation.set(-(phi + a), 0, abd); l.knee.rotation.x = k;
+    l.ank.rotation.set(phi + a - k + toe, 0, -abd);              // pie plano en el piso (o en punta)
+  });
+  let nx = 0, ny = 0;
+  if (look) {   // la cabeza sigue a un punto (coordenadas de la escena)
+    _look.copy(look); sceneGroup.localToWorld(_look); H.g.worldToLocal(_look);
+    const hy = py + d.lumbar + d.chestY + d.neckY + d.headY;
+    ny = Math.max(-70, Math.min(70, Math.atan2(_look.x, _look.z - pz) / DEG));
+    nx = Math.max(-60, Math.min(45, -Math.atan2(_look.y - hy, Math.hypot(_look.x, _look.z - pz)) / DEG));
+  }
+  H.neck.rotation.set(nx * DEG - H.spine.rotation.x - H.chest.rotation.x, ny * DEG, 0);
+  if (H.pollera) {   // la pollera llega a los tobillos: al agacharse se junta y se abre, al girar vuela (H.vuelo)
+    const pl = H.pollera, len = Math.max(.15 * d.h, py + pl.top - (.035 * d.h + P.lift));
+    const vuelo = 1 + (H.vuelo ?? 0) + 1.1 * P.drop, pos = pl.mesh.geometry.attributes.position;
+    pl.mesh.scale.y = len; pl.mesh.frustumCulled = false;
+    pl.dirs.forEach(([dx, dz, f], i) => { const r = pl.rT + (pl.rB * vuelo - pl.rT) * f; pos.setX(i, dx * r); pos.setZ(i, dz * r * .85); });
+    pos.needsUpdate = true;
+  }
+}
+// Acciones: poses clave en el tiempo τ relativo al contacto (τ = 0). ['in'] = arranca lento y acelera (impulso).
+function mixPose(a, b, u) { const o = {}; for (const k in a) o[k] = Array.isArray(a[k]) ? a[k].map((v, j) => v + (b[k][j] - v) * u) : a[k] + (b[k] - a[k]) * u; return o; }
+function accion(keys, extra = {}) { return { keys: keys.map(([k, p, e]) => [k, { ...READY, ...p }, e]), ...extra }; }
+function evalAccion(A, tau) {
+  const K = A.keys; let P;
+  if (tau <= K[0][0]) P = K[0][1]; else if (tau >= K[K.length - 1][0]) P = K[K.length - 1][1];
+  else { let i = 0; while (tau > K[i + 1][0]) i++;
+    let u = (tau - K[i][0]) / (K[i + 1][0] - K[i][0]); u = K[i + 1][2] === 'in' ? u * u : u * u * (3 - 2 * u);
+    P = mixPose(K[i][1], K[i + 1][1], u); }
+  return A.lift ? { ...P, lift: A.lift(tau) } : P;
+}
+// Remate con salto: 0,5 m de altura → sale a √(2·g·h) ≈ 3,1 m/s y está 2·v/g ≈ 0,64 s en el aire. Pega en el punto más alto.
+const SALTO = .5, V0 = Math.sqrt(2 * GRAV * SALTO), TVUELO = 2 * V0 / GRAV;
+const ACC = {
+  pase: accion([[-.6, {}], [-.25, { drop: .26, lean: 28, aL: [40, -18, 0], aR: [40, -18, 0] }],
+    [0, { drop: .18, lean: 22, aL: [62, -18, 0], aR: [62, -18, 0] }], [.25, { drop: .14, lean: 20, aL: [70, -16, 0], aR: [70, -16, 0] }], [.7, {}]], { pre: .6, post: .7 }),
+  armado: accion([[-.7, {}], [-.3, { drop: .22, lean: 6, aL: [125, -6, 105], aR: [125, -6, 105] }],
+    [0, { drop: .12, lean: 2, aL: [140, -10, 70], aR: [140, -10, 70] }], [.25, { drop: .02, lean: 0, aL: [165, -4, 20], aR: [165, -4, 20] }], [.8, {}]], { pre: .7, post: .8 }),
+  remate: accion([[-1.3, {}], [-.55, { drop: .3, lean: 35, aL: [-45, 10, 15], aR: [-45, 10, 15] }],
+    [-TVUELO / 2, { drop: 0, lean: 5, aL: [150, 10, 10], aR: [150, 10, 10], toe: 30 }, 'in'],
+    [-.12, { drop: 0, lean: -12, aL: [165, -5, 10], aR: [170, 10, 115], toe: 35, tuck: .12 }],
+    [0, { drop: 0, lean: 8, aL: [90, -10, 30], aR: [150, 5, 5], toe: 30, tuck: .1 }],
+    [.15, { drop: 0, lean: 25, aL: [30, 0, 40], aR: [40, -15, 15], toe: 20, tuck: .05 }],
+    [TVUELO / 2, { drop: .05, lean: 20 }], [.55, { drop: .28, lean: 30 }], [1, {}]],
+    { pre: 1.3, post: 1, lift: tau => Math.abs(tau) <= TVUELO / 2 ? SALTO - .5 * GRAV * tau * tau : 0 })
+};
+// Dónde toca la pelota cada acción (centro de la pelota, coordenadas de la escena). Sale del esqueleto en la pose de contacto.
+const BALL_R = .105;   // pelota oficial: 65–67 cm de circunferencia
+function puntoContacto(H, tipo) {
+  posar(H, evalAccion(ACC[tipo], 0)); H.g.updateMatrixWorld(true);
+  const w = (o) => sceneGroup.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
+  const fwd = new THREE.Vector3(Math.sin(H.face), 0, Math.cos(H.face)), [a, b] = H.arms;
+  let p;
+  if (tipo === 'pase') p = w(a.wr).add(w(b.wr)).multiplyScalar(.5).addScaledVector(fwd, .03).add(new THREE.Vector3(0, BALL_R + .02, 0));
+  else if (tipo === 'armado') p = w(a.palm).add(w(b.palm)).multiplyScalar(.5).addScaledVector(fwd, .02).add(new THREE.Vector3(0, BALL_R * .9, 0));
+  else p = w(b.palm).addScaledVector(fwd, BALL_R).add(new THREE.Vector3(0, .02, 0));
+  posar(H, READY); return p;
+}
+// Tiro parabólico con gravedad: tiempo de vuelo para que la pelota pase por una altura máxima dada.
+const tVuelo = (y0, y1, apex) => Math.sqrt(2 * (apex - y0) / GRAV) + Math.sqrt(2 * (apex - y1) / GRAV);
+/* Pepper: ejercicio de calentamiento de a dos. A remata → B pasa de antebrazos → A arma → B remata → A pasa → B arma → …
+   La pelota vuela siempre en caída libre entre los puntos de contacto; cada jugador arranca su movimiento
+   antes para llegar justo cuando llega la pelota. */
+function pepper(A, B, { apexPase = 4.0, apexArmado = 4.4, tRemate = .55 } = {}) {
+  const seq = [[A, 'remate'], [B, 'pase'], [A, 'armado'], [B, 'remate'], [A, 'pase'], [B, 'armado']];
+  const pts = seq.map(([H, tipo]) => puntoContacto(H, tipo));
+  const dur = seq.map(([, tipo], i) => { const y0 = pts[i].y, y1 = pts[(i + 1) % 6].y;
+    return tipo === 'remate' ? tRemate : tVuelo(y0, y1, tipo === 'pase' ? apexPase : apexArmado); });
+  const tc = []; dur.reduce((s, x, i) => (tc[i] = s, s + x), 0);
+  const P = dur.reduce((s, x) => s + x, 0);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 16, 12), figMat(WHITE)); sceneGroup.add(ball);
+  const seam = new THREE.Mesh(new THREE.TorusGeometry(BALL_R * 1.01, .006, 4, 24), jointMat); ball.add(seam);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(BALL_R, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .45, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; sceneGroup.add(shadow);
+  const v = new THREE.Vector3();
+  anims.push(t => {
+    const tt = ((t % P) + P) % P; let i = 5; while (tc[i] > tt) i--;
+    const tau = tt - tc[i], T = dur[i], p0 = pts[i], p1 = pts[(i + 1) % 6];
+    v.subVectors(p1, p0).divideScalar(T); v.y += .5 * GRAV * T;   // velocidad de salida para llegar a p1 en T segundos
+    ball.position.set(p0.x + v.x * tau, p0.y + v.y * tau - .5 * GRAV * tau * tau, p0.z + v.z * tau);
+    ball.rotation.set(tt * 9, tt * 4, 0);
+    shadow.position.set(ball.position.x, .012, ball.position.z); shadow.scale.setScalar(1 + ball.position.y * .25);
+    shadow.material.opacity = .5 / (1 + ball.position.y * .5);
+    for (const H of [A, B]) {
+      let pose = READY;
+      seq.forEach(([J, tipo], j) => { if (J !== H) return; const acc = ACC[tipo];
+        for (const off of [-P, 0, P]) { const tau = tt - tc[j] - off; if (tau >= -acc.pre && tau <= acc.post) pose = evalAccion(acc, tau); } });
+      posar(H, pose, ball.position);
+    }
+  });
+  return { ball, periodo: P };
+}
+
+/* ───────── Escena 4 · La Monja y la Punk ─────────
+   1) La Monja entra girando sobre la tarima móvil, que queda centrada debajo del tubo del techo.
+   2) La Punk aparece en el borde de la torre A, enganchada por la espalda a una cuerda que baja por el tubo.
+   3) Se larga: péndulo con gravedad real. El motor va soltando cuerda (≈ 6,1 → 7,5 m) y un freno (aire + técnico)
+      le saca energía hasta que queda en plomo. En cada pasada la Monja se agacha o salta de costado.
+   4) La Monja agarra una soga oculta de 4 m y la revolea: péndulo cónico. La cuerda del techo sostiene el peso;
+      la soga de la Monja solo marca el radio (≈ 4,4 m, una vuelta cada ≈ 5 s). */
+const PIVOTE = new THREE.Vector3(TOR.x, TOR.tubeBottom, TOR.z);   // roldana o giratorio en la boca del tubo (supuesto)
+const ROPA_MONJA = { piel: 0xe6bfa0, remera: { c: 0x151517, mangas: 'campana' }, habito: 0x151517, toca: { c: 0xf4f4f0, velo: 0x151517 } };
+const ROPA_PUNK = { piel: 0xf0d2c4, pelo: { tipo: 'cresta', c: 0x121212 }, remera: { c: 0x1d1d1f, rough: .45, mangas: 'largas', abierta: 0xd8333a },
+  tachas: 0xdadada, pantalon: { c: 0x2b2c2a, rayas: 0xeeeeee }, botas: { c: 0x101010, cordones: 0xeeeeee }, arnes: 0xc0392b };
+const P_ = p => ({ ...READY, ...p });
+const MJ = {   // poses de la Monja
+  espera: P_({ drop: .1, lean: 8, aL: [35, 12, 60], aR: [35, 12, 60] }),
+  agachada: P_({ drop: .6, lean: 60, aL: [5, 35, 60], aR: [5, 35, 60] }),
+  salta: P_({ drop: .05, lean: 0, aL: [165, 8, 25], aR: [165, 8, 25] }),
+  empuja: P_({ drop: .15, lean: 10, aL: [65, -10, 45], aR: [65, -10, 45] }),
+  revolea: P_({ drop: .12, lean: -18, aL: [80, -14, 10], aR: [80, -14, 10] }),
+  final: P_({ drop: 0, lean: -8, aL: [165, 25, 10], aR: [165, 25, 10] })
+};
+const PK = {   // poses de la Punk
+  provoca: P_({ drop: .05, lean: -5, aL: [160, 25, 20], aR: [150, 30, 40] }),
+  impulso: P_({ drop: .3, lean: 30, aL: [-40, 10, 10], aR: [-40, 10, 10] }),
+  vuela: P_({ drop: 0, lean: 0, aL: [172, -6, 40], aR: [172, -6, 40], tuck: .08, toe: 30 }),
+  colgada: P_({ drop: 0, lean: 5, aL: [20, 15, 30], aR: [20, 15, 30], tuck: .03 }),
+  revoleada: P_({ drop: 0, lean: 0, aL: [172, -6, 40], aR: [150, 35, 30], tuck: .04, toe: 20 })
+};
+const ACC_AGACHA = accion([[-.65, MJ.espera], [-.25, MJ.agachada], [.3, MJ.agachada], [.75, MJ.espera]], { pre: .65, post: .75 });
+function escenaMonja() {
+  const monja = humano('Monja', [0, 0, 0], { h: 1.65, ropa: ROPA_MONJA, color: WHITE });
+  const punk = humano('Punk', [0, 0, 0], { h: 1.7, ropa: ROPA_PUNK });
+  const W = new THREE.Group(); sceneGroup.add(W); W.add(punk.g); punk.g.position.y = -punk.d.hipY;   // W = arnés de la Punk
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), Y = new THREE.Vector3(0, 1, 0);
+  // ── geometría del péndulo
+  const hipP = punk.d.hipY, A0 = new THREE.Vector3(12.3, 6 + hipP, 0.95);          // arnés con la Punk parada en el borde de la torre A
+  const dirA = new THREE.Vector3(A0.x - PIVOTE.x, 0, A0.z - PIVOTE.z).normalize();  // plano del péndulo
+  const perp = new THREE.Vector3(-dirA.z, 0, dirA.x);                                // hacia donde esquiva la Monja
+  const L0 = A0.distanceTo(PIVOTE), TH0 = Math.atan2(Math.hypot(A0.x - PIVOTE.x, A0.z - PIVOTE.z), PIVOTE.y - A0.y);
+  const LF = PIVOTE.y - (STAGE.h + .1 + hipP);   // en plomo: pies 10 cm sobre la tarima, a la altura de la Monja
+  const FRENO = .25, T_PAGO = 12, T_PEND = 26;   // freno en 1/s · el motor suelta cuerda durante 12 s
+  const Lp = tau => L0 + (LF - L0) * sm((tau - .5) / T_PAGO);
+  const Lpd = tau => { const u = (tau - .5) / T_PAGO; return u <= 0 || u >= 1 ? 0 : (LF - L0) * 6 * u * (1 - u) / T_PAGO; };
+  // péndulo de largo variable: θ'' = −(g/L)·sen θ − (2·L'/L)·θ' − freno·θ'  (RK4, tabla a 240 Hz)
+  const DT = 1 / 240, N = Math.ceil(T_PEND / DT) + 2, TH = new Float32Array(N), OM = new Float32Array(N);
+  const acel = (tau, th, w) => -(GRAV / Lp(tau)) * Math.sin(th) - (2 * Lpd(tau) / Lp(tau)) * w - FRENO * w;
+  { let th = TH0, w = 0; for (let i = 0; i < N; i++) { TH[i] = th; OM[i] = w; const t = i * DT;
+      const a1 = acel(t, th, w), b1 = w, a2 = acel(t + DT / 2, th + b1 * DT / 2, w + a1 * DT / 2), b2 = w + a1 * DT / 2,
+            a3 = acel(t + DT / 2, th + b2 * DT / 2, w + a2 * DT / 2), b3 = w + a2 * DT / 2, a4 = acel(t + DT, th + b3 * DT, w + a3 * DT), b4 = w + a3 * DT;
+      th += DT / 6 * (b1 + 2 * b2 + 2 * b3 + b4); w += DT / 6 * (a1 + 2 * a2 + 2 * a3 + a4); } }
+  const thAt = tau => { const x = Math.min(N - 1.001, Math.max(0, tau / DT)), i = x | 0;
+    return (TH[i] + (TH[i + 1] - TH[i]) * (x - i)) * (1 - sm((tau - (T_PEND - 4)) / 4)); };   // los últimos 4 s se apaga el resto
+  const posPend = (tau, out) => { const th = thAt(tau), L = Lp(tau);
+    return out.set(PIVOTE.x + L * Math.sin(th) * dirA.x, PIVOTE.y - L * Math.cos(th), PIVOTE.z + L * Math.sin(th) * dirA.z); };
+  // ── línea de tiempo
+  const PARK = [16.5, 12.0], T_IN = 7, T_PUNK = 5.5, T_SALTO = 10;
+  const T_PLOMO = T_SALTO + T_PEND, T_GRAB = T_PLOMO + 2, T_CON = T_GRAB + 2.5, T_SUBE = 8, T_GIRA = 15, T_BAJA = 8;
+  const T_CON_END = T_CON + T_SUBE + T_GIRA + T_BAJA, T_FIN = T_CON_END + 2.5, TOTAL = T_FIN + 4;
+  // ── pasadas: según la altura de los pies de la Punk, la Monja mira, se agacha o salta de costado
+  const CABEZA = STAGE.h + 1.65, AGACHADA = STAGE.h + .85, pasadas = [];
+  for (let i = 1; i < N && i * DT < T_PEND - 4; i++) if (Math.sign(TH[i]) !== Math.sign(TH[i - 1])) {
+    const tau = i * DT, pies = PIVOTE.y - Lp(tau) - hipP, v = Math.abs(OM[i]) * Lp(tau);
+    if (v < .8) break;   // ya casi no se mueve: la Monja se queda al costado
+    pasadas.push({ t: T_SALTO + tau, tipo: pies > CABEZA + .12 ? 'mira' : pies > AGACHADA + .2 ? 'agacha' : 'lado', pies, v });
+  }
+  // saltos de costado: tiro vertical, 0,38 s en el aire → g·T²/8 ≈ 18 cm de alto
+  const HOP = .38, HOP_H = GRAV * HOP * HOP / 8, ESQ = .85, saltos = [];   // ESQ: cuánto se corre del centro
+  let lado = 1, off = 0;
+  const salto = (t, a) => { saltos.push({ t, de: off, a }); off = a; };
+  const lados = pasadas.filter(p => p.tipo === 'lado');
+  lados.forEach((p, i) => { salto(p.t - .9, lado * ESQ); if (i < lados.length - 1) { salto(p.t + .45, 0); lado = -lado; } });
+  if (!off) salto(T_PLOMO - 3, ESQ);
+  const LADO = Math.sign(off);
+  // ── revoleo: péndulo cónico. Para un radio r: sen θ = r/L y ω² = g / (L·cos θ). La soga de 4 m pone el radio máximo.
+  const R0 = 1, MANO = [.55, STAGE.h + 1.2];
+  const RMAX = (() => { for (let r = R0; r < LF; r += .005) if (Math.hypot(r - MANO[0], PIVOTE.y - LF * Math.cos(Math.asin(r / LF)) - MANO[1]) >= 4) return r; return 4; })();
+  const omEq = r => Math.sqrt(GRAV / (LF * Math.cos(Math.asin(Math.min(r, LF * .99) / LF))));
+  const rAt = t => { if (t < T_GRAB) return 0; if (t < T_CON) return R0 * sm((t - T_GRAB) / 2.5); let u = t - T_CON;
+    if (u < T_SUBE) return R0 + (RMAX - R0) * sm(u / T_SUBE); u -= T_SUBE; if (u < T_GIRA) return RMAX; u -= T_GIRA;
+    if (u < T_BAJA) return RMAX - (RMAX - R0) * sm(u / T_BAJA); return R0 * (1 - sm((u - T_BAJA) / 2.5)); };
+  const omAt = t => t < T_GRAB || t > T_FIN ? 0 : t < T_CON ? omEq(R0) * sm((t - T_GRAB) / 2.5) : t < T_CON_END ? omEq(rAt(t)) : omEq(R0) * (1 - sm((t - T_CON_END) / 2.5));
+  const PH0 = Math.atan2(-perp.z * LADO, -perp.x * LADO);   // la empuja hacia el lado contrario a donde está la Monja
+  const DT2 = 1 / 120, N2 = Math.ceil((TOTAL - T_GRAB) / DT2) + 2, PH = new Float32Array(N2);
+  for (let i = 1; i < N2; i++) PH[i] = PH[i - 1] + omAt(T_GRAB + (i - .5) * DT2) * DT2;
+  const phAt = t => { const x = Math.min(N2 - 1.001, Math.max(0, (t - T_GRAB) / DT2)), i = x | 0; return PH0 + PH[i] + (PH[i + 1] - PH[i]) * (x - i); };
+  salto(T_GRAB + 1.8, 0);   // la Monja vuelve al centro cuando la Punk ya se alejó
+  { let lleno = 0; for (let t = T_CON_END + .2; t < T_FIN; t += .05) { const ph = phAt(t); lleno += (Math.cos(ph) * perp.x + Math.sin(ph) * perp.z) * rAt(t); }
+    salto(T_CON_END + .2, (lleno > 0 ? -1 : 1) * 1.0); }   // al final se corre al lado por donde NO pasa la Punk al volver
+  const offAt = t => { let o = 0, lift = 0, fly = 0;
+    for (const s of saltos) { if (t < s.t - .25) break; const u = (t - s.t) / HOP;
+      if (u < 0) { o = s.de; fly = Math.max(fly, 1 + u * HOP / .25); } else if (u < 1) { o = s.de + (s.a - s.de) * u; lift = 4 * HOP_H * u * (1 - u); fly = 1; }
+      else { o = s.a; fly = Math.max(fly, 1 - (u - 1) * HOP / .3); } }
+    return [o, lift, Math.max(0, Math.min(1, fly))]; };
+  // ── dibujo: cuerda del techo, soga oculta, arco de la primera pasada y zona del revoleo (propuestas)
+  const linea = color => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color })); l.frustumCulled = false; sceneGroup.add(l);
+    return { l, set(a, b) { const p = g.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true; } }; };
+  const cuerda = linea(PURPLE), soga = linea(ORANGE);
+  { const pts = [], v = new THREE.Vector3(); for (let tau = 0; tau <= 2.7; tau += .1) pts.push(posPend(tau, v).toArray()); path(pts); }
+  ring([TOR.x, TOR.z], RMAX, PURPLE);
+  // ── inercia de la Punk: piernas, rodillas, torso, cabeza y brazo libre son péndulos amortiguados que siguen
+  //    a la gravedad aparente del arnés (g − a) más el roce del aire. Así se arrastran, rebotan al acelerar o frenar y se sacuden.
+  const arnesAt = (t, out) => { if (t < T_SALTO) return out.copy(A0); if (t < T_GRAB) return posPend(t - T_SALTO, out);
+    const r = rAt(t), th = Math.asin(Math.min(r, LF * .99) / LF), ph = phAt(t);
+    return out.set(PIVOTE.x + LF * Math.sin(th) * Math.cos(ph), PIVOTE.y - LF * Math.cos(th), PIVOTE.z + LF * Math.sin(th) * Math.sin(ph)); };
+  const ROCE = .1;   // roce del aire sobre brazos y piernas (1/m): a 5,5 m/s las tira ≈ 17° para atrás
+  const OSC = {   // [rigidez k (1/s²), amortiguación c (1/s)]: piernas ≈ péndulo de 0,5 m, poco amortiguadas
+    pLp: [19, 1.3], pLr: [19, 1.3], pRp: [19, 1.3], pRr: [19, 1.3], kL: [30, 1.6], kR: [30, 1.6],
+    sp: [25, 3], sr: [25, 3], np: [35, 2.5], ap: [16, 1.1], ar: [16, 1.1] };
+  const S = {}; for (const k in OSC) S[k] = [0, 0];
+  const i1 = new THREE.Vector3(), i2 = new THREE.Vector3(), i3 = new THREE.Vector3(), vel = new THREE.Vector3(), F = new THREE.Vector3(), qInv = new THREE.Quaternion();
+  let tPrev = null;
+  function inercia(tt) {
+    const e = 1 / 60; arnesAt(tt - e, i1); arnesAt(tt, i2); arnesAt(tt + e, i3);
+    vel.subVectors(i3, i1).divideScalar(2 * e);
+    F.copy(i3).add(i1).addScaledVector(i2, -2).divideScalar(-e * e);   // −a
+    F.y -= GRAV; F.addScaledVector(vel, -ROCE * vel.length());          // g − a − roce
+    F.applyQuaternion(qInv.copy(W.quaternion).invert());               // en ejes del cuerpo (y = hacia la cuerda)
+    const g = Math.max(1, -F.y), pitch = Math.atan2(-F.z, g), roll = Math.atan2(F.x, g), sp = Math.min(1.5, vel.length() / 5.5);
+    const T = { pLp: pitch + .12 * sp * Math.sin(tt * 7.1), pLr: roll + .06 * sp * Math.sin(tt * 5.3 + 1),
+      pRp: pitch + .12 * sp * Math.sin(tt * 6.3 + 2), pRr: roll + .06 * sp * Math.sin(tt * 4.7 + 3),
+      kL: .35 * Math.abs(pitch) + .1 * sp * (1 + Math.sin(tt * 8.3)), kR: .35 * Math.abs(pitch) + .1 * sp * (1 + Math.sin(tt * 7.7 + 1)),
+      sp: -.45 * pitch, sr: -.35 * roll, np: -.5 * pitch, ap: -.8 * pitch + .2 * sp * Math.sin(tt * 6.7), ar: -.5 * roll + .15 * sp * Math.sin(tt * 5.9) };
+    const dt = tPrev === null ? -1 : tt - tPrev; tPrev = tt;
+    if (dt < 0 || dt > .1) for (const k in S) S[k] = [T[k], 0];   // salto en el tiempo: arranca en equilibrio
+    else if (dt > 0) { const n = Math.ceil(dt * 120), h = dt / n;
+      for (let j = 0; j < n; j++) for (const k in S) { const [kk, c] = OSC[k], s = S[k]; s[1] += (-kk * (s[0] - T[k]) - c * s[1]) * h; s[0] += s[1] * h; } }
+    if (tt < T_SALTO) { punk.chest.rotation.z = 0; return; }   // parada en la torre: sin inercia
+    const x = k => S[k][0], [L, Rr] = punk.legs, brazo = sm((tt - T_GRAB) / 1.5);   // el brazo libre recién en el revoleo
+    L.hip.rotation.x += x('pLp'); L.hip.rotation.z += x('pLr'); Rr.hip.rotation.x += x('pRp'); Rr.hip.rotation.z += x('pRr');
+    L.knee.rotation.x += Math.max(0, x('kL')); Rr.knee.rotation.x += Math.max(0, x('kR'));
+    punk.spine.rotation.x += x('sp'); punk.chest.rotation.z = x('sr'); punk.neck.rotation.x += x('np');
+    const a = punk.arms[1]; a.sh.rotation.x += x('ap') * brazo; a.sh.rotation.z += x('ar') * brazo; a.el.rotation.x -= .5 * Math.abs(x('ap')) * brazo;
+  }
+  // ── animación
+  const pos = new THREE.Vector3(), up = new THREE.Vector3(), fw = new THREE.Vector3(), xa = new THREE.Vector3(), M4 = new THREE.Matrix4();
+  const qPie = new THREE.Quaternion(), qAire = new THREE.Quaternion(), tmp = new THREE.Vector3(), ojo = new THREE.Vector3(), manos = new THREE.Vector3();
+  const orient = (q, u, f) => { fw.copy(f).addScaledVector(u, -f.dot(u)).normalize(); xa.crossVectors(u, fw); M4.makeBasis(xa, u, fw); return q.setFromRotationMatrix(M4); };
+  const yawA = Math.atan2(dirA.x, dirA.z), W0 = 2.2;   // la Monja espera mirando a la torre A · giro de entrada en rad/s
+  orient(qPie, Y, tmp.copy(dirA).negate());
+  anims.push(t => {
+    const tt = ((t % TOTAL) + TOTAL) % TOTAL;
+    // tarima: estacionada contra la pared → centro, debajo del tubo
+    const k = sm(tt / (T_IN - .5)); tarTarget.set(PARK[0] + (TOR.x - PARK[0]) * k, 0, PARK[1] + (TOR.z - PARK[1]) * k);
+    const tp = tar.group.position;
+    // ── Punk
+    let pp;
+    W.visible = tt >= T_PUNK; cuerda.l.visible = W.visible;
+    if (tt < T_SALTO) {   // en la torre: provoca y toma impulso
+      pos.copy(A0); W.quaternion.copy(qPie);
+      const bounce = P_({ ...PK.provoca, drop: .05 + .04 * Math.sin(tt * 6) });
+      pp = mixPose(bounce, PK.impulso, sm((tt - (T_SALTO - .8)) / .6));
+    } else if (tt < T_GRAB) {   // péndulo
+      const tau = tt - T_SALTO, th = thAt(tau);
+      posPend(tau, pos); up.subVectors(PIVOTE, pos).normalize();
+      tmp.copy(dirA).multiplyScalar(-Math.cos(th)).addScaledVector(Y, -Math.sin(th));   // hacia donde viaja al largarse
+      const baja = sm((tau - (T_PEND - 9)) / 3), giro = sm((tau - (T_PEND - 5)) / 4);   // casi quieta: baja los brazos y después se da vuelta hacia la Monja
+      if (giro > 0) { ojo.set(tp.x + perp.x * LADO * ESQ - pos.x, 0, tp.z + perp.z * LADO * ESQ - pos.z).normalize(); tmp.lerp(ojo, giro); }
+      orient(qAire, up, tmp); W.quaternion.slerpQuaternions(qPie, qAire, sm(tau / .45));
+      pp = tau < .3 ? mixPose(PK.impulso, PK.vuela, sm(tau / .3)) : mixPose(PK.vuela, PK.colgada, baja);
+    } else {   // revoleo
+      const r = rAt(tt), ph = phAt(tt), w = omAt(tt);
+      arnesAt(tt, pos); up.subVectors(PIVOTE, pos).normalize();
+      ojo.set(monja.g.position.x - pos.x, 0, monja.g.position.z - pos.z); if (ojo.lengthSq() < 1e-6) ojo.copy(perp); ojo.normalize();
+      tmp.set(-Math.sin(ph), 0, Math.cos(ph)).lerp(ojo, 1 - sm(w / omEq(R0)));
+      orient(W.quaternion, up, tmp);
+      pp = mixPose(PK.colgada, PK.revoleada, sm(r / R0));
+    }
+    W.position.copy(pos); W.updateMatrixWorld(true);
+    cuerda.set(PIVOTE, tmp.set(0, .045 * punk.d.h, -.058 * punk.d.h).applyQuaternion(W.quaternion).add(pos));   // engancha en la argolla de la espalda
+    // ── Monja
+    const [o, lift, fly] = offAt(tt);
+    monja.g.position.set(tp.x + perp.x * o, STAGE.h, tp.z + perp.z * o);
+    let yaw, mp, w = 0;
+    if (tt < T_IN) {   // entra girando, frena de a poco hasta quedar mirando a la torre A
+      const r = T_IN - tt; yaw = yawA - (r > 1.5 ? W0 * (r - 1.5) + W0 * .75 : W0 * r * r / 3); w = r > 1.5 ? W0 : W0 * r / 1.5;
+      mp = P_({ drop: .05, lean: 0, aL: [80 + 25 * Math.sin(tt * 3), 75, 25], aR: [80 - 25 * Math.sin(tt * 3), 75, 25] });
+      mp = mixPose(mp, MJ.espera, sm((tt - (T_IN - .8)) / .8));
+    } else if (tt < T_GRAB) {
+      yaw = yawA; mp = MJ.espera;
+      for (const p of pasadas) if (p.tipo === 'agacha' && Math.abs(tt - p.t) < .75) mp = evalAccion(ACC_AGACHA, tt - p.t);
+    } else {   // agarra la soga oculta y revolea, mirando siempre a la Punk
+      const haciaPunk = Math.atan2(pos.x - monja.g.position.x, pos.z - monja.g.position.z), k = sm((tt - T_GRAB) / .6);
+      yaw = yawA + Math.atan2(Math.sin(haciaPunk - yawA), Math.cos(haciaPunk - yawA)) * k; w = omAt(tt);
+      mp = tt < T_CON ? mixPose(MJ.espera, MJ.empuja, sm((tt - T_GRAB) / .6)) : tt < T_CON_END ? mixPose(MJ.empuja, MJ.revolea, sm((tt - T_CON) / 1.5))
+        : mixPose(MJ.espera, MJ.final, sm((tt - T_FIN) / .8));
+    }
+    if (fly > 0) mp = mixPose(mp, MJ.salta, fly);
+    monja.g.rotation.y = yaw; monja.vuelo = .12 * w * w; monja.g.updateMatrixWorld(true);
+    posar(monja, { ...mp, lift }, pos);
+    posar(punk, pp, ojo.copy(monja.g.position).setY(STAGE.h + 1.5)); inercia(tt);
+    // soga oculta: de las manos de la Monja al arnés, mientras la revolea
+    soga.l.visible = tt > T_GRAB + .3 && tt < T_CON_END + .2;
+    if (soga.l.visible) { monja.g.updateMatrixWorld(true);
+      manos.copy(monja.arms[0].palm.getWorldPosition(manos)).add(monja.arms[1].palm.getWorldPosition(tmp)).multiplyScalar(.5); sceneGroup.worldToLocal(manos);
+      soga.set(manos, pos); }
+  });
+  return { monja, punk, RMAX, pasadas, TOTAL };
+}
+
 const dashMat = (c, ds = .32, gs = .2) => new THREE.LineDashedMaterial({ color: c, dashSize: ds, gapSize: gs });
 function curveOf(pts, closed = false) {
   const v = pts.map(p => new THREE.Vector3(...p));
@@ -750,14 +1289,13 @@ function bungee(name, anchor, lean) {
 const SCENES = [
   { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario'], tarima: [16.5, 12.0], cam: 'iso',
     guion: 'Bloque previo al show. Un DJ sostiene la hora completa mientras los personajes entran por el lounge y la pista e interactúan con el público.',
-    esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'], ['Tarima estacionada contra la pared para liberar la pista', 1]],
+    esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'], ['Voleibolistas haciendo “pepper” (remate con salto de 0,5 m, pase de antebrazos y armado); la pelota vuela con gravedad real', 1], ['Tarima estacionada contra la pared para liberar la pista', 1]],
     tec: ['Sonido DJ', 'Tragamonedas box (3 actores)', 'Shots de la enfermera'],
-    pend: ['Recorrido lounge → pista', 'Dónde se guarda la tragamonedas entre pasadas'],
+    pend: ['Recorrido lounge → pista', 'Dónde se guarda la tragamonedas entre pasadas', 'Rutina real de los voleibolistas (hoy: pepper, supuesto)', 'Altura de los voleibolistas (supuesto: 1,90 m)'],
     build() {
       dj();
-      const v1 = figure('Voleibolista', [8.8, 0, 4.4]), v2 = figure('Voleibolista', [8.8, 0, 8.6]);
-      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 10), figMat(WHITE)); sceneGroup.add(ball);
-      anims.push(t => { const k = (Math.sin(t * 1.4) + 1) / 2; ball.position.set(8.8, 2.2 + Math.sin(k * Math.PI) * 2.2, 4.4 + k * 4.2); });
+      const v1 = humano('Voleibolista', [8.8, 0, 4.4], { face: 0, ropa: ROPA_70.v69 }), v2 = humano('Voleibolista', [8.8, 0, 8.6], { face: Math.PI, ropa: ROPA_70.v77 });
+      pepper(v1, v2);
       figure('Enfermera', [14.5, 0, 9.4]);
       propBox(12.4, 13.4, 0, 2.1, 3.0, 3.8, 'Tragamonedas');
       figure('', [12.1, 0, 3.4]); figure('', [13.7, 0, 3.4]); figure('', [12.9, 0, 4.2]);
@@ -791,11 +1329,24 @@ const SCENES = [
       const m = figure('Mono en bici', [0, 0, 0], { color: PURPLE, air: true });
       anims.push(t => { const k = (Math.sin(t * .35) + 1) / 2; const p = c.getPointAt(k); m.position.set(p.x, p.y - 1.95, p.z); });
     } },
-  { n: 4, t: 'La monja', k: 'Escena', el: ['escenario'], cam: 'publico',
+  { n: 4, t: 'La monja', k: 'Escena', el: ['tarima', 'torreA', 'techo'], tarima: [TOR.x, TOR.z], cam: 'iso',
     guion: 'Entra en escena la Monja. Coreografía y duración a definir.',
-    esp: [['La Monja entra por la escalera lateral y ocupa el escenario', 1]],
-    tec: [], pend: ['Coreografía', 'Duración'],
-    build() { const c = path([[2, 0, 12.2], [SX + 1.1, 0, 12.25], [SXE + 1.0, 0, 11.3], [SXE + .3, 1.0, 10.85], [SX + 1.2, 1.0, 8], [SX + 1.2, 1.0, 6.5]], { color: ORANGE }); follow(figure('Monja', [0, 0, 0], { color: WHITE }), c, 0.08); } },
+    esp: [['La Monja entra sobre la tarima móvil, girando, y la tarima queda centrada debajo del tubo del techo'],
+      ['Desde la torre A se larga una Punk con arnés, colgada de una cuerda que sale por el agujero del tubo'],
+      ['Péndulo con gravedad real: en cada pasada la Monja se agacha o salta de costado, hasta que la Punk queda en plomo a su altura'],
+      ['La Monja toma una soga oculta de 4 m y la revolea en círculo desde la tarima (radio ≈ 4,4 m, una vuelta cada ≈ 5 s)'],
+      ['El motor suelta ≈ 1,4 m de cuerda durante el péndulo para que la Punk termine a la altura de la Monja', 1],
+      ['Zona del revoleo marcada en el piso (radio del arnés ≈ 4,4 m): sin público debajo', 1]],
+    tec: ['Motor central + cuerda por el tubo', 'Roldana / giratorio en la boca del tubo', 'Arnés de la Punk', 'Soga oculta de 4 m', 'Tarima móvil'],
+    pend: ['Altura de la Monja (supuesto 1,65 m) y de la Punk (supuesto 1,70 m)',
+      'Freno del péndulo: solo con el aire tardaría minutos en quedar quieta. Acá se asume que un técnico la frena (≈ 25 s hasta quedar en plomo)',
+      'Punto de giro en la boca del tubo (9,5 m). Si el giro queda arriba, en el motor, la cuerda roza el borde del tubo: a 35° se corre ≈ 1,8 m y el tubo tiene 1,25 m de radio',
+      'Primera pasada a ≈ 25 km/h con los pies de la Punk a ≈ 20 cm de la cabeza de la Monja agachada: ensayar con margen',
+      'Choque: en el primer vaivén la Punk pasa a ≈ 15 cm de la torre B (las piernas van sueltas, arrastradas). Más freno, saltar desde más abajo en la torre A o correr el punto de giro',
+      'Choque: en el revoleo, con la soga de 4 m, la Punk pasa a ≈ 40 cm de las torres A y B en cada vuelta. Con una soga más corta (≈ 3,5 m) gana margen',
+      'Revoleo sobre la pista a ≈ 20 km/h: a radio máximo los pies van a ≈ 2,5 m del piso, pero al arrancar y al frenar bajan hasta ≈ 1,75 m. Hace falta un círculo libre de ≈ 10 m de diámetro, sin público',
+      'Carga del punto del techo con péndulo y revoleo (fuerzas dinámicas, no solo el peso)'],
+    build() { escenaMonja(); } },
   { n: 5, t: 'Cañón de remeras', k: 'Escena', el: ['torreA', 'torreB'], cam: 'iso',
     guion: 'Dos performers en bungee disparan remeras al público con pistolas / cañones. Reemplaza a la vieja “guerra de cubos”.',
     esp: [['Un bungee colgado de cada torre de 6 m, con brazo hacia la pista', 1], ['Disparos de remeras hacia el centro de la pista']],
@@ -870,12 +1421,25 @@ const SCENES = [
       const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 11, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.set(19.5, 3 + 5.5, 6.1); sceneGroup.add(beam);
     } },
-  { n: 14, t: 'Cajón + Pelea', k: 'Escena fusionada', el: ['techo'], cam: 'publico',
-    guion: 'Enfrentamiento aéreo entre dos tenistas. La pelea transcurre dentro de esta misma escena (antes eran dos escenas separadas).',
-    esp: [['Duelo de tenistas en el Cajón, bajado desde el tubo del techo; pendula sobre la sala (ficha de Bruno)']],
-    tec: ['Arneses aéreos ×2'], pend: ['Coreografía de pelea', 'Qué es el “cajón” en escena'],
+  { n: 14, t: 'Cajón', k: 'Escena', el: ['techo'], cam: 'publico',
+    guion: 'Baja el Cajón del techo lentamente y queda flotando en el centro del espacio, sobre la cabeza de los espectadores. Los performers lo hacen hamacar en un gran péndulo, después empiezan a girar mientras pendulan y del Cajón sale humo, luces y láser. Un quick release suelta una punta del eje y el Cajón sigue pendulando de forma irregular, con sensación de peligro.',
+    esp: [['Baja de canto, con los performers sentados en el aire a cada lado, colgados del arnés y con las suelas contra el Cajón (referencia de producción)'],
+      ['Abajo gira a horizontal: un performer queda parado arriba y el otro colgado cabeza abajo; el eje queda a ≈ 5,5 m del piso', 1],
+      ['Lo hamacan a lo largo de la sala bombeando con el cuerpo (se agachan en los extremos y se paran abajo), hasta ±22°'],
+      ['Giran sobre el eje mientras pendulan; humo, luces y láser salen de toda la periferia del Cajón'],
+      ['Quick release: se suelta una punta del eje y el Cajón queda colgado de la otra. Péndulo doble: se mueve irregular, sin repetirse'],
+      ['Eslinga de seguridad directa de la argolla de la percha a la punta que queda: al soltar no hay caída libre', 1]],
+    tec: ['Motor central', 'Percha de 2,4 m a 2,8 m sobre el eje', 'Quick release en una punta del eje', 'Eslinga de seguridad', 'Luces y láser empotrados', 'Máquina de humo a bordo', 'Arneses ×2'],
+    pend: ['Altura de los performers (supuesto 1,75 m) y masas (supuesto: Cajón con equipos y performers 260 kg, percha y cables 30 kg)', 'Vestuario de los performers: falta la referencia',
+      'Bajada: de canto y con los performers sentados en el aire, el conjunto entra en el tubo con ≈ 2 cm de margen (1,23 m de radio contra 1,25 m). Muy justo',
+      'Quick release sin eslinga de seguridad: la percha se inclina y todo cae ≈ 0,6 m hasta que el cable se tensa. Pico ≈ 18 veces el peso. No va',
+      'Quick release con eslinga de seguridad: el modelo da picos de ≈ 9 veces el peso (≈ 26 kN) en el primer segundo, cuando el Cajón pivota y latiguea; baja a ≈ 2 veces en 20 s. Valor orientativo (modelo simplificado, conservador): motor, argolla, eslinga, quick release, eje y rulemanes los tiene que calcular un ingeniero para esa carga dinámica',
+      'Después del quick release el performer más bajo pasa a ≈ 2,8 m del piso: ≈ 0,5 m sobre las manos levantadas del público',
+      'Choque: con la percha a 2,8 m del eje, el Cajón guardado asoma ≈ 1,1 m por debajo de la boca del tubo. Hace falta subir el motor, un tubo más largo o una percha que se pliegue',
+      'Amplitud: ±22° es el máximo sin que el cable roce el borde del tubo (pivote en el motor, 2,9 m arriba de la boca)',
+      'Cómo se vuelve a armar el Cajón colgado de una punta para subirlo (acá la escena vuelve a empezar)'],
     build() {
-      const up = buildCajon({ auto: false, val: 100 }); anims.push(up); up(t);
+      const up = buildCajon({}, { escena: true }); anims.push(up); up(t);
     } },
   { n: 15, t: 'Esfera / Cabeza', k: 'Escena', el: ['escenario', 'telon'], cam: 'lateral',
     guion: 'Descienden 4 caras esculpidas. De cada una baja un personaje sin cara, con estructuras en los brazos que los hacen ver con brazos largos.',
@@ -1118,7 +1682,7 @@ const LOOKS = {
   1:  { txt: 'Sala casi a oscuras. Beams blancos giran alrededor del toroide, estrobos en la explosión y los dos seguidores toman al Capitán en vuelo.', wash: { c: P.v, i: .15, aim: 'pista' }, beam: { c: P.w, i: 1, aim: 'toroide' }, strobe: 'on', parU: { i: .45, c: P.v }, seg: ['Cap. Psicodelia'] },
   2:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
   3:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
-  4:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y los dos seguidores sobre la Monja.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja'] },
+  4:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y un seguidor para la Monja y otro para la Punk.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja', 'Punk'] },
   5:  { txt: 'Beams de las torres siguen a cada bungee; el truss frontal barre la pista. Estrobos en cada disparo.', wash: { c: P.o, i: .5, aim: 'fan' }, beam: { c: P.w, i: .9, aim: 'fan' }, beamTorre: { c: P.o, i: 1, aim: 'track', names: ['Bungee 1', 'Bungee 2'] }, strobe: 'on', parU: { i: .4, c: P.o }, seg: ['Bungee 1', 'Bungee 2'] },
   6:  { txt: 'Pasarela rosa: wash magenta, beams violeta cruzados y seguidores sobre la cabeza del desfile.', wash: { c: P.m, i: .6, aim: 'pista' }, beam: { c: P.v, i: .7, aim: 'cruz' }, parF: { i: .4 }, parU: { i: .4, c: P.m }, seg: ['Personajes'] },
   7:  { txt: 'Blanco cálido de ceremonia sobre la tarima, uplight blanco en la tela, sin beams.', wash: { c: P.t, i: .55, aim: 'tarima' }, parF: { i: .3 }, parU: { i: .6, c: P.w }, seg: ['Novio', 'Novia'] },
@@ -1128,7 +1692,7 @@ const LOOKS = {
   11: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
   12: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
   13: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
-  14: { txt: 'Duelo en el Cajón: los beams de las torres siguen a cada tenista mientras pendula, violeta de fondo y un seguidor por tenista.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Tenista 1', 'Tenista 2'] }, parU: { i: .5, c: P.v }, seg: ['Tenista 1', 'Tenista 2'] },
+  14: { txt: 'Cajón: los beams de las torres siguen a cada performer mientras pendula, violeta de fondo y un seguidor por performer. Al final, el humo, las luces y el láser salen del propio Cajón.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Performer 1', 'Performer 2'] }, parU: { i: .5, c: P.v }, seg: ['Performer 1', 'Performer 2'] },
   15: { txt: 'Beams violetas y blancos sobre la cabeza mientras baja y se abre; al abrirse, la esfera suma sus propias luces y láser.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'cabeza' }, parU: { i: .4, c: P.v } },
   16: { txt: 'Persecución: beams naranjas cruzados, estrobos y un seguidor para cada personaje.', wash: { c: [P.w, P.o], i: .5, aim: 'fan' }, beam: { c: P.o, i: .75, aim: 'cruz' }, strobe: 'on', seg: ['Vaca-monja', 'Punky-carnicera'] },
   17: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
@@ -1168,31 +1732,271 @@ function buildToroide(st, { yWork = 7.2 } = {}) {
 }
 
 // Cajón: caja de aluminio 1,9 × 1,9 × 0,3 m que gira sobre su eje; percha de 2,25 m; péndulo desde el motor central
-function buildCajon(st, { yWork = 5.5 } = {}) {
-  const x = TOR.x, z = TOR.z, drop = 1.6;
-  const piv = new THREE.Group(); piv.position.set(x, MOTOR_Y, z); sceneGroup.add(piv);
-  const rig = new THREE.Group(); piv.add(rig);
-  rig.add(new THREE.Mesh(new THREE.BoxGeometry(.07, .07, 2.25), figMat(0xbfc0ff)));
-  segs([[0, 0, 1.125], [0, -drop, .95], [0, 0, -1.125], [0, -drop, -.95]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), rig);
-  const box = new THREE.Group(); box.position.y = -drop; rig.add(box);
-  const bg = new THREE.BoxGeometry(.3, 1.9, 1.9);
-  box.add(new THREE.Mesh(bg, metal(0x9aa0aa)));
-  box.add(new THREE.LineSegments(new THREE.EdgesGeometry(bg), new THREE.LineBasicMaterial({ color: INK })));
-  const led = [1, -1].map(sg => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ color: 0xff3fa4, toneMapped: false, side: THREE.DoubleSide }));
-    m.rotation.y = Math.PI / 2; m.position.x = sg * .155; box.add(m); return m; });
-  [1, -1].forEach((sg, i) => { const f = figure(i ? 'Tenista 2' : 'Tenista 1', [0, 0, 0], { color: i ? ORANGE : PURPLE, air: true, horizontal: true });
-    box.add(f); f.position.set(sg * .16, 0, 0); if (sg < 0) f.rotation.y = Math.PI; });
-  label('Cajón 1,9 × 1,9 m', 'fig air', rig, [0, .45, 1.7]);
-  const cable = dynLine(0xff4a3a), top = new THREE.Vector3(x, MOTOR_Y, z), p = new THREE.Vector3(), hue = new THREE.Color();
-  return (t) => {
-    const k = st.auto ? cycle(t, 28) : st.val / 100; if (st.auto) st.val = k * 100;
-    const w = sstep(.85, 1, k), y = Y_GUARDA + (yWork - Y_GUARDA) * k;
-    rig.position.set(0, y - MOTOR_Y, 0);
-    piv.rotation.x = .35 * Math.sin(t * .55) * w;
-    rig.rotation.y = t * .3 * w;
-    box.rotation.z = t * .9 * w;
-    led.forEach((m, i) => m.material.color.copy(hue.setHSL((t * .08 + i * .5) % 1, .9, .55)));
-    rig.getWorldPosition(p); root.worldToLocal(p); cable(top, p);
+/* ───────── Cajón (escena 14) ─────────
+   Cuadrado de 1,9 × 1,9 × 0,3 m con un eje en el medio: el eje atraviesa dos lados, sobresale y de sus puntas
+   bajan dos cables verticales desde la percha. El cajón gira sobre el eje; todo el conjunto pendula del motor central.
+   Percha a 2,8 m sobre el eje: un performer parado (1,75 m + brazos arriba ≈ 2,4 m desde el eje) no llega al caño.
+   Tapas de acrílico tornasolado; luces y láser empotrados en toda la periferia.
+   Quick release en una punta del eje: al soltarla, el cajón queda colgado de la otra punta (péndulo doble). */
+const CJ = { lado: 1.9, alto: .3, ejeL: 2.4, percha: 2.4, drop: 2.8, yWork: 5.5, h: 1.75, amp: 22 * DEG,
+  masaCajon: 260, masaPercha: 30 };   // kg, supuestos: cajón con equipos + 2 performers · percha, cables y argollas
+CJ.yGuarda = Y_GUARDA - CJ.drop;   // altura del eje con la percha guardada en el tubo
+CJ.eslinga = Math.hypot(CJ.percha / 2, .6);   // de la argolla a cada punta de la percha
+function holoMat() {   // acrílico tornasolado: degradé rosa → violeta → verde → ámbar, con brillos
+  return matCache.holo ??= (() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d');
+    const gr = x.createLinearGradient(0, 0, 256, 256);
+    [[0, '#ff4fd8'], [.35, '#8a6bff'], [.65, '#41f0c0'], [1, '#ffd36b']].forEach(([o, c]) => gr.addColorStop(o, c));
+    x.fillStyle = gr; x.fillRect(0, 0, 256, 256); x.globalAlpha = .35; x.fillStyle = '#ffffff';
+    for (let i = 0; i < 5; i++) { x.beginPath(); x.moveTo(i * 60 - 40, 0); x.lineTo(i * 60, 0); x.lineTo(i * 60 - 160, 256); x.lineTo(i * 60 - 200, 256); x.fill(); }
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: .42, side: THREE.DoubleSide, depthWrite: false });
+  })();
+}
+function humoTex() {
+  return matCache.humoTex ??= (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d');
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.5, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
+}
+// Cadena: piv (gancho del motor, pendula) → rig (percha, cables; gira) → box (gira sobre el eje) → hold (anclaje de los pies de cada performer)
+function cajonCadena(parent) {
+  const piv = new THREE.Group(), rig = new THREE.Group(), fijo = new THREE.Group(), box = new THREE.Group(); piv.position.set(TOR.x, MOTOR_Y, TOR.z);
+  parent.add(piv); piv.add(rig); rig.add(fijo); rig.add(box); box.position.y = -CJ.drop;
+  const hold = [0, 1].map(() => { const h = new THREE.Group(); box.add(h); return h; });
+  const cadera = hold.map(h => { const m = new THREE.Object3D(); h.add(m); return m; });   // punto de la cadera (para la inercia)
+  return { piv, rig, fijo, box, hold, cadera };
+}
+// Anclajes de los performers. Parados: pies en el centro de su cara (arriba parado, abajo colgado cabeza abajo).
+// Bajada (como en la foto de referencia): el cajón de canto y cada performer sentado en el aire, colgado del arnés
+// al anclaje del centro de su cara, con el torso derecho y las suelas contra el cajón.
+const CJ_Q = (() => { const m = new THREE.Matrix4(), q = (x, y, z) => new THREE.Quaternion().setFromRotationMatrix(m.makeBasis(new THREE.Vector3(...x), new THREE.Vector3(...y), new THREE.Vector3(...z)));
+  return { parado: [new THREE.Quaternion(), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI)],
+    foto: [q([-1, 0, 0], [0, 0, -1], [0, -1, 0]), q([1, 0, 0], [0, 0, -1], [0, 1, 0])] }; })();
+// e: { y (eje), th (péndulo, a lo largo de la sala), yaw, psi (giro sobre el eje), foto (1 = postura de bajada), libre (después del quick release) }
+function cajonPoner(c, e, hipY) {
+  if (e.libre) {   // colgado de una punta del eje: la posición y la orientación salen de la simulación
+    c.fijo.visible = false; c.piv.rotation.set(0, 0, 0); c.rig.position.set(0, 0, 0); c.rig.rotation.set(0, 0, 0);
+    c.box.position.set(e.libre.C.x - TOR.x, e.libre.C.y - MOTOR_Y, e.libre.C.z - TOR.z); c.box.quaternion.copy(e.libre.q);
+  } else {
+    c.fijo.visible = true; c.rig.position.set(0, e.y + CJ.drop - MOTOR_Y, 0); c.piv.rotation.set(0, 0, e.th); c.rig.rotation.set(0, e.yaw, 0);
+    c.box.position.set(0, -CJ.drop, 0); c.box.rotation.set(e.psi, 0, 0);
+  }
+  c.hold.forEach((h, i) => { const s = i ? -1 : 1;
+    h.position.set(0, s * (CJ.alto / 2 + .56 * e.foto), 0); h.quaternion.slerpQuaternions(CJ_Q.parado[i], CJ_Q.foto[i], e.foto); });
+  c.cadera.forEach(m => m.position.set(0, hipY, 0));
+}
+function cajonModelo(c) {
+  const { fijo, box } = c, L = CJ.lado, hL = L / 2, hA = CJ.alto / 2, alu = metal(0xc4c8d0), add = (p, g, m, pos = [0, 0, 0]) => { const o = new THREE.Mesh(g, m); o.position.set(...pos); p.add(o); return o; };
+  // percha, eslingas al gancho y cables verticales a las puntas del eje (lo que deja de verse fijo con el quick release)
+  add(fijo, new THREE.BoxGeometry(CJ.percha + .1, .08, .08), alu);
+  segs([[-CJ.percha / 2, 0, 0], [0, .6, 0], [CJ.percha / 2, 0, 0], [0, .6, 0]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), fijo);
+  segs([[-CJ.ejeL / 2, 0, 0], [-CJ.ejeL / 2, -CJ.drop, 0], [CJ.ejeL / 2, 0, 0], [CJ.ejeL / 2, -CJ.drop, 0]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), fijo);
+  // eje + rulemanes: van con el cajón (son de revolución, girar con él no cambia cómo se ven)
+  add(box, new THREE.CylinderGeometry(.035, .035, CJ.ejeL, 12).rotateZ(Math.PI / 2), alu);
+  [-1, 1].forEach(s => add(box, new THREE.CylinderGeometry(.075, .075, .1, 16).rotateZ(Math.PI / 2), metal(0x5c6068), [s * (hL + .06), 0, 0]));
+  add(box, new THREE.BoxGeometry(.09, .05, .05), metal(0xd63a2e), [CJ.ejeL / 2 - .03, .06, 0]);   // quick release (rojo) en la punta +x
+  // marco: aristas, parantes y cruz arriba y abajo
+  const e = .05;
+  for (const y of [-hA, hA]) {
+    for (const s of [-1, 1]) { add(box, new THREE.BoxGeometry(L, e, e), alu, [0, y, s * hL]); add(box, new THREE.BoxGeometry(e, e, L), alu, [s * hL, y, 0]); }
+    add(box, new THREE.BoxGeometry(L, .035, .035), alu, [0, y, 0]); add(box, new THREE.BoxGeometry(.035, .035, L), alu, [0, y, 0]);
+  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(box, new THREE.BoxGeometry(e, CJ.alto, e), alu, [sx * hL, 0, sz * hL]);
+  for (const y of [-hA + .004, hA - .004]) add(box, new THREE.PlaneGeometry(L - .04, L - .04).rotateX(-Math.PI / 2), holoMat(), [0, y, 0]);
+  // lados: luces y láser empotrados en toda la periferia + tiras LED arriba y abajo
+  const leds = [], luces = [], laser = [], Z1 = new THREE.Vector3(0, 0, 1);
+  [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([nx, nz]) => {
+    const n = new THREE.Vector3(nx, 0, nz), along = new THREE.Vector3(nz, 0, -nx), c0 = n.clone().multiplyScalar(hL + .002);
+    add(box, new THREE.PlaneGeometry(L - .04, CJ.alto - .04), holoMat(), c0.toArray()).quaternion.setFromUnitVectors(Z1, n);
+    for (const y of [-hA + .02, hA - .02]) { const m = new THREE.MeshBasicMaterial({ color: 0xff3fa4, toneMapped: false });
+      add(box, new THREE.BoxGeometry(nx ? .012 : L - .06, .012, nz ? .012 : L - .06), m, c0.clone().addScaledVector(n, .01).setY(y).toArray()); leds.push(m); }
+    [-.72, -.36, 0, .36, .72].forEach((u, k) => {
+      if (nx && u === 0) return;   // en los lados del eje, el centro lo ocupa el ruleman
+      const p = c0.clone().addScaledVector(along, u).addScaledVector(n, .012);
+      if (k % 2 === 0) { const m = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+        add(box, new THREE.CircleGeometry(.055, 18), m, p.toArray()).quaternion.setFromUnitVectors(Z1, n); luces.push({ m, p, n }); }
+      else { add(box, new THREE.BoxGeometry(nx ? .03 : .11, .07, nz ? .03 : .11), metal(0x222428), p.clone().addScaledVector(n, -.01).toArray()); laser.push({ p, n, along }); }
+    });
+  });
+  label('Cajón 1,9 × 1,9 m', 'fig air', box, [0, .6, 1.4]);
+  return { leds, luces, laser };
+}
+/* Coreografía (escena 14, 74 s en loop):
+   0–12 s baja lento de canto, con los performers sentados en el aire contra las caras (como en la foto);
+   abajo de la boca del tubo gira a horizontal y los performers se paran: uno arriba, el otro colgado cabeza abajo.
+   15–33 s lo hamacan a lo largo de la sala: el de arriba se agacha en los extremos y se para abajo (bombeo), hasta ±22°.
+   33 s empiezan a girar sobre el eje mientras pendulan. 42 s humo, luces y láser.
+   46 s quick release: se suelta una punta del eje y el cajón queda colgado de la otra (péndulo doble, irregular). */
+const CJT = { baja: 12, pend0: 15, pend1: 33, giro0: 33, giro1: 39, fx0: 42, qr: 46, TOTAL: 74 };
+function cajonTimeline() {
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), T = CJT;
+  const yAt = t => CJ.yGuarda + (CJ.yWork - CJ.yGuarda) * sm(t / T.baja);
+  const ampAt = t => CJ.amp * sm((t - T.pend0) / (T.pend1 - T.pend0));
+  const wGiro = t => 1.25 * sm((t - T.giro0) / (T.giro1 - T.giro0));
+  // fase del péndulo: ω = √(g/L)·(1 − A²/16) (a mayor amplitud, período apenas más largo)
+  const DT = 1 / 120, N = Math.ceil(T.qr / DT) + 4, FASE = new Float32Array(N), GIRO = new Float32Array(N);
+  for (let i = 1; i < N; i++) { const t = (i - .5) * DT, A = ampAt(t);
+    FASE[i] = FASE[i - 1] + Math.sqrt(GRAV / (MOTOR_Y - yAt(t))) * (1 - A * A / 16) * DT; GIRO[i] = GIRO[i - 1] + wGiro(t) * DT; }
+  const tab = (A, t) => { const x = Math.min(N - 1.001, Math.max(0, t / DT)), i = x | 0; return A[i] + (A[i + 1] - A[i]) * (x - i); };
+  const pre = t => { const A = ampAt(t), fase = tab(FASE, t);
+    return { y: yAt(t), th: A * Math.sin(fase) + .015 * Math.sin(t * .7) * sm((t - 11) / 3), A, fase,
+      yaw: .3 * Math.sin(t * .17) * sm((t - T.pend0) / 6), psi: Math.PI / 2 * (1 - sm((t - 6) / 4)) + tab(GIRO, t),
+      foto: 1 - sm((t - 9) / 3), fx: sm((t - T.fx0) / 2), bombeo: sm((t - T.pend0) / 2) * (1 - sm((t - T.pend1 - 4) / 3)), giro: wGiro(t) }; };
+  // ── quick release: péndulo doble. A = punta del eje que queda enganchada (con la percha y los cables, masa chica),
+  //    C = centro del cajón (cajón + performers). Cable de acero como resorte muy duro que solo tira; eje rígido de 1,2 m.
+  const g0 = cajonCadena(new THREE.Group()), ptA = new THREE.Vector3(-CJ.ejeL / 2, 0, 0), pos = (e, out, outC, q) => {
+    cajonPoner(g0, e, 0); g0.piv.updateMatrixWorld(true); g0.box.localToWorld(out.copy(ptA)); g0.box.getWorldPosition(outC); if (q) g0.box.getWorldQuaternion(q); };
+  const eQ = pre(T.qr), Hk = new THREE.Vector3(TOR.x, MOTOR_Y, TOR.z);
+  const A = new THREE.Vector3(), C = new THREE.Vector3(), A1 = new THREE.Vector3(), C1 = new THREE.Vector3(), q0 = new THREE.Quaternion();
+  pos(pre(T.qr - .01), A1, C1); pos(eQ, A, C, q0);
+  const vA = A.clone().sub(A1).divideScalar(.01), vC = C.clone().sub(C1).divideScalar(.01);
+  // Eslinga de seguridad directa de la argolla a la punta que queda: al soltar, la percha no se inclina y no hay caída libre.
+  const L1 = A.distanceTo(Hk), m1 = CJ.masaPercha, m2 = CJ.masaCajon;
+  const SUB = 4, DS = 1 / 960, NS = Math.ceil((T.TOTAL - T.qr) * 240) + 2;
+  const SA = new Float32Array(NS * 3), SC = new Float32Array(NS * 3), SQ = new Float32Array(NS * 4);
+  let w = eQ.giro, y = new THREE.Vector3(0, 1, 0).applyQuaternion(q0), picoT = 0, tFilt = (m1 + m2) * GRAV, minY = 99;
+  const x = new THREE.Vector3(), z = new THREE.Vector3(), n = new THREE.Vector3(), M4 = new THREE.Matrix4(), q = new THREE.Quaternion();
+  for (let i = 0; i < NS; i++) {
+    x.subVectors(C, A).normalize(); y.addScaledVector(x, -y.dot(x)).normalize().applyAxisAngle(x, i ? w / 240 : 0); z.crossVectors(x, y);
+    q.setFromRotationMatrix(M4.makeBasis(x, y, z)); A.toArray(SA, i * 3); C.toArray(SC, i * 3); q.toArray(SQ, i * 4); minY = Math.min(minY, C.y);
+    for (let s = 0; s < SUB; s++) {   // Verlet con restricciones: cable (largo máximo L1) y eje rígido (1,2 m)
+      vA.y -= GRAV * DS; vC.y -= GRAV * DS; vA.multiplyScalar(1 - .03 * DS); vC.multiplyScalar(1 - .03 * DS);
+      const pA = A.clone().addScaledVector(vA, DS), pC = C.clone().addScaledVector(vC, DS);
+      for (let it = 0; it < 16; it++) {
+        n.subVectors(pA, Hk); const L = n.length(); if (L > L1) pA.addScaledVector(n, (L1 - L) / L);
+        n.subVectors(pC, pA); const d = n.length(); n.divideScalar(d); const k = (d - CJ.ejeL / 2) / (1 / m1 + 1 / m2);
+        pA.addScaledVector(n, k / m1); pC.addScaledVector(n, -k / m2);
+      }
+      vA.subVectors(pA, A).divideScalar(DS); vC.subVectors(pC, C).divideScalar(DS); A.copy(pA); C.copy(pC);
+    }
+    // tensión del cable ≈ m₂·|a_C − g| + m₁·g: el cajón se lleva el 90 % de la masa y su movimiento es suave (promediada en 50 ms)
+    if (i >= 2) { const a = new THREE.Vector3(); for (let j = 0; j < 3; j++) a.setComponent(j, m2 * (SC[i * 3 + j] - 2 * SC[(i - 1) * 3 + j] + SC[(i - 2) * 3 + j]) * 240 * 240);
+      a.y += m2 * GRAV; tFilt += (a.length() + m1 * GRAV - tFilt) * (1 / 240) / .05; if (i > 24) picoT = Math.max(picoT, tFilt); }
+    w *= Math.exp(-.12 / 240);   // el giro sobre el eje se va frenando de a poco (rulemanes y aire)
+  }
+  const libreAt = t => { const x = Math.min(NS - 1.001, Math.max(0, (t - T.qr) * 240)), i = x | 0, k = x - i, o = {};
+    o.A = new THREE.Vector3().fromArray(SA, i * 3).lerp(new THREE.Vector3().fromArray(SA, i * 3 + 3), k);
+    o.C = new THREE.Vector3().fromArray(SC, i * 3).lerp(new THREE.Vector3().fromArray(SC, i * 3 + 3), k);
+    o.q = new THREE.Quaternion().fromArray(SQ, i * 4).slerp(new THREE.Quaternion().fromArray(SQ, i * 4 + 4), k); return o; };
+  const est = t => { if (t < T.qr) return pre(t);
+    return { ...eQ, foto: 0, fx: sm((t - T.fx0) / 2), bombeo: 0, giro: eQ.giro * Math.exp(-.12 * (t - T.qr)), libre: libreAt(t) }; };
+  const barraDir = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), eQ.yaw);   // la percha queda colgando horizontal de la argolla
+  est.info = { L1, picoT, pesoN: (m1 + m2) * GRAV, minY, argolla: MOTOR_Y - (eQ.y + CJ.drop + .6), barraDir };
+  return est;
+}
+// Mecanismos: el deslizador baja el cajón; abajo hace el péndulo y el giro de muestra (sin quick release).
+function cajonMec(st) {
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  return t => { const k = st.auto ? cycle(t, 28) : st.val / 100; if (st.auto) st.val = k * 100;
+    const y = CJ.yGuarda + (CJ.yWork - CJ.yGuarda) * k, w = sstep(.85, 1, k), A = CJ.amp * w, om = Math.sqrt(GRAV / (MOTOR_Y - y));
+    return { y, th: A * Math.sin(t * om), A, fase: t * om, yaw: .25 * Math.sin(t * .17) * w,
+      psi: Math.PI / 2 * (1 - sm((k - .35) / .3)) + t * .6 * w, foto: 1 - sm((k - .6) / .25), fx: 0, bombeo: 0, giro: .6 * w }; };
+}
+function buildCajon(st, { escena = false } = {}) {
+  const c = cajonCadena(sceneGroup), mod = cajonModelo(c), est = escena ? cajonTimeline() : cajonMec(st);
+  const ghost = cajonCadena(sceneGroup);   // copia invisible para calcular velocidades y aceleraciones
+  const P = [humano('Performer 1', [0, 0, 0], { h: CJ.h, color: ORANGE }), humano('Performer 2', [0, 0, 0], { h: CJ.h, color: PURPLE })];
+  P.forEach((H, i) => c.hold[i].add(H.g));   // el origen del humano son los pies: van al anclaje
+  const hipY = P[0].d.hipY, ank = P[0].d.ankle;
+  // cable del motor a la percha
+  const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+  const cable = new THREE.Line(cg, new THREE.LineBasicMaterial({ color: 0xff4a3a })); cable.frustumCulled = false; c.piv.add(cable);
+  // después del quick release: cables, eslingas y percha se dibujan sueltos (en coordenadas de la sala)
+  const linea = color => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color })); l.frustumCulled = false; l.visible = false; sceneGroup.add(l);
+    return { l, set(a, b) { const p = g.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true; } }; };
+  const sueltos = { main: linea(0xff4a3a), seg: linea(0xffb020), s1: linea(0xbfc0c6), s2: linea(0xbfc0c6), floja1: linea(0xbfc0c6), floja2: linea(0xbfc0c6), libre: linea(0xd63a2e) };
+  const barra = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 1, 8), metal(0xc4c8d0)); barra.visible = false; sceneGroup.add(barra);
+  const Hk = new THREE.Vector3(TOR.x, MOTOR_Y, TOR.z), Yd = new THREE.Vector3(0, -1, 0), Y1 = new THREE.Vector3(0, 1, 0);
+  const geoSuelta = (lib, out) => {   // argolla R (sobre la línea gancho → punta del eje), percha horizontal colgando de la argolla
+    const u = lib.A.clone().sub(Hk).normalize(), info = est.info;
+    out.R = Hk.clone().addScaledVector(u, info.argolla); const cen = out.R.clone(); cen.y -= .6;
+    out.E = cen.clone().addScaledVector(info.barraDir, -CJ.percha / 2); out.E2 = cen.clone().addScaledVector(info.barraDir, CJ.percha / 2); return out; };
+  // haces de luz: conos aditivos desde cada lente
+  const haz = mod.luces.map(({ p, n }) => { const g = new THREE.ConeGeometry(.5, 6, 18, 1, true).translate(0, -3, 0);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    m.position.copy(p); m.quaternion.setFromUnitVectors(Yd, n); c.box.add(m); return m; });
+  // láser: dos rayos por equipo, en abanico, barriendo
+  const NL = mod.laser.length * 2, lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(NL * 6), 3));
+  const lm = new THREE.LineBasicMaterial({ color: new THREE.Color(.3, 3.2, .7), transparent: true, opacity: 0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
+  const rayos = new THREE.LineSegments(lg, lm); rayos.frustumCulled = false; c.box.add(rayos);
+  // humo: partículas que salen de los lados, caen despacio y se abren (humo pesado)
+  const NH = 360, VIDA = 7, hg = new THREE.BufferGeometry(), hp = new Float32Array(NH * 3), hs = new Float32Array(NH), ha = new Float32Array(NH);
+  hg.setAttribute('position', new THREE.BufferAttribute(hp, 3)); hg.setAttribute('aSize', new THREE.BufferAttribute(hs, 1)); hg.setAttribute('aAlpha', new THREE.BufferAttribute(ha, 1));
+  const hm = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: humoTex() }, uPx: { value: 800 } },
+    vertexShader: 'attribute float aSize; attribute float aAlpha; uniform float uPx; varying float vA; void main(){ vA = aAlpha; vec4 mv = modelViewMatrix * vec4(position, 1.); gl_PointSize = aSize * uPx / -mv.z; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform sampler2D map; varying float vA; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(vec3(.8, .82, .9) * c.rgb, c.a * vA); }' });
+  const humo = new THREE.Points(hg, hm); humo.frustumCulled = false; sceneGroup.add(humo);
+  const semilla = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  const emisor = Array.from({ length: NH }, (_, i) => { const s = Math.floor(semilla(i) * 4), [nx, nz] = [[1, 0], [-1, 0], [0, 1], [0, -1]][s], u = (semilla(i + 9) - .5) * CJ.lado;
+    return { p: new THREE.Vector3(nx * CJ.lado / 2 + nz * u, (semilla(i + 3) - .5) * CJ.alto, nz * CJ.lado / 2 - nx * u), n: new THREE.Vector3(nx, 0, nz), r: semilla(i + 5) }; });
+  const matCacheT = new Map(), v = new THREE.Vector3(), nW = new THREE.Vector3(), M3 = new THREE.Matrix3();
+  const boxEn = ts => { const k = Math.round(ts * 20); if (!matCacheT.has(k)) { cajonPoner(ghost, est(k / 20), hipY); ghost.piv.updateMatrixWorld(true); matCacheT.set(k, ghost.box.matrixWorld.clone()); if (matCacheT.size > 400) matCacheT.delete(matCacheT.keys().next().value); } return matCacheT.get(k); };
+  // inercia de los performers: brazos, torso y pecho siguen a la gravedad aparente con retraso
+  const OSC = [[16, 1.2], [16, 1.2], [25, 3], [25, 3]], S = P.map(() => OSC.map(() => [0, 0])), M4 = new THREE.Matrix4();
+  const h1 = new THREE.Vector3(), h2 = new THREE.Vector3(), h3 = new THREE.Vector3(), F = new THREE.Vector3(), gs = {}, gl = {};
+  let tPrev = null;
+  const caderaEn = (ts, i, out) => { cajonPoner(ghost, est(ts), hipY); ghost.piv.updateMatrixWorld(true); return sceneGroup.worldToLocal(ghost.cadera[i].getWorldPosition(out)); };
+  const unwrap = (a, ref) => a + 360 * Math.round((ref - a) / 360);
+  const FOTO = P_({ drop: hipY - ank - .02, lean: -8, aL: [60, 12, 75], aR: [60, 12, 75], pieZ: .42, pieY: ank, toe: -80 });   // sentado en el aire, suelas contra el cajón
+  return t => {
+    const tt = escena ? ((t % CJT.TOTAL) + CJT.TOTAL) % CJT.TOTAL : t, e = est(tt);
+    cajonPoner(c, e, hipY); c.piv.updateMatrixWorld(true);
+    cable.visible = !e.libre; cg.attributes.position.setXYZ(1, 0, c.rig.position.y + .6, 0); cg.attributes.position.needsUpdate = true;
+    // quick release: cables y percha sueltos
+    for (const k in sueltos) sueltos[k].l.visible = !!e.libre; barra.visible = !!e.libre;
+    if (e.libre) { geoSuelta(e.libre, gs); const lag = geoSuelta(est(Math.max(CJT.qr, tt - .35)).libre, gl);
+      sueltos.main.set(Hk, gs.R); sueltos.seg.set(gs.R, e.libre.A); sueltos.s1.set(gs.R, gs.E); sueltos.s2.set(gs.R, gs.E2);   // en amarillo, la eslinga de seguridad
+      const panza = gs.E.clone().add(e.libre.A).multiplyScalar(.5); panza.y -= .5; sueltos.floja1.set(gs.E, panza); sueltos.floja2.set(panza, e.libre.A);   // el cable de la percha queda flojo
+      sueltos.libre.set(gs.E2, v.copy(gs.E2).add(new THREE.Vector3(0, -CJ.drop, 0)).addScaledVector(lag.E2.clone().sub(gs.E2), 1.5));   // el cable suelto cuelga y se sacude
+      barra.position.copy(gs.E).add(gs.E2).multiplyScalar(.5); barra.scale.set(1, CJ.percha, 1); barra.quaternion.setFromUnitVectors(Y1, v.subVectors(gs.E2, gs.E).normalize()); }
+    // performers
+    const dt = tPrev === null ? -1 : tt - tPrev; tPrev = tt;
+    P.forEach((H, i) => {
+      const fase = Math.sin(e.fase), pump = .1 + .32 * fase * fase * e.bombeo;   // se agacha en los extremos, se para abajo
+      let pose = i === 0
+        ? P_({ drop: pump, lean: 6 + 40 * (pump - .1), aL: [95 + 30 * Math.sin(tt * 1.3), 70, 20], aR: [95 - 30 * Math.sin(tt * 1.3), 70, 20] })
+        : P_({ drop: .04, lean: 0, aL: [172, 20, 15], aR: [172, 20, 15], tuck: .05 });   // colgado: los brazos apuntan al público
+      if (e.giro > .2) pose = mixPose(pose, P_({ drop: .2, lean: 15, aL: [90, 85, 10], aR: [90, 85, 10] }), Math.min(1, (e.giro - .2) / .6));   // girando: brazos abiertos
+      if (e.foto > 0) pose = { ...mixPose(pose, FOTO, e.foto), pieZ: FOTO.pieZ, pieY: FOTO.pieY, pieK: e.foto };
+      // gravedad aparente en ejes del cuerpo (g − a), con aceleración por diferencias finitas
+      const ee = 1 / 60; caderaEn(tt - ee, i, h1); caderaEn(tt + ee, i, h3); caderaEn(tt, i, h2);
+      F.copy(h3).add(h1).addScaledVector(h2, -2).divideScalar(-ee * ee); F.y -= GRAV;
+      M4.copy(H.g.matrixWorld).invert().multiply(sceneGroup.matrixWorld); F.applyMatrix3(M3.setFromMatrix4(M4));   // a ejes del cuerpo (la sala está espejada: matrices, no cuaterniones)
+      const g = Math.hypot(F.y, F.z) || 1, flG = Math.atan2(F.z, -F.y) / DEG, pitch = Math.atan2(-F.z, Math.max(1, -F.y)), roll = Math.atan2(F.x, g);
+      const relax = (e.libre ? (i === 0 ? .55 : .75) : (i === 0 ? .3 : .6)) * (1 - e.foto);   // con el quick release se sueltan más
+      const targ = [unwrap(flG, pose.aL[0]), unwrap(flG, pose.aR[0]), -.35 * pitch / DEG, -.3 * roll];
+      const s = S[i];
+      if (dt < 0 || dt > .1) s.forEach((x, k) => { x[0] = targ[k]; x[1] = 0; });
+      else if (dt > 0) { const n = Math.ceil(dt * 120), hh = dt / n; for (let j = 0; j < n; j++) s.forEach((x, k) => { const tk = k < 2 ? unwrap(targ[k], x[0]) : targ[k]; x[1] += (-OSC[k][0] * (x[0] - tk) - OSC[k][1] * x[1]) * hh; x[0] += x[1] * hh; }); }
+      pose = { ...pose, aL: [pose.aL[0] * (1 - relax) + unwrap(s[0][0], pose.aL[0]) * relax, pose.aL[1], pose.aL[2]],
+        aR: [pose.aR[0] * (1 - relax) + unwrap(s[1][0], pose.aR[0]) * relax, pose.aR[1], pose.aR[2]], lean: pose.lean + s[2][0] * (1 - e.foto) };
+      posar(H, pose); H.chest.rotation.z = s[3][0] * (1 - e.foto);
+    });
+    cajonPoner(ghost, e, hipY);
+    // LED, luces, haces y láser
+    mod.leds.forEach((m, k) => m.color.setHSL((tt * .08 + k * .07) % 1, .9, .5 + .15 * e.fx * (Math.sin(tt * 18 + k) > .6 ? 1 : 0)));
+    mod.luces.forEach((l, k) => l.m.color.setHSL((tt * .1 + k * .13) % 1, .6, .55 + .35 * e.fx));
+    haz.forEach((m, k) => { m.material.opacity = .1 * e.fx * (.6 + .4 * Math.sin(tt * 3 + k)); m.material.color.copy(mod.luces[k].m.color); m.visible = e.fx > .01; });
+    lm.opacity = e.fx; rayos.visible = e.fx > .01;
+    if (rayos.visible) { const pa = lg.attributes.position;
+      mod.laser.forEach(({ p, n, along }, k) => [-1, 1].forEach((sg, j) => { const ang = sg * .14 + .5 * Math.sin(tt * 1.7 + k), up = .25 * Math.sin(tt * 2.3 + k * 1.3);
+        v.copy(n).multiplyScalar(Math.cos(ang)).addScaledVector(along, Math.sin(ang)).setY(up).normalize().multiplyScalar(9).add(p);
+        pa.setXYZ((k * 2 + j) * 2, p.x, p.y, p.z); pa.setXYZ((k * 2 + j) * 2 + 1, v.x, v.y, v.z); })); pa.needsUpdate = true; }
+    // humo
+    hm.uniforms.uPx.value = renderer.domElement.height / (2 * Math.tan(camera.fov * DEG / 2));
+    humo.visible = escena && tt > CJT.fx0 - .5;
+    if (humo.visible) {
+      for (let i = 0; i < NH; i++) { const em = emisor[i], edad = ((tt - CJT.fx0 - em.r * VIDA) % VIDA + VIDA) % VIDA, ts = tt - edad;
+        if (ts < CJT.fx0) { ha[i] = 0; continue; }
+        const Mb = boxEn(ts); v.copy(em.p).applyMatrix4(Mb); sceneGroup.worldToLocal(v); nW.copy(em.n).applyMatrix3(M3.setFromMatrix4(Mb)).normalize();
+        const sale = 1.1 * (1 - Math.exp(-edad / .7));
+        hp[i * 3] = v.x + nW.x * sale + .35 * Math.sin(edad * .9 + i) * edad * .3;
+        hp[i * 3 + 1] = Math.max(.15, v.y + nW.y * sale - .32 * edad);
+        hp[i * 3 + 2] = v.z + nW.z * sale + .35 * Math.cos(edad * .8 + i * 1.7) * edad * .3;
+        hs[i] = .35 + .32 * edad; ha[i] = .32 * Math.min(1, edad / .4) * (1 - edad / VIDA); }
+      hg.attributes.position.needsUpdate = hg.attributes.aSize.needsUpdate = hg.attributes.aAlpha.needsUpdate = true;
+    }
   };
 }
 
@@ -1344,29 +2148,34 @@ const MECS = [
         ['Comparte el motor central con el Toroide y el Cajón: uno por vez.'],
       ];
     } },
-  { id: 'cajon', t: 'Cajón', k: 'Caja aérea de 1,9 × 1,9 m que gira y pendula',
+  { id: 'cajon', t: 'Cajón', k: 'Caja aérea de 1,9 × 1,9 m que gira sobre su eje y pendula',
     st: { auto: true, val: 0 }, range: { label: 'Bajada', min: 0, max: 100, unit: '%' },
-    fuente: 'Notion › Mecanismos y estructuras › Cajón · actualizado por Bruno el 28/09',
+    fuente: 'Notion › Mecanismos y estructuras › Cajón · actualizado por Bruno el 28/09 · percha, luces y láser según la referencia de producción',
     escenas: '14 · Cajón (Notion) · 7 · Cajón en el texto de Mariano.',
-    desc: 'Estructura aérea donde transcurre el enfrentamiento entre 2 tenistas. Pendula con un performer de cada lado y permite girar, subir y bajar.',
-    func: ['Cuadrado de aluminio de 1,9 × 1,9 × 0,3 m con un eje central que le permite girar.', 'Cada punta del eje cuelga con cable de acero de una percha de 2,25 m, y la percha cuelga del motor central.',
-      'Cada cara de 1,9 × 1,9 m tiene al medio un anclaje tipo chapa de escalada donde se clipa un actor.',
-      'Las caras llevan pantalla LED flexible de silicona con acrílico transparente; adentro, luces, láser y efectos.'],
+    desc: 'Estructura aérea con dos performers, uno en cada cara. Baja del techo, pendula sobre el público y gira sobre su eje; de toda su periferia salen humo, luces y láser.',
+    func: ['Cuadrado de aluminio de 1,9 × 1,9 × 0,3 m con tapas de acrílico tornasolado y un eje en el medio que lo atraviesa y le permite girar.',
+      'Cada punta del eje cuelga con cable de acero vertical de una percha de 2,4 m; la percha cuelga del motor central.',
+      'La percha va a 2,8 m sobre el eje: un performer parado (1,75 m, con los brazos arriba ≈ 2,4 m desde el eje) gira sin llegar al caño.',
+      'Cada cara tiene al medio un anclaje tipo chapa de escalada donde se clipa un performer.',
+      'Luces, láser y tiras LED empotrados en los cuatro lados; humo a bordo.',
+      'Quick release en una punta del eje: al soltarla, el Cajón queda colgado de la otra punta. Una eslinga de seguridad directa a la argolla evita la caída libre.'],
     ubic: 'Centro de la sala, con el motor central. Toda la obra queda guardado arriba de la tela del techo hasta su escena.',
-    ficha: [['Tipo', 'Aérea'], ['Performers', '2 (tenistas)'], ['Operadores / riggers', '1'], ['Dimensiones', '1,9 × 1,9 × 0,3 m · percha 2,25 m'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
-    el: ['techo'], cam: 'mecCajon', look: { wash: { c: '8a8fff', i: .2, aim: 'pista' }, beamTorre: { c: 'ffffff', i: .9, aim: 'track', names: ['Tenista 1', 'Tenista 2'] }, seg: ['Tenista 1', 'Tenista 2'] },
-    pend: ['Peso del cajón con pantallas, luces y efectos', 'Largo del cable en la escena (supuesto: caja a ≈ 5,5 m del piso)', 'Amplitud del péndulo (supuesto: ±20°)',
-      'Dónde se clipan los tenistas: con ellos puestos el conjunto no pasa por el tubo', 'Alimentación y datos de las pantallas LED y luces a bordo (cable o batería)'],
+    ficha: [['Tipo', 'Aérea'], ['Performers', '2'], ['Operadores / riggers', '1'], ['Dimensiones', '1,9 × 1,9 × 0,3 m · percha 2,4 m a 2,8 m del eje'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
+    el: ['techo'], cam: 'mecCajon', look: { wash: { c: '8a8fff', i: .2, aim: 'pista' }, beamTorre: { c: 'ffffff', i: .9, aim: 'track', names: ['Performer 1', 'Performer 2'] }, seg: ['Performer 1', 'Performer 2'] },
+    pend: ['Peso del Cajón con luces, láser y humo', 'Altura del eje en la escena (supuesto: ≈ 5,5 m del piso)', 'Amplitud del péndulo (supuesto: ±22°)',
+      'Alimentación y datos de luces, láser y humo a bordo (cable o batería)', 'Guardado: con la percha más alta el Cajón no entra entero en el tubo'],
     build() {
       const st = this.st, up = buildCajon(st); anims.push(t => { up(t); syncRange(st, '%'); }); up(t);
-      const Lw = MOTOR_Y - 5.5, sw = Lw * Math.sin(.35), clear = (MOTOR_Y - TOR.tubeBottom) * Math.tan(.35);
-      ring([TOR.x, TOR.z], sw + 1, ORANGE, .03);
-      const o = new THREE.Object3D(); o.position.set(TOR.x, .35, TOR.z + sw + 1.4); sceneGroup.add(o); label('Barrido del péndulo', 'fig', o);
+      const Lw = MOTOR_Y - CJ.yWork, sw = Lw * Math.sin(CJ.amp), clear = (MOTOR_Y - TOR.tubeBottom) * Math.tan(CJ.amp), alcance = CJ.alto / 2 + CJ.h + .55;
+      ring([TOR.x, TOR.z], sw + alcance, ORANGE, .03);
+      const o = new THREE.Object3D(); o.position.set(TOR.x, .35, TOR.z + sw + alcance + .4); sceneGroup.add(o); label('Barrido del péndulo', 'fig', o);
       this.notes = [
-        ['Pasa por el tubo de 2,5 m de canto: 1,9 × 0,3 m en planta. La percha de 2,25 m entra justa.'],
-        ['Con los tenistas clipados a las caras el conjunto mide ≈ 3,7 m de ancho: no pasa por el tubo. Se clipan abajo o bajan colgados.', 'warn'],
-        [`El péndulo (cable de ≈ ${f1(Lw)} m, ±20°) barre ≈ ±${f1(sw)} m sobre el público: despejar un círculo de ≈ ${f1(2 * (sw + 1), 0)} m de diámetro.`, 'warn'],
-        [`En la boca del tubo el cable se corre ≈ ${f1(clear)} m: entra en el radio de 1,25 m sin rozar.`],
+        [`Baja de canto, con los performers sentados en el aire a cada lado: entra en el tubo de 2,5 m con ≈ 2 cm de margen. La percha de ${f1(CJ.percha)} m entra justa (≈ 5 cm por lado).`, 'warn'],
+        [`Percha a ${f1(CJ.drop)} m del eje: el performer parado llega a ≈ ${f1(alcance)} m del eje con los brazos arriba. Quedan ≈ ${f1(CJ.drop - alcance)} m hasta el caño.`],
+        [`Guardado, la percha queda en el tubo pero el Cajón asoma ≈ ${f1(TOR.tubeBottom - (CJ.yGuarda - CJ.lado / 2))} m por debajo de la boca.`, 'warn'],
+        [`El péndulo (≈ ${f1(Lw)} m hasta el eje, ±${f1(CJ.amp / DEG, 0)}°) barre ≈ ±${f1(sw)} m; con los performers girando, despejar un círculo de ≈ ${f1(2 * (sw + alcance), 0)} m de diámetro.`, 'warn'],
+        [`En la boca del tubo el cable se corre ≈ ${f1(clear)} m: entra en el radio de 1,25 m sin rozar, justo. Más amplitud necesita una roldana en la boca.`],
+        ['Quick release: sin eslinga de seguridad la percha se inclina y todo cae ≈ 0,6 m (pico ≈ 18 veces el peso). Con eslinga, picos de ≈ 9 veces en el primer segundo (orientativo): calcular toda la línea de carga.', 'warn'],
         ['Comparte el motor central con el Agujero negro y el Toroide: uno por vez.'],
       ];
     } },
@@ -1428,7 +2237,7 @@ let current = 0, t = 0, paused = matchMedia('(prefers-reduced-motion: reduce)').
 
 function clearScene() {
   sceneGroup.traverse(o => { if (o.isCSS2DObject) o.element.remove(); });
-  sceneGroup.traverse(o => { if (o.geometry && o.geometry !== figGeo) o.geometry.dispose(); });
+  sceneGroup.traverse(o => { if (o.geometry && o.geometry !== figGeo && !o.geometry.userData.keep) o.geometry.dispose(); });
   sceneGroup.clear(); anims = []; for (const k in FIG) delete FIG[k];
 
 }
