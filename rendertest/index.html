@@ -1907,6 +1907,188 @@ function escenaPelea() {
   });
 }
 
+/* ───────── MOSH (escena 14) ─────────
+   Todo en simultáneo, 60 s en loop:
+   · Persecución en el aire: 2 performers cuelgan del mismo swivel del motor central. Arrancan corriendo en el piso en
+     círculo, enfrentadas; el motor sube el swivel, las cuerdas las cierran hacia el centro y, como el momento angular se
+     conserva (L = ω·r²), giran cada vez más rápido. Despegan cuando el cono de péndulo se sostiene solo (h = g/ω²).
+   · Tarima (corrida hacia los accesos): fila, se tiran y 6 personas (4 del público y 2 performers) los llevan por la sala.
+   · Tobogán contra la pared lateral y limbo con 2 actores que estiran una cuerda. */
+const MOSH = { TOTAL: 60, L: 4, r0: 2.6, v0: 3.2, h: 1.7, sube: [4, 16], baja: [50, 57], yTop: 8.6, tarima: [16.6, 6.5] };
+const ropaPublico = i => {   // público variado (supuesto)
+  const pieles = [0xe8c3a3, 0xc99a74, 0x8a5a3c, 0xf0d2c4, 0xb07a52], pelos = [['corto', 0x1e1610], ['largo', 0x6b4426], ['afro', 0x2b1d14], ['corto', 0xc8a060], ['largo', 0x1a1210]];
+  const rem = [0xe8455a, 0x3b6fb6, 0xf2d22a, 0x2fc4b2, 0xf4f2ee, 0x8a5ad8, 0x141417, 0xff8a3a][i % 8], pan = [0x2f3e5c, 0x222226, 0x5a4a3a, 0x3a3a3a][i % 4];
+  return { piel: pieles[i % 5], pelo: { tipo: pelos[i % 5][0], c: pelos[i % 5][1] }, remera: { c: rem, mangas: true }, ...(i % 3 === 1 ? { short: { c: pan } } : { pantalon: { c: pan } }), zapas: { c: [0xeeeeea, 0x222222, 0xd63a2e][i % 3] } };
+};
+const ROPA_PERFORMER_MOSH = { piel: 0xd9a585, pelo: { tipo: 'cresta', c: 0xff3fa4 }, remera: { c: 0xff3fa4, mangas: 'largas', rough: .3 }, pantalon: { c: 0x141417 }, zapas: { c: 0x141417 } };   // staff performer (supuesto)
+const ROPA_CORREDORA = [
+  { piel: 0xe8c3a3, pelo: { tipo: 'largo', c: 0x6a2e6a }, remera: { c: 0x6a4cff, mangas: true, rough: .3 }, short: { c: 0x141417 }, medias: { c: 0x6a4cff }, zapas: { c: 0xf4f2ee } },
+  { piel: 0xc99a74, pelo: { tipo: 'largo', c: 0xd8402c }, remera: { c: 0xff8a1a, mangas: true, rough: .3 }, short: { c: 0x141417 }, medias: { c: 0xff8a1a }, zapas: { c: 0xf4f2ee } }];   // supuesto
+function escenaMosh() {
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), Y = new THREE.Vector3(0, 1, 0), T_ = MOSH.TOTAL;
+  const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), M4 = new THREE.Matrix4(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+  // cuerpo con el origen en la cadera (W), para poder acostarlo, sentarlo o colgarlo
+  const cuerpo = (nombre, ropa, h = 1.72) => { const H = humano(nombre, [0, 0, 0], { h, ropa }); H.feet0 = H.feet.map(f => [...f]);
+    const W = new THREE.Group(); sceneGroup.add(W); W.add(H.g); H.g.position.y = -H.d.hipY; return { H, W, hip: H.d.hipY, up: new THREE.Vector3(), fw: new THREE.Vector3() }; };
+  const orient = (X, up, fw, q = X.W.quaternion) => { X.up.copy(up).normalize(); X.fw.copy(fw).addScaledVector(X.up, -fw.dot(X.up)).normalize(); v1.crossVectors(X.up, X.fw); return q.setFromRotationMatrix(M4.makeBasis(v1, X.up, X.fw)); };
+  const parado = (X, x, y, z, dx, dz) => { X.W.position.set(x, y + X.hip, z); orient(X, Y, v2.set(dx, 0, dz)); };
+  const quietas = X => X.H.feet.forEach((p, i) => { const f0 = X.H.feet0[i]; p[0] = f0[0]; p[1] = f0[1]; p[2] = 0; });
+  const recorrido = (pts, closed, color = PURPLE) => { const c = path(pts.map(([x, z]) => [x, .03, z]), { closed, color }); return { c, L: c.getLength() }; };
+  const enRuta = (R, s, out = new THREE.Vector3()) => R.c.getPointAt(((s % 1) + 1) % 1, out);
+  const tg = (R, s) => R.c.getTangentAt(((s % 1) + 1) % 1).setY(0).normalize();
+  const baile = (t, k = 1, s = 0) => P_({ drop: .06 + .05 * k * Math.abs(Math.sin(Math.PI * 2.07 * t + s)), lean: 4, aL: [150 + 20 * Math.sin(4.1 * t + s), 30, 25], aR: [60 + 60 * Math.max(0, Math.sin(4.1 * t + s + 1)), 20, 60] });
+    const poner = (X, P, look) => { posar(X.H, P, look ?? null); };
+
+  /* ── 1. Persecución en el aire (motor central + swivel) ── */
+  const C0 = new THREE.Vector3(TOR.x, 0, TOR.z), L = MOSH.L, hipC = humDims(MOSH.h).hipY, yS0 = hipC + Math.sqrt(L * L - MOSH.r0 ** 2);
+  const yS = t => yS0 + (MOSH.yTop - yS0) * (sm((t - MOSH.sube[0]) / (MOSH.sube[1] - MOSH.sube[0])) - sm((t - MOSH.baja[0]) / (MOSH.baja[1] - MOSH.baja[0])));
+  const DT = 1 / 120, NS = Math.round(T_ / DT) + 1, FI = new Float32Array(NS), DIST = new Float32Array(NS);
+  let Lz, rLo, hLo, wLo, v0 = MOSH.v0;
+  const estado = t => { const y = yS(t); if (y - hipC >= hLo) return { y, r: rLo, w: wLo, hip: y - hLo, aire: 1 };
+    const h = y - hipC, r = Math.sqrt(L * L - h * h); return { y, r, w: Lz / (r * r), hip: hipC, aire: 0 }; };
+  for (let it = 0; it < 4; it++) {   // v0 se ajusta para que en 60 s den un número entero de vueltas (el loop no salta)
+    Lz = v0 * MOSH.r0;
+    // despegue: en el piso r = √(L² − h²) y ω = L/r² (se conserva el momento angular); se van del piso cuando h ≥ g/ω²
+    rLo = MOSH.r0; for (let r = MOSH.r0; r > .3; r -= .0005) { const h = Math.sqrt(L * L - r * r), w = Lz / (r * r); if (h >= GRAV / (w * w)) { rLo = r; break; } }
+    hLo = Math.sqrt(L * L - rLo * rLo); wLo = Lz / (rLo * rLo);
+    for (let i = 1; i < NS; i++) { const e = estado((i - .5) * DT); FI[i] = FI[i - 1] + e.w * DT; DIST[i] = DIST[i - 1] + e.w * e.r * DT; }
+    if (it < 3) v0 *= Math.round(FI[NS - 1] / (2 * Math.PI)) * 2 * Math.PI / FI[NS - 1];
+  }
+  { const k = Math.round(FI[NS - 1] / (2 * Math.PI)) * 2 * Math.PI / FI[NS - 1]; for (let i = 0; i < NS; i++) { FI[i] *= k; DIST[i] *= k; } }   // cierre exacto del loop (≈ 1–2 %)
+  const PASO = DIST[NS - 1] / Math.round(DIST[NS - 1] / 2.4);   // zancada de ≈ 2,4 m con un número entero de pasos por loop
+  const at = (A, t) => { const x = Math.max(0, Math.min(NS - 1.001, t / DT)), i = x | 0; return A[i] + (A[i + 1] - A[i]) * (x - i); };
+  const motor = dynLine(0xff4a3a), cuerdas = [dynLine(0xdedee6), dynLine(0xdedee6)];
+  const swivel = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .16, 14), metal(0xd0d0d8)); sceneGroup.add(swivel); label('Swivel', 'fig air', swivel, [0, .3, 0]);
+  const COR = [0, 1].map(i => cuerpo(`Corredora ${i + 1}`, ROPA_CORREDORA[i], MOSH.h));
+  ring([C0.x, C0.z], MOSH.r0 + .4, PURPLE); { const o = new THREE.Object3D(); o.position.set(C0.x, .3, C0.z + MOSH.r0 + .4); sceneGroup.add(o); label('Anillo libre al empezar (propuesta)', 'fig air', o); }
+  { const pts = []; for (let k = 0; k <= 64; k++) { const a = k / 64 * 2 * Math.PI; pts.push([C0.x + rLo * Math.cos(a), MOSH.yTop - hLo, C0.z + rLo * Math.sin(a)]); } path(pts); }   // órbita en el aire (propuesta)
+  const persecucion = t => {
+    const e = estado(t), fi = at(FI, t), d = at(DIST, t);
+    swivel.position.set(C0.x, e.y, C0.z); motor(v1.set(C0.x, MOTOR_Y, C0.z), v2.set(C0.x, e.y + .08, C0.z));
+    COR.forEach((X, i) => { const a = fi + i * Math.PI, cx = Math.cos(a), cz = Math.sin(a);
+      const hip = new THREE.Vector3(C0.x + e.r * cx, e.hip, C0.z + e.r * cz), tan = new THREE.Vector3(-cz, 0, cx);
+      const rope = v1.set(C0.x, e.y, C0.z).sub(hip).normalize(), up = Y.clone().lerp(rope, sm(e.aire + (e.hip - hipC) / .3)).normalize();
+      X.W.position.copy(hip); orient(X, up, tan);
+      const f = d / PASO + i * .5, ritmo = Math.sin(2 * Math.PI * f);
+      caminar(X.H, f, e.aire ? 2.2 : 1.6, PASO); if (e.aire) X.H.feet.forEach(p => { p[2] += .15; });
+      poner(X, P_({ drop: e.aire ? 0 : .08, lean: e.aire ? 4 : 14, aL: [30 + 55 * ritmo, 12, 90], aR: [30 - 55 * ritmo, 12, 90], toe: e.aire ? 20 : 0 }));
+      X.H.neck.rotation.y += i ? .5 : -.4;   // se miran: una persigue a la otra
+      cuerdas[i](v2.set(C0.x, e.y, C0.z), hip.clone().addScaledVector(up, .05)); });
+  };
+
+  /* ── 2. Tarima: fila, se tiran y los llevan por arriba de las cabezas ── */
+  const [tx, tz] = MOSH.tarima, TOP = STAGE.h, CICLO = 20;
+  propBox(tx + .3, tx + .9, 0, TOP / 2, tz + .65, tz + 1.05, 'Escalón (propuesta)');
+  const SLOT0 = [tx + .4, TOP, tz + .2], SLOT1 = [tx + .6, 0, tz + 1.6], BORDE = [tx, TOP, tz - .55];
+  const SURF = recorrido([[tx, tz - 1.65], [tx - 1.4, tz - 2.9], [tx - 1.2, tz - 4.6], [tx + .8, tz - 5.0], [tx + 1.9, tz - 3.9], [tx + 1.7, tz - 2.5], [tx + .5, tz - 1.7]], false, ORANGE);
+  const VUELTA = recorrido([[tx + .6, tz - 1.9], [tx + 1.55, tz - 1], [tx + 1.6, tz + 1.2], SLOT1.filter((_, k) => k !== 1)], false);
+  const FILA = [0, 1, 2].map(k => cuerpo(k ? `Público ${k + 1}` : 'Nadador', ropaPublico(k + 2), 1.7));
+  const LLEVAN = [0, 1, 2, 3, 4, 5].map(k => k < 2 ? cuerpo(`Performer ${k + 1}`, ROPA_PERFORMER_MOSH, 1.78) : cuerpo(null, ropaPublico(k + 4), 1.68 + .06 * (k % 3)));
+  const marca = new THREE.Object3D(); sceneGroup.add(marca); FIG['Nadador'] = marca;
+  const surfer = (X, u, t) => {   // u: tiempo desde que se tira (0 → 60)
+    if (u < .5) { const k = u / .5; parado(X, SLOT0[0] + (BORDE[0] - SLOT0[0]) * k, TOP, SLOT0[2] + (BORDE[2] - SLOT0[2]) * k, 0, -1); caminar(X.H, k * 1.2, 1.2, .8);
+      poner(X, P_({ drop: .1, lean: 25, aL: [-30, 10, 30], aR: [-30, 10, 30] })); return X.W.position; }
+    if (u < 1) {   // salto: tiro con g, cae acostado sobre las manos
+      const k = u - .5, p0 = [BORDE[0], TOP + X.hip, BORDE[2]], vz = -2.0, vy = 3.2, y = p0[1] + vy * k - .5 * GRAV * k * k;
+      X.W.position.set(p0[0], Math.max(y, 2.3), p0[2] + vz * k);
+      orient(X, Y, v2.set(0, 0, -1), qa); orient(X, v2.set(0, 0, -1), v1.set(0, -1, 0).clone(), qb); X.W.quaternion.slerpQuaternions(qa, qb, sm(k / .45));
+      quietas(X); poner(X, P_({ drop: 0, lean: 10, aL: [170, 30, 10], aR: [170, 30, 10], tuck: .1 })); return X.W.position; }
+    if (u < 14.5) {   // nada sobre las manos: lo llevan por la sala
+      const s = (u - 1) / 13.5, p = enRuta(SURF, s), d = tg(SURF, s), bote = .05 * Math.sin(u * 7);
+      X.W.position.set(p.x, 2.32 + bote, p.z); orient(X, d, v1.set(0, -1, 0).clone());
+      const b = 2 * Math.PI * u / 1.4; X.H.feet.forEach((f, i) => { const f0 = X.H.feet0[i]; f[0] = f0[0]; f[1] = f0[1] + .12 * Math.sin(b * 2 + i * Math.PI); f[2] = 0; });
+      poner(X, P_({ drop: 0, lean: -5, aL: [90 + 90 * Math.sin(b), 25, 15], aR: [90 - 90 * Math.sin(b), 25, 15] })); return X.W.position; }
+    if (u < 15.5) {   // lo bajan parado
+      const p = enRuta(SURF, 1), k = sm(u - 14.5); X.W.position.set(p.x, 2.32 + (X.hip - 2.32) * k, p.z);
+      orient(X, Y, v2.set(0, 0, -1), qa); orient(X, tg(SURF, 1), v1.set(0, -1, 0).clone(), qb); X.W.quaternion.slerpQuaternions(qb, qa, k);
+      quietas(X); poner(X, P_({ drop: .05, lean: 5, aL: [160, 30, 15], aR: [160, 30, 15] })); return X.W.position; }
+    if (u < 21.5) {   // vuelve a la fila
+      const s = sm((u - 15.5) / 6), p = enRuta(VUELTA, s), d = tg(VUELTA, Math.min(.99, s)); parado(X, p.x, 0, p.z, d.x, d.z);
+      caminar(X.H, s * VUELTA.L / .9, 1); poner(X, P_({ drop: .04, lean: 5, aL: [150, 30, 20], aR: [20, 10, 20] })); return X.W.position; }
+    if (u < 40) { parado(X, SLOT1[0], 0, SLOT1[2], 0, -1); quietas(X); poner(X, baile(t, 1, 1)); return X.W.position; }
+    if (u < 41.5) {   // sube el escalón a la tarima
+      const k = sm((u - 40) / 1.5); parado(X, SLOT1[0] + (SLOT0[0] - SLOT1[0]) * k, TOP * sm((u - 40.4) / .8), SLOT1[2] + (SLOT0[2] - SLOT1[2]) * k, 0, -1);
+      caminar(X.H, k * 2, 1.4); poner(X, P_({ drop: .05, lean: 10 })); return X.W.position; }
+    parado(X, SLOT0[0], TOP, SLOT0[2], 0, -1); quietas(X); poner(X, baile(t, 1.2, 2)); return X.W.position;
+  };
+  const llevar = (t, uS) => {   // los 6 que llevan: esperan con los brazos arriba frente a la tarima y caminan con el nadador
+    const carga = uS >= .9 && uS < 14.5, s = carga ? Math.max(0, (uS - 1) / 13.5) : 0, p = enRuta(SURF, s), d = tg(SURF, s), n = v1.set(-d.z, 0, d.x).clone();
+    const hunde = uS >= .9 && uS < 1.4 ? .18 * Math.sin(Math.PI * (uS - .9) / .5) : 0;   // reciben el peso
+    LLEVAN.forEach((X, k) => { const fila = (k >> 1) - 1, lado = k & 1 ? 1 : -1;
+      const q = p.clone().addScaledVector(d, fila * .62).addScaledVector(n, lado * .36 * (k < 2 ? 1.05 : 1));
+      parado(X, q.x, 0, q.z, d.x, d.z); if (carga) caminar(X.H, s * SURF.L / .8 + k * .13, 1); else quietas(X);
+      poner(X, P_({ drop: .04 + hunde + .03 * Math.sin(t * 6 + k), lean: 0, aL: [172, 6, 20], aR: [172, 6, 20] })); });
+  };
+
+  /* ── 3. Tobogán contra la pared (propuesta): escalera, plataforma a 2,6 m, rampa y frenado ── */
+  const TB = { x: 8.2, zTop: 11.8, yTop: 2.6, zBot: 8.2, yBot: .45, run: 1.6, mu: .25, muRun: .8 };   // rozamiento supuesto: rampa .25 y frenado .8
+  { const vio = new THREE.MeshStandardMaterial({ color: 0xff8a3a, roughness: .5, transparent: true, opacity: .9 }), len = Math.hypot(TB.zTop - TB.zBot, TB.yTop - TB.yBot), ang = Math.atan2(TB.yTop - TB.yBot, TB.zTop - TB.zBot);
+    const ch = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, len), vio); ch.position.set(TB.x, (TB.yTop + TB.yBot) / 2 - .03, (TB.zTop + TB.zBot) / 2); ch.rotation.x = ang; sceneGroup.add(ch);
+    const run = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, TB.run), vio); run.position.set(TB.x, TB.yBot - .03, TB.zBot - TB.run / 2); sceneGroup.add(run);
+    [-1, 1].forEach(sg => { const r = new THREE.Mesh(new THREE.BoxGeometry(.05, .25, len), vio); r.position.copy(ch.position).add(new THREE.Vector3(sg * .37, .1, 0)); r.rotation.x = ang; sceneGroup.add(r); });
+    propBox(TB.x - .5, TB.x + .5, TB.yTop - .05, TB.yTop, TB.zTop, TB.zTop + .7, 'Tobogán (propuesta)', ORANGE);
+    const lad = []; for (const sx of [-.25, .25]) lad.push([TB.x + sx, 0, 12.65], [TB.x + sx, TB.yTop + 1, 12.65]); for (let y = .3; y < TB.yTop + .9; y += .3) lad.push([TB.x - .25, y, 12.65], [TB.x + .25, y, 12.65]);
+    segs(lad, new THREE.LineBasicMaterial({ color: 0xffb070 }), sceneGroup);
+    segs([[TB.x - .3, 0, 9.6], [TB.x - .3, 1.3, 9.6], [TB.x + .3, 0, 9.6], [TB.x + .3, 1.3, 9.6], [TB.x - .45, 0, TB.zTop + .6], [TB.x - .45, TB.yTop, TB.zTop + .6], [TB.x + .45, 0, TB.zTop + .6], [TB.x + .45, TB.yTop, TB.zTop + .6]], new THREE.LineBasicMaterial({ color: 0xffb070 }), sceneGroup); }
+  const ANG = Math.atan2(TB.yTop - TB.yBot, TB.zTop - TB.zBot), LEN = Math.hypot(TB.zTop - TB.zBot, TB.yTop - TB.yBot);
+  const ACC = GRAV * (Math.sin(ANG) - TB.mu * Math.cos(ANG)), T_BAJA = Math.sqrt(2 * LEN / ACC), V_FIN = ACC * T_BAJA, A_RUN = GRAV * TB.muRun;
+  const T_RUN = Math.min(V_FIN / A_RUN, 1.2), S_RUN = V_FIN * T_RUN - .5 * A_RUN * T_RUN * T_RUN;
+  const TOBO = recorrido([[TB.x, TB.zBot - S_RUN - .3], [7.0, TB.zBot - .6], [7.0, 11.6], [TB.x, 12.35]], false);
+  const BAJAN = [0, 1].map(k => cuerpo(k ? null : 'Tobogán', ropaPublico(k * 5 + 1), 1.68));
+  const tobogan = (X, u, t) => {   // ciclo de 16 s: vuelve caminando, sube la escalera, se sienta, baja y frena
+    const tW = 6.5, tC = 3, tS = 1.5, sitZ = TB.zTop - .1;
+    if (u < tW) { const s = sm(u / tW), p = enRuta(TOBO, s), d = tg(TOBO, Math.min(.99, s)); parado(X, p.x, 0, p.z, d.x, d.z); caminar(X.H, s * TOBO.L / .9, 1); poner(X, P_({ drop: .04, lean: 4 })); return; }
+    if (u < tW + tC) { const k = (u - tW) / tC; parado(X, TB.x, TB.yTop * sm(k), 12.4, 0, 1); const b = Math.sin(2 * Math.PI * k * 4);
+      X.H.feet.forEach((f, i) => { const f0 = X.H.feet0[i]; f[0] = f0[0]; f[1] = f0[1] + .12; f[2] = Math.max(0, .25 * (i ? b : -b)); }); poner(X, P_({ drop: .05, lean: 8, aL: [155 + 15 * b, 10, 40], aR: [155 - 15 * b, 10, 40] })); return; }
+    const nrm = new THREE.Vector3(0, Math.cos(ANG), -Math.sin(ANG)), dirB = new THREE.Vector3(0, -Math.sin(ANG), -Math.cos(ANG));
+    if (u < tW + tC + tS) { const k = sm((u - tW - tC) / tS); X.W.position.set(TB.x, TB.yTop + X.hip * (1 - k) + .12 * k, 12.4 - (12.4 - sitZ) * k);
+      orient(X, Y.clone().lerp(nrm, k), v2.set(0, 0, -1)); X.H.feet.forEach((f, i) => { const f0 = X.H.feet0[i]; f[0] = f0[0]; f[1] = f0[1] + .78 * k; f[2] = (X.hip - .2) * k; }); poner(X, P_({ drop: 0, lean: -5, aL: [150, 40, 20], aR: [150, 40, 20] })); return; }
+    const u2 = u - tW - tC - tS;
+    if (u2 < T_BAJA) { const s = .5 * ACC * u2 * u2, p = new THREE.Vector3(TB.x, TB.yTop, TB.zTop).addScaledVector(dirB, s).addScaledVector(nrm, .16);
+      X.W.position.copy(p); orient(X, nrm, dirB); X.H.feet.forEach((f, i) => { const f0 = X.H.feet0[i]; f[0] = f0[0] * .8; f[1] = .78; f[2] = X.hip - .2; });
+      poner(X, P_({ drop: 0, lean: -20, aL: [170, 45, 10], aR: [170, 45, 10] })); marca2.position.copy(p).y -= 1.1; return; }
+    const u3 = Math.min(u2 - T_BAJA, T_RUN), s = V_FIN * u3 - .5 * A_RUN * u3 * u3;
+    if (u2 - T_BAJA < T_RUN + 1) { const k = sm((u2 - T_BAJA - T_RUN) / 1); X.W.position.set(TB.x, TB.yBot + .14 + (X.hip - TB.yBot - .14) * k, TB.zBot - s);
+      orient(X, Y, v2.set(0, 0, -1)); X.H.feet.forEach((f, i) => { const f0 = X.H.feet0[i]; f[0] = f0[0] * .8; f[1] = f0[1] + .78 * (1 - k); f[2] = (X.hip - .2 - TB.yBot) * (1 - k); });
+      poner(X, P_({ drop: 0, lean: -10 + 15 * k, aL: [150, 35, 20], aR: [150, 35, 20] })); return; }
+    parado(X, TB.x, 0, TB.zBot - S_RUN, 0, -1); quietas(X); poner(X, baile(t, 1, 3));
+  };
+  const marca2 = new THREE.Object3D(); sceneGroup.add(marca2); FIG['Tobogán'] = marca2;
+
+  /* ── 4. Limbo: 2 actores estiran una cuerda y el público pasa por abajo, cada vuelta más baja ── */
+  const LB = { a: [7.6, 3.4], b: [10.6, 3.4] }, ACT = [cuerpo('Actor 1', ROPA_PERFORMER_MOSH, 1.78), cuerpo('Actor 2', ROPA_PERFORMER_MOSH, 1.78)];
+  const cuerdaLimbo = dynLine(0xffd23a), mid = new THREE.Object3D(); sceneGroup.add(mid); FIG['Limbo'] = mid;
+  const LIMBO = recorrido([[9.1, 4.7], [9.1, 2.0], [7.0, 1.9], [6.9, 4.8]], true), VL = Math.round(T_ * .8 / LIMBO.L) * LIMBO.L / T_;   // ≈ 0,8 m/s, vueltas enteras por loop
+  const PASAN = [0, 1, 2].map(k => cuerpo(null, ropaPublico(k * 3 + 2), 1.62 + .05 * k));
+  const sCruce = (() => { let best = 0, bd = 9; for (let s = 0; s < 1; s += .002) { const p = enRuta(LIMBO, s); const d = Math.hypot(p.x - 9.1, p.z - LB.a[1]); if (d < bd) { bd = d; best = s; } } return best; })();
+  const limbo = t => {
+    const vuelta = Math.floor(t / 20), alto = [1.35, 1.2, 1.05][vuelta % 3] + .03 * Math.sin(t * 2.3);
+    const ea = new THREE.Vector3(LB.a[0] + .45, alto, LB.a[1]), eb = new THREE.Vector3(LB.b[0] - .45, alto, LB.b[1]);
+    [[ACT[0], LB.a, 1, ea], [ACT[1], LB.b, -1, eb]].forEach(([X, [x, z], sg, e], i) => { parado(X, x, 0, z, sg, 0); quietas(X);
+      poner(X, P_({ drop: .08, lean: -6, aL: [80, 10, 30], aR: [80, 10, 30] }), mid.position); X.W.updateMatrixWorld(true); brazoIK(X.H, i ? 1 : 0, e, 1); brazoIK(X.H, i ? 0 : 1, e, 1); });
+    cuerdaLimbo(ea, eb); mid.position.copy(ea).add(eb).multiplyScalar(.5).y -= .4;
+    PASAN.forEach((X, k) => { const s = (t * VL / LIMBO.L + k / 3) % 1, p = enRuta(LIMBO, s), d = tg(LIMBO, s);
+      const cerca = Math.max(0, 1 - Math.abs(((s - sCruce + 1.5) % 1) - .5) * LIMBO.L / .9);   // cerca de la cuerda
+      parado(X, p.x, 0, p.z, d.x, d.z); caminar(X.H, (t * VL + k * LIMBO.L / 3) / .7, 1);
+      poner(X, P_({ drop: .04 + .42 * sm(cerca), lean: 4 - 52 * sm(cerca), aL: [40 + 50 * cerca, 30 + 50 * cerca, 20], aR: [40 + 50 * cerca, 30 + 50 * cerca, 20] })); });
+  };
+
+  /* ── 5. Público que baila y salta en lo oscuro ── */
+  const BAILAN = [[14.5, 9.6], [15.4, 10.7], [9.9, 9.7], [10.6, 10.6], [13.9, 2.5], [10.0, 1.8], [18.4, 10.6], [12.4, 10.9]].map(([x, z], k) => ({ X: cuerpo(null, ropaPublico(k + 7), 1.62 + .04 * (k % 4)), x, z, f: 1.9 + .15 * (k % 3), s: k * .7 }));
+  const pogo = t => BAILAN.forEach(({ X, x, z, f, s }) => {   // saltan con g: altura .25 m
+    const T0 = 1 / f, tau = ((t + s) % T0), vu = Math.sqrt(2 * GRAV * .25), tv = 2 * vu / GRAV, y = tau < tv ? vu * tau - .5 * GRAV * tau * tau : 0;
+    parado(X, x, y, z, C0.x - x, C0.z - z); quietas(X); poner(X, P_({ drop: tau < tv ? .02 : .14 * Math.sin(Math.PI * (tau - tv) / (T0 - tv)), lean: 6, aL: [165, 20, 10], aR: [y > .1 ? 175 : 120, 20, 30], tuck: y > .05 ? .08 : 0 })); });
+
+  anims.push(t => {
+    const tt = ((t % T_) + T_) % T_;
+    persecucion(tt);
+    let uS = 99; FILA.forEach((X, k) => { const u = ((tt - (2 + CICLO * k)) % T_ + T_) % T_; surfer(X, u, tt); if (u < 15.5) uS = u; });
+    llevar(tt, uS); const s0 = FILA.find((X, k) => ((tt - (2 + CICLO * k)) % T_ + T_) % T_ < 15.5); marca.position.copy(s0 ? s0.W.position : v1.set(tx, 2, tz - 1.6)).y -= 1.1;
+    BAJAN.forEach((X, k) => tobogan(X, ((tt + k * 8) % 16), tt));
+    limbo(tt); pogo(tt);
+  });
+}
+
 const dashMat = (c, ds = .32, gs = .2) => new THREE.LineDashedMaterial({ color: c, dashSize: ds, gapSize: gs });
 function curveOf(pts, closed = false) {
   const v = pts.map(p => new THREE.Vector3(...p));
@@ -2131,18 +2313,22 @@ const SCENES = [
       'Estrobos: aviso al público por fotosensibilidad; dónde se esconden en el escenario y el cableado',
       'Proyector apagado durante la escena (comparten la tela)'],
     build() { escenaPelea(); } },
-  { n: 14, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
-    guion: 'Se mete una escalera dentro del público y el Capitán Psicodelia invita a todos a subirse; entre staff y público se arma un mosh mutuo. En paralelo, en el aire, dos performers femeninas corren tipo correcaminos: una persecución, un enfrentamiento aéreo.',
-    esp: [['Escalera junto a la tarima, en el centro de la pista', 1], ['Zona de mosh alrededor de la tarima (radio ≈ 3,5 m)', 1], ['Correcaminos en danza vertical sobre el Pelea telón', 1]],
-    tec: ['Escalera de mosh', 'Arneses de danza vertical ×2', 'Staff de contención'],
-    pend: ['Staff de seguridad para el mosh', 'Tipo de escalera y quién la ingresa'],
-    build() {
-      figure('Cap. Psicodelia', [10.9, 1, 6.5]);
-      segs([[8.6, 0, 5.9], [8.9, 2.4, 6.2], [8.6, 0, 6.9], [8.9, 2.4, 6.6], [9.4, 0, 5.9], [8.9, 2.4, 6.2], [9.4, 0, 6.9], [8.9, 2.4, 6.6]], new THREE.LineBasicMaterial({ color: ORANGE }), sceneGroup);
-      ring([10.9, 6.5], 3.5, ORANGE);
-      wallRunner('Correcaminos 1', null, t => 6.5 + Math.sin(t * .7) * 2.1, t => 5.2 + Math.sin(t * 1.3) * .6);
-      wallRunner('Correcaminos 2', null, t => 6.5 + Math.sin(t * .7 - .9) * 2.1, t => 5.4 + Math.cos(t * 1.1) * .6);
-    } },
+  { n: 14, t: 'MOSH', k: 'Escena · todo a la vez', el: ['tarima', 'techo'], tarima: MOSH.tarima, cam: 'escMosh',
+    guion: 'Todo en simultáneo. En la sala hay un tobogán por el que se tira el público. La tarima se transforma: el público hace fila, se tira y "nada" sobre los brazos del público y de los performers, que lo llevan sobre sus cabezas por la sala. Dos actores estiran una cuerda y el público pasa por abajo haciendo el limbo. En el aire, dos performers corren en círculo simulando una persecución. Luz de fiesta y estrobos, con foco en donde pasa la acción y el resto más oscuro.',
+    esp: [['Persecución: las 2 cuelgan del mismo swivel del motor central (cuerdas de 4 m, supuesto). Arrancan corriendo en el piso en un círculo de 2,6 m de radio, enfrentadas. El motor sube el swivel, las cuerdas las cierran hacia el centro y, como el momento angular se conserva, giran cada vez más rápido'],
+      ['Se despegan del piso cuando el cono se sostiene solo (≈ 2,2 m de radio, ≈ 3,8 m/s) y siguen girando en el aire mientras el motor las sube; al final bajan, aterrizan corriendo y frenan'],
+      ['Tarima: corrida hacia los accesos, fuera del círculo de las cuerdas. Fila por un escalón al costado; cada 20 s uno se tira hacia la sala y lo agarran 6 personas (4 del público y 2 performers), que lo llevan en una vuelta y lo bajan al lado de la tarima', 1],
+      ['Tobogán contra la pared lateral: escalera, plataforma a 2,6 m y rampa de ≈ 31°. Bajan en ≈ 1,7 s y frenan en la parte plana (rozamiento supuesto)', 1],
+      ['Limbo: 2 actores estiran una cuerda y el público pasa por abajo; cada vuelta la cuerda baja (1,35 → 1,2 → 1,05 m)'],
+      ['Público que salta y baila en las zonas oscuras']],
+    tec: ['Motor central + swivel', '2 arneses y 2 cuerdas de 4 m', 'Tobogán (propuesta)', 'Tarima con escalón', 'Cuerda de limbo', 'Estrobos', 'Staff de seguridad'],
+    pend: ['Largo de las cuerdas del swivel (supuesto 4 m) y altura de las performers (1,70 m)',
+      'Al empezar, el público tiene que dejar libre un anillo de ≈ 3 m de radio alrededor del motor central: las performers corren en el piso y las cuerdas barren esa zona',
+      'Vestuario de las performers del aire, de los actores del limbo y del staff: sin referencia (supuesto)',
+      'Tobogán: medidas, dónde se consigue y cómo se ingresa a la sala',
+      'Crowd surfing: staff y performers abajo de la tarima para recibir; seguro y protocolo',
+      'Si la tarima se puede correr a esa posición o se deja en el centro (ahí la barren las cuerdas del swivel)'],
+    build() { escenaMosh(); } },
   { n: 15, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'telon'], cam: 'publico', luz: 'pico',
     guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
     esp: [['Cuenta regresiva proyectada sobre la pantalla', 1], ['Línea de efectos al frente del escenario', 1]],
@@ -2425,7 +2611,7 @@ const LOOKS = {
   11: { txt: 'Miami 90: cian y magenta a fondo, beams rápidos, estrobos y seguidores sobre Chicho Sarli.', wash: { c: [P.c, P.m], i: .75, aim: 'fan' }, beam: { c: [P.m, P.c], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .6, c: P.c }, seg: ['Chicho Sarli'] },
   13: { txt: 'Sala a oscuras con la contra del backstage a pleno: las peleadoras se ven en silueta sobre la tela. Dos estrobos de piso, uno en cada punta del escenario, disparan alternados: la sombra de la pelea salta de un lado al otro de la tela, lento en las pausas y a toda velocidad en los golpes. Apagón cuando cae la Peleadora 2.', contra: .45, wash: { c: P.v, i: .05, aim: 'pista' } },
   12: { txt: 'Transición contenida: ámbar bajo, beams fijos hacia el piso.', wash: { c: P.a, i: .35, aim: 'pista' }, beam: { c: P.a, i: .25, aim: 'down' }, parU: { i: .4, c: P.a } },
-  14: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
+  14: { txt: 'Fiesta: colores saturados que cambian rápido y estrobos. Los beams van a donde pasa la acción (el que nada sobre el público, el limbo, el tobogán y las corredoras del aire) y los seguidores toman a las corredoras; el resto de la sala queda más oscuro.', wash: { c: [P.m, P.v, P.c], i: .22, aim: 'fan' }, beam: { c: [P.m, P.c, P.g, P.o, P.v], i: 1, aim: 'track', names: ['Nadador', 'Corredora 1', 'Limbo', 'Tobogán', 'Corredora 2'] }, strobe: 'on', parU: { i: .25, c: P.m }, seg: ['Corredora 1', 'Corredora 2'] },
   15: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
   16: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
   17: { txt: 'Cajón: los beams de las torres siguen a cada performer mientras pendula, violeta de fondo y un seguidor por performer. Al final, el humo, las luces y el láser salen del propio Cajón.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Performer 1', 'Performer 2'] }, parU: { i: .5, c: P.v }, seg: ['Performer 1', 'Performer 2'] },
@@ -3545,6 +3731,7 @@ const VIEWS = {
   mecCajon: { pos: R(19, 2.2, 0.5), target: R(TOR.x, 6.5, 6.5) },
   mecToroide: { pos: R(19, 3.5, 1), target: R(TOR.x, 7.5, 6.5) },
   mecCabeza: { pos: R(15.5, 5, 0.8), target: R(SX + 2, 4.2, 6.5) },
+  escMosh: { pos: R(5.2, 8.5, -1.5), target: R(12.5, 1.5, 6.8) },
   escPelea: { pos: R(13.5, 4.3, 8.6), target: R(TEL.xPegado, 4.1, 6.5) },
   escCabeza: { pos: R(14.5, 3.6, 2.2), target: R(SX + 2, 3.4, 6.5) },
   mecAgujero: { pos: R(19, 1.8, 0.6), target: R(SX + 8, 9.5, 6.5) },
