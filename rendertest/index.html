@@ -790,7 +790,7 @@ function vestir(H, R) {
   const rem = R.remera ? tela(R.remera.c, R.remera.rough ?? .8) : piel, mangas = R.remera?.mangas, largas = mangas === 'largas' || mangas === 'campana';
   [H.M.head, H.M.neck].forEach(m => m.material = piel); H.M.visor.visible = false;
   H.arms.forEach(a => { a.m.hand.material = piel; a.m.upper.material = a.m.fore.material = a.m.jEl.material = largas ? rem : piel; a.m.jSh.material = mangas ? rem : piel; });
-  const pierna = R.pantalon ? tela(R.pantalon.c) : R.habito ? tela(R.habito) : piel;
+  const pierna = R.pantalon ? tela(R.pantalon.c) : R.habito ? tela(R.habito) : piel;   // con falda: piernas de piel (y medias si hay)
   H.legs.forEach(l => { l.m.thigh.material = l.m.shin.material = l.m.jKn.material = pierna; l.m.foot.material = piel; });
   // cara: nariz para leer hacia dónde mira
   add(H.neck, new THREE.BoxGeometry(.012 * h, .02 * h, .016 * h), piel, [0, d.headY - .002 * h, .057 * h]);
@@ -878,6 +878,10 @@ function vestir(H, R) {
     add(H.neck, new THREE.CylinderGeometry(.058 * h, .088 * h, .022 * h, 24, 1, true), s, [0, hy + .022 * h, -.004 * h]).material.side = THREE.DoubleSide;
     if (R.pin) add(H.neck, new THREE.CircleGeometry(.009 * h, 16), tela(R.pin, .5), [0, hy + .055 * h, .052 * h], [-.12, 0, 0]);
   }
+  if (R.cofia) {   // cofia de enfermera con cruz roja
+    const c = add(H.neck, new THREE.BoxGeometry(.1 * h, .032 * h, .05 * h), tela(R.cofia, .7), [0, hy + .07 * h, .012 * h], [-.35, 0, 0]);
+    const roja = tela(0xd63a3a, .6); add(c, new THREE.BoxGeometry(.026 * h, .007 * h, .002 * h), roja, [0, 0, .026 * h]); add(c, new THREE.BoxGeometry(.007 * h, .026 * h, .002 * h), roja, [0, 0, .026 * h]);
+  }
   if (R.toca) {   // toca blanca que enmarca la cara + velo negro + cuello blanco sobre los hombros
     const blanco = doble(R.toca.c), negro = doble(R.toca.velo), abre = 1.9, faceL = Math.PI / 2 + abre / 2;
     add(H.neck, new THREE.SphereGeometry(.064 * h, 20, 14, faceL, Math.PI * 2 - abre, 0, Math.PI * .7), blanco, [0, hy + .002 * h, -.002 * h]).scale.set(.95, 1.12, 1.05);
@@ -885,12 +889,12 @@ function vestir(H, R) {
     add(H.neck, new THREE.BoxGeometry(.12 * h, .2 * h, .012 * h), negro, [0, hy - .1 * h, -.068 * h], [.12, 0, 0]);
     add(H.chest, new THREE.CylinderGeometry(.045 * h, .125 * h, .085 * h, 24, 1, true).scale(1, 1, .72), blanco, [0, d.chestH - .02 * h, .004 * h]);
   }
-  if (R.habito) {   // pollera larga: cono abierto colgado de la cintura; posar() le ajusta el largo y el vuelo
-    const geo = new THREE.CylinderGeometry(.08 * h, .2 * h, 1, 28, 4, true).translate(0, -.5, 0);
-    const mesh = add(H.pelvis, geo, doble(R.habito), [0, .05 * h, 0]);
+  if (R.habito || R.falda) {   // pollera: cono abierto colgado de la cintura (larga del hábito o a la rodilla); posar() le ajusta el largo y el vuelo
+    const geo = new THREE.CylinderGeometry(.08 * h, R.falda ? .13 * h : .2 * h, 1, 28, 4, true).translate(0, -.5, 0);
+    const mesh = add(H.pelvis, geo, doble(R.habito ?? R.falda.c), [0, .05 * h, 0]);
     const pos = geo.attributes.position, dirs = [];
     for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = pos.getZ(i), r = Math.hypot(x, z) || 1; dirs.push([x / r, z / r, -pos.getY(i)]); }
-    H.pollera = { mesh, dirs, rT: .08 * h, rB: .2 * h, top: .05 * h };
+    H.pollera = { mesh, dirs, rT: .08 * h, rB: R.falda ? .13 * h : .2 * h, top: .05 * h, ruedo: R.falda ? R.falda.ruedo * h : .035 * h };
   }
   if (R.tachas) {   // tachas de la campera: hombros, solapas y mangas
     const g = new THREE.SphereGeometry(.0055 * h, 6, 4), m = tela(R.tachas, .25), y0 = d.chestH - .012 * h;
@@ -956,7 +960,7 @@ function posar(H, P, look) {
   }
   H.neck.rotation.set(nx * DEG - H.spine.rotation.x - H.chest.rotation.x, ny * DEG, 0);
   if (H.pollera) {   // la pollera llega a los tobillos: al agacharse se junta y se abre, al girar vuela (H.vuelo)
-    const pl = H.pollera, len = Math.max(.15 * d.h, py + pl.top - (.035 * d.h + P.lift));
+    const pl = H.pollera, len = Math.max(.15 * d.h, py + pl.top - (pl.ruedo + P.lift));
     const vuelo = 1 + (H.vuelo ?? 0) + 1.1 * P.drop, pos = pl.mesh.geometry.attributes.position;
     pl.mesh.scale.y = len; pl.mesh.frustumCulled = false;
     pl.dirs.forEach(([dx, dz, f], i) => { const r = pl.rT + (pl.rB * vuelo - pl.rT) * f; pos.setX(i, dx * r); pos.setZ(i, dz * r * .85); });
@@ -1356,6 +1360,109 @@ function tragamonedas(ruta) {
   return { TM, P, TOTAL };
 }
 
+/* ───────── Enfermera de los shots (escena 0) ─────────
+   Enfermera con una bandeja de jeringas (sin aguja): cada jeringa es un shot de vodka. Se acerca alguien del público,
+   ella le vacía una jeringa en la boca y la persona se va borracha (camina zigzagueando, se tambalea).
+   Marcha: el pie apoyado queda quieto en el piso (fase del paso atada a la distancia recorrida). */
+const ROPA_ENFERMERA = { piel: 0xe8c3a3, pelo: { tipo: 'largo', c: 0x6b4426 }, remera: { c: 0xf6f6f2, mangas: true, ribete: 0xd63a3a },
+  falda: { c: 0xf6f6f2, ruedo: .3 }, medias: { c: 0xf4f4f4 }, zapas: { c: 0xf4f4f4 }, cofia: 0xf6f6f2 };   // enfermera clásica (supuesto: sin referencia)
+const ROPA_PUBLICO_2 = { piel: 0xc99a74, pelo: { tipo: 'corto', c: 0x1e1610 }, remera: { c: 0xb8432f, mangas: true }, pantalon: { c: 0x3a3a3a }, zapas: { c: 0x222222 } };
+// marcha genérica: el pie apoyado va hacia atrás a la velocidad del cuerpo; en el aire avanza y se levanta.
+// f = distancia / largo del ciclo · fAlza ≠ f: pasos en el lugar (los pies quedan quietos y solo se levantan alternados)
+function caminar(H, f, alza, ciclo = .9, fAlza = f) {
+  const DUTY = .6, paso = ciclo * DUTY, sm = u => u * u * (3 - 2 * u);
+  H.feet0 ??= H.feet.map(x => [...x]);
+  H.feet.forEach((pie, i) => { const uu = ((f + i * .5) % 1 + 1) % 1, ua = ((fAlza + i * .5) % 1 + 1) % 1, f0 = H.feet0[i];
+    pie[0] = f0[0]; pie[1] = uu < DUTY ? f0[1] + paso / 2 - paso * uu / DUTY : f0[1] - paso / 2 + paso * sm((uu - DUTY) / (1 - DUTY));
+    pie[2] = ua < DUTY ? 0 : .09 * Math.sin(Math.PI * (ua - DUTY) / (1 - DUTY)) * alza; });
+}
+function jeringa() {   // jeringa oral de 14 cm sobre el eje +z (punta en +z): cuerpo transparente, líquido, émbolo
+  const g = new THREE.Group(), vidrio = matCache.jerVidrio ??= new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .35, roughness: .1, depthWrite: false });
+  const cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .1, 12).rotateX(Math.PI / 2), vidrio); g.add(cuerpo);
+  const liquido = new THREE.Mesh(new THREE.CylinderGeometry(.009, .009, 1, 10).rotateX(Math.PI / 2).translate(0, 0, .5), tela(0xdff3ff, .2)); liquido.position.z = -.048; liquido.scale.z = .095; g.add(liquido);
+  const pico = new THREE.Mesh(new THREE.ConeGeometry(.006, .02, 8).rotateX(Math.PI / 2), vidrio); pico.position.z = .06; g.add(pico);
+  const embolo = new THREE.Group(); embolo.position.z = -.05; g.add(embolo);
+  const blanco = tela(0xf2f2f2, .6); embolo.add(new THREE.Mesh(new THREE.BoxGeometry(.004, .012, .06), blanco)).position.z = -.03;
+  embolo.add(new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .004, 12).rotateX(Math.PI / 2), blanco)).position.z = -.06;
+  g.userData = { liquido, embolo };
+  g.vaciar = k => { liquido.scale.z = .095 * (1 - k) + .001; embolo.position.z = -.05 + .095 * k; };   // k: 0 llena · 1 vacía
+  return g;
+}
+function enfermera(pos) {
+  const ENF = humano('Enfermera', pos, { h: 1.65, ropa: ROPA_ENFERMERA, face: Math.PI / 2 });   // mira hacia +x (los accesos)
+  const PUB = humano('Público', [0, 0, 0], { h: 1.75, ropa: ROPA_PUBLICO_2 }); PUB.feet0 = PUB.feet.map(f => [...f]);
+  // bandeja con 12 jeringas en la mano izquierda
+  const bandeja = new THREE.Group(); sceneGroup.add(bandeja);
+  bandeja.add(new THREE.Mesh(new THREE.BoxGeometry(.36, .015, .26), tela(0xd8dde2, .3)));
+  const jer = []; for (let i = 0; i < 12; i++) { const j = jeringa(); j.position.set(-.135 + (i % 4) * .09, .022, -.08 + Math.floor(i / 4) * .08); j.rotation.y = Math.PI / 2; bandeja.add(j); jer.push(j); }
+  const enUso = jeringa(); sceneGroup.add(enUso);
+  const chorro = (() => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3)); const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xdff3ff })); l.frustumCulled = false; sceneGroup.add(l); return l; })();
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), CICLO = 18, LEJOS = 2.5, CERCA = .7;
+  const fwd = new THREE.Vector3(Math.sin(Math.PI / 2), 0, Math.cos(Math.PI / 2)), lat = new THREE.Vector3(0, 0, 1);
+  const P0 = new THREE.Vector3(...pos), boca = new THREE.Vector3(), palma = new THREE.Vector3(), v = new THREE.Vector3(), dir = new THREE.Vector3(), Z1 = new THREE.Vector3(0, 0, 1);
+  // camino de la vuelta, borracho: zigzag lento y avanza a los tirones (siempre hacia adelante); el bamboleo va en el cuerpo
+  const sale = fwd.clone().addScaledVector(lat, .25).normalize(), costado = new THREE.Vector3(sale.z, 0, -sale.x);   // se va en diagonal, lejos de la enfermera y de la tragamonedas
+  const vuelta = s => v.copy(P0).addScaledVector(fwd, CERCA).addScaledVector(sale, s).addScaledVector(costado, .3 * Math.sin(s * 1.6)).clone();
+  const avance = tau => Math.max(0, .55 * tau + .24 * Math.sin(tau * 2.1));
+  anims.push(t => {
+    const ciclo = Math.floor(t / CICLO), tau = ((t % CICLO) + CICLO) % CICLO, idx = ((ciclo % 12) + 12) % 12;
+    // ── público: llega, junta los pies, inclina la cabeza para atrás, toma; se da vuelta y se va borracho
+    PUB.g.visible = tau < 15.5;
+    const llega = tau < 2.5 ? sm(tau / 2.5) : 1, gira = sm((tau - 6.2) / 1);
+    let pp = P_({ drop: .03, lean: 2, aL: [10, 10, 15], aR: [10, 10, 15] }), mira = null;
+    if (tau < 7.2) {   // llega y toma
+      PUB.g.position.copy(P0).addScaledVector(fwd, CERCA + LEJOS * (1 - llega)); PUB.g.rotation.y = -Math.PI / 2 + Math.PI * gira;
+      const ph = LEJOS * llega / .9, andando = tau < 2.5 ? 1 : 0;
+      caminar(PUB, ph, Math.max(andando, gira > 0 && gira < 1 ? 1 : 0), .9, ph + 2 * gira);
+      const junta = sm((tau - 2.5) / .4) * (1 - sm((tau - 7.2) / .4));
+      PUB.feet.forEach((pie, i) => { pie[1] += (PUB.feet0[i][1] - pie[1]) * junta; });
+      pp = P_({ ...pp, aL: [10 + 18 * Math.sin(ph * 2 * Math.PI) * andando, 10, 15], aR: [10 - 18 * Math.sin(ph * 2 * Math.PI) * andando, 10, 15] });
+      const toma = sm((tau - 3.8) / .5) * (1 - sm((tau - 5.8) / .5));   // cabeza para atrás, boca abierta al cielo
+      pp = mixPose(pp, P_({ drop: .06, lean: -10, aL: [15, 20, 20], aR: [15, 20, 20] }), toma);
+      mira = toma > .05 ? v.copy(PUB.g.position).addScaledVector(fwd, -.4).setY(4) : v.copy(ENF.g.position).setY(1.55);
+    } else {   // se va borracho
+      const tt = tau - 7.2, s = avance(tt), p = vuelta(s), p2 = vuelta(s + .05);
+      PUB.g.position.set(p.x, 0, p.z); const rumboPub = Math.atan2(p2.x - p.x, p2.z - p.z); PUB.g.rotation.y = Math.PI / 2 + Math.atan2(Math.sin(rumboPub - Math.PI / 2), Math.cos(rumboPub - Math.PI / 2)) * sm(tt / .8);   // gira de a poco hacia el camino
+      const abre = sm(tt / .5), entra = sm(tt / 1);   // arranca de a poco: abre los pies y empieza a tambalearse
+      PUB.feet0.forEach((f, i) => { f[0] = (i ? -1 : 1) * (.085 * 1.75 + (.2 - .085 * 1.75) * abre); });   // pies abiertos para no caerse
+      caminar(PUB, s / .8 - .2, abre, .8);   // arranca con un pie apoyado en el lugar y el otro a mitad de paso: los dos en z = 0, como estaban
+      pp = mixPose(pp, P_({ drop: .08 + .05 * Math.sin(tt * 3.1), lean: 10 + 12 * Math.sin(tt * 1.7), aL: [40 + 20 * Math.sin(tt * 2.3), 45, 30], aR: [40 + 20 * Math.sin(tt * 1.9 + 1), 45, 30] }), entra);
+      mira = v.copy(PUB.g.position).addScaledVector(fwd, 3).setY(1 + .8 * Math.sin(tt * .9));
+    }
+    if (tau < 1) PUB.feet0.forEach((f, i) => { f[0] = (i ? -1 : 1) * .085 * 1.75; });
+    PUB.g.updateMatrixWorld(true); posar(PUB, pp, mira);
+    if (tau >= 7.2) { const tt = tau - 7.2, entra = sm(tt / 1); PUB.chest.rotation.z = .25 * Math.sin(tt * 1.3) * entra; PUB.neck.rotation.z = .3 * Math.sin(tt * 1.1 + .5) * entra; }   // se tambalea
+    else { PUB.chest.rotation.z = 0; PUB.neck.rotation.z = 0; }
+    // ── enfermera: bandeja en la izquierda; con la derecha agarra una jeringa, la vacía en la boca y la devuelve
+    const agarra = sm((tau - 3) / .5), lleva = sm((tau - 3.5) / .6), vuelve = sm((tau - 5.6) / .6), deja = sm((tau - 6.2) / .4);
+    let aR = [10, 10, 15];
+    aR = mixPose({ a: aR }, { a: [42, -38, 62] }, agarra * (1 - lleva)).a;
+    aR = mixPose({ a: aR }, { a: [92, -8, 38] }, lleva * (1 - vuelve)).a;
+    aR = mixPose({ a: aR }, { a: [42, -38, 62] }, vuelve * (1 - deja)).a;
+    const ep = P_({ drop: .04 + .01 * Math.sin(t * 2), lean: 4 + 6 * lleva * (1 - vuelve), aL: [58, 14, 82], aR });
+    posar(ENF, ep, PUB.g.visible ? v.copy(PUB.g.position).setY(1.6) : null);
+    ENF.g.updateMatrixWorld(true);
+    // bandeja: horizontal, delante de la mano izquierda
+    ENF.arms[0].palm.getWorldPosition(palma); sceneGroup.worldToLocal(palma);
+    bandeja.position.copy(palma).addScaledVector(fwd, .08).add(v.set(0, .03, 0)); bandeja.rotation.y = ENF.g.rotation.y;
+    // jeringa en uso: en la bandeja, en la mano, o con la punta en la boca mientras la vacía
+    const enMano = tau > 3.4 && tau < 6.4, enBoca = sm((tau - 4) / .3) * (1 - sm((tau - 5.5) / .3));
+    jer.forEach((j, i) => { j.visible = !(i === idx && enMano); j.vaciar(i === idx && tau >= 6.4 ? 1 : 0); });
+    enUso.visible = enMano;
+    chorro.visible = false;
+    if (enMano) {
+      ENF.arms[1].palm.getWorldPosition(palma); sceneGroup.worldToLocal(palma);
+      PUB.neck.localToWorld(boca.set(0, PUB.d.headY - .025 * PUB.d.h, .05 * PUB.d.h)); sceneGroup.worldToLocal(boca);   // la boca, con la cabeza inclinada para atrás
+      dir.subVectors(boca, palma).normalize();
+      const punta = palma.clone().addScaledVector(dir, .1).lerp(boca.clone().addScaledVector(dir, -.005), enBoca);
+      enUso.position.copy(punta).addScaledVector(dir, -.065); enUso.quaternion.setFromUnitVectors(Z1, dir);
+      const vacia = sm((tau - 4.4) / 1); enUso.vaciar(vacia);
+      if (vacia > 0 && vacia < 1) { chorro.visible = true; const a = chorro.geometry.attributes.position; a.setXYZ(0, punta.x, punta.y, punta.z); a.setXYZ(1, boca.x, boca.y - .01, boca.z); a.needsUpdate = true; }
+    }
+  });
+  return { ENF, PUB };
+}
+
 const dashMat = (c, ds = .32, gs = .2) => new THREE.LineDashedMaterial({ color: c, dashSize: ds, gapSize: gs });
 function curveOf(pts, closed = false) {
   const v = pts.map(p => new THREE.Vector3(...p));
@@ -1414,16 +1521,18 @@ const SCENES = [
     guion: 'Bloque previo al show. Un DJ sostiene la hora completa mientras los personajes entran por el lounge y la pista e interactúan con el público.',
     esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'],
       ['Tragamonedas humana: 3 performers adentro de una estructura de madera liviana colgada de los hombros, con 3 compartimentos y 3 objetos en cada uno (manzana, limón, naranja). Alguien del público toca el botón de afuera y las 3 eligen un objeto al mismo tiempo; si coinciden los 3, gana. En el visor siempre salen distintos: el público no gana'],
-      ['Recorrido de la tragamonedas por la pista, con 3 paradas para jugar', 1], ['Voleibolistas haciendo “pepper” (remate con salto de 0,5 m, pase de antebrazos y armado); la pelota vuela con gravedad real', 1], ['Tarima estacionada contra la pared para liberar la pista', 1]],
-    tec: ['Sonido DJ', 'Tragamonedas: estructura de madera liviana con 3 compartimentos, botón y cartel JACKPOT', 'Shots de la enfermera'],
+      ['Recorrido de la tragamonedas por la pista, con 3 paradas para jugar', 1],
+      ['Enfermera con una bandeja de jeringas: alguien del público se acerca, ella le vacía una jeringa (shot de vodka) en la boca y la persona se va borracha'], ['Voleibolistas haciendo “pepper” (remate con salto de 0,5 m, pase de antebrazos y armado); la pelota vuela con gravedad real', 1], ['Tarima estacionada contra la pared para liberar la pista', 1]],
+    tec: ['Sonido DJ', 'Tragamonedas: estructura de madera liviana con 3 compartimentos, botón y cartel JACKPOT', 'Shots de la enfermera: bandeja con jeringas orales (sin aguja) cargadas con vodka'],
     pend: ['Recorrido lounge → pista', 'Dónde se guarda la tragamonedas entre pasadas', 'Rutina real de los voleibolistas (hoy: pepper, supuesto)', 'Altura de los voleibolistas (supuesto: 1,90 m)',
       'Tragamonedas: altura de las performers (supuesto 1,65 m), medidas y peso de la estructura (supuesto ≈ 1,95 × 0,6 × 1,6 m, colgada de los hombros con tiradores)',
-      'Tragamonedas: el botón, ¿hace sonido o luz?', 'Público que juega: vestuario genérico (supuesto)'],
+      'Tragamonedas: el botón, ¿hace sonido o luz?', 'Público que juega: vestuario genérico (supuesto)',
+      'Enfermera: vestuario clásico (supuesto, falta referencia) y altura 1,65 m (supuesto)', 'Shots: cuántas jeringas por noche, cómo se reponen y control de quién toma (edad, cantidad)'],
     build() {
       dj();
       const v1 = humano('Voleibolista', [8.8, 0, 4.4], { face: 0, ropa: ROPA_70.v69 }), v2 = humano('Voleibolista', [8.8, 0, 8.6], { face: Math.PI, ropa: ROPA_70.v77 });
       pepper(v1, v2);
-      figure('Enfermera', [14.5, 0, 9.4]);
+      enfermera([14.5, 0, 9.4]);
       tragamonedas([[12, 0, 3.3], [16.8, 0, 3.3], [17.6, 0, 5.8], [16.2, 0, 7.3], [12.4, 0, 7.3], [11, 0, 5.4]]);
     } },
   { n: 1, t: 'Intro', k: 'Escena de apertura', el: ['torreC', 'techo'], cam: 'iso',
