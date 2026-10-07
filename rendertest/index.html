@@ -860,7 +860,8 @@ function vestir(H, R) {
   if (R.pelo?.tipo === 'largo') {
     add(H.neck, new THREE.SphereGeometry(.061 * h, 16, 12, 0, Math.PI * 2, 0, Math.PI * .58), pelo, [0, hy + .004 * h, -.004 * h], [-.35, 0, 0]).scale.set(.95, 1.12, 1.04);
     add(H.neck, new THREE.CapsuleGeometry(.04 * h, .07 * h, 4, 10).scale(1.25, 1, .55), pelo, [0, hy - .045 * h, -.03 * h]);
-  } else if (R.pelo?.tipo === 'cresta') {   // cresta punk: púas a lo largo de la línea media, más altas arriba
+  } else if (R.pelo?.tipo === 'corto') add(H.neck, new THREE.SphereGeometry(.061 * h, 16, 12, 0, Math.PI * 2, 0, Math.PI * .5), pelo, [0, hy + .006 * h, -.006 * h], [-.25, 0, 0]).scale.set(.95, 1.1, 1.03);
+  else if (R.pelo?.tipo === 'cresta') {   // cresta punk: púas a lo largo de la línea media, más altas arriba
     const cono = new THREE.ConeGeometry(.014 * h, 1, 6).translate(0, .5, 0);
     for (let i = 0; i < 13; i++) { const a = .55 - i * .2, dir = new THREE.Vector3(0, Math.cos(a), Math.sin(a));
       for (const x of [-.007, .007]) { const len = (.07 + .11 * Math.max(0, Math.cos(a - .1))) * h * (x > 0 ? 1 : .85);
@@ -936,6 +937,7 @@ function posar(H, P, look) {
     const fx = H.feet[i][0], fz = H.feet[i][1] + ((P.pieZ ?? 0) - H.feet[i][1]) * kp;
     let ay = d.ankle + Math.sin(toe) * d.foot * .7;              // talón levantado: el pie pivota sobre la punta
     if (kp) ay += ((P.pieY ?? ay) - ay) * kp;
+    ay += H.feet[i][2] || 0;                                      // pie levantado al caminar (marcha)
     ay = Math.max(ay, py - (L1 + L2) * (.985 - P.tuck));         // en el aire el pie cuelga de la cadera
     const dx = fx - l.sg * d.hipHalf, dy = ay - py, dz = fz - pz;
     const abd = Math.atan2(dx, -dy), r = Math.hypot(dx, dy);
@@ -1233,6 +1235,127 @@ function escenaMonja() {
   return { monja, punk, RMAX, pasadas, TOTAL };
 }
 
+/* ───────── Tragamonedas humana (escena 0) ─────────
+   Estructura de madera liviana colgada de los hombros de 3 performers, con 3 compartimentos (uno por performer).
+   En cada compartimento hay 3 objetos: manzana, limón y naranja. Alguien del público toca el botón de afuera y cada
+   performer elige uno al mismo tiempo; si coinciden los 3, gana (acá siempre salen distintos). Durante el warm up la estructura camina por la pista.
+   Marcha: la fase del paso va atada a la distancia recorrida, así el pie apoyado no patina. */
+const ROPA_TRAGA = [   // referencia de producción: rayada naranja, satén lima, verde
+  { piel: 0xe8c0a0, pelo: { tipo: 'largo', c: 0x5a3a22 }, remera: { c: 0xf4efe6, mangas: 'largas', franjas: [0, .022, .044, .066, .088], franjaC: 0xe0552e }, pantalon: { c: 0x3a4a6a }, zapas: { c: 0xeeeeea } },
+  { piel: 0xf0cfb0, pelo: { tipo: 'largo', c: 0xd9b56a }, remera: { c: 0xd8e04a, rough: .35 }, pantalon: { c: 0x232325 }, zapas: { c: 0xeeeeea } },
+  { piel: 0x8a5a3c, pelo: { tipo: 'afro', c: 0x2a1a12 }, remera: { c: 0x2e9e5a, mangas: true }, pantalon: { c: 0x2a2a2a }, zapas: { c: 0xeeeeea } }
+];
+const ROPA_PUBLICO = { piel: 0xd8a982, pelo: { tipo: 'corto', c: 0x3a2a1e }, remera: { c: 0x3b6fb6, mangas: true }, pantalon: { c: 0x2f3e5c }, zapas: { c: 0xeeeeea } };   // genérico (supuesto)
+function cartelMat(tipo) {   // el 7 de cada compartimento y el cartel JACKPOT
+  return matCache['cartel' + tipo] ??= (() => {
+    const cv = document.createElement('canvas'), x = cv.getContext('2d');
+    if (tipo === '7') { cv.width = 128; cv.height = 96; x.fillStyle = '#f6d23a'; x.fillRect(0, 0, 128, 96); x.fillStyle = '#ffffff'; x.fillRect(8, 8, 112, 80);
+      x.fillStyle = '#d4232a'; x.font = '900 78px "Arial Black", Impact, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('7', 64, 52); }
+    else { cv.width = 512; cv.height = 220; x.fillStyle = '#d4232a'; x.beginPath(); x.moveTo(10, 210); x.lineTo(10, 110); x.quadraticCurveTo(256, -40, 502, 110); x.lineTo(502, 210); x.closePath(); x.fill();
+      x.fillStyle = '#ffe9a0'; for (let i = 0; i < 26; i++) { const u = i / 25, px = 24 + u * 464, py = 118 - Math.sin(u * Math.PI) * 78; x.beginPath(); x.arc(px, py, 6, 0, 7); x.fill(); }
+      x.font = '900 92px "Arial Black", Impact, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 8; x.strokeStyle = '#7a1014'; x.strokeText('JACKPOT', 256, 150); x.fillStyle = '#f6d23a'; x.fillText('JACKPOT', 256, 150); }
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshBasicMaterial({ map: t, transparent: true, toneMapped: tipo === '7', side: THREE.DoubleSide });   // solo el JACKPOT brilla de más (bloom)
+  })();
+}
+function tragamonedas(ruta) {
+  const W = .65, D = .62, y0 = .85, yS = 1.12, yV = 1.75, yT = 1.98, e = .018, ancho = 3 * W;
+  const TM = new THREE.Group(), caja = new THREE.Group(); sceneGroup.add(TM); TM.add(caja);   // caja: colgada de los hombros, rebota con el paso
+  const madera = tela(0xc9a274, .9), canto = tela(0xa9824e, .9);
+  const tabla = (w, h, d, x, y, z, m = madera) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); caja.add(o); return o; };
+  tabla(ancho, yS - y0, e, 0, (y0 + yS) / 2, D / 2); tabla(ancho, yT - yV, e, 0, (yV + yT) / 2, D / 2);   // zócalo y dintel del frente
+  tabla(ancho + e, e, D, 0, yT, 0, canto);                                                                  // techo
+  for (const s of [-1, 1]) tabla(e, yT - y0, D, s * ancho / 2, (y0 + yT) / 2, 0);                         // costados
+  for (const s of [-.5, .5]) tabla(e, yT - y0, D, s * W, (y0 + yT) / 2, 0);                               // divisiones
+  for (let k = 0; k < 3; k++) tabla(W - e, e, .22, (k - 1) * W, yS, D / 2 - .11, canto);                  // estantes
+  for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(.2, .15), cartelMat('7')); m.position.set((k - 1) * W, (yV + yT) / 2, D / 2 + .011); m.scale.x = -1; caja.add(m); }   // sala espejada: x = −1
+  const jack = new THREE.Mesh(new THREE.PlaneGeometry(.95, .41), cartelMat('jackpot')); jack.position.set(0, yT + .21, D / 2 - .03); jack.scale.x = -1; caja.add(jack);
+  const boton = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .03, 18).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x2fbf4a, toneMapped: false }));
+  boton.position.set(0, y0 + .06, D / 2 + .03); caja.add(boton); tabla(.13, .05, .03, 0, y0 + .06, D / 2 + .012, tela(0x1c1c1e));
+  // frutas: manzana, limón, naranja en cada estante
+  const FR = [[0xc8242a, [1, 1, 1]], [0xf2d33a, [1.18, .9, .9]], [0xf08a24, [1, 1, 1]]];
+  const frutas = [0, 1, 2].map(k => FR.map(([c, sc], j) => { const m = new THREE.Mesh(new THREE.SphereGeometry(.045, 14, 10), tela(c, .5)); m.scale.set(...sc);
+    m.userData.casa = new THREE.Vector3((1 - k) * W + (j - 1) * .17, yS + e / 2 + .045, D / 2 - .1); m.position.copy(m.userData.casa); caja.add(m); return m; }));
+  // las 3 performers, una por compartimento, mirando al frente (x invertida: la sala está espejada y así se ven en el orden de la foto)
+  const P = ROPA_TRAGA.map((r, k) => { const H = humano('', [(1 - k) * W, 0, -.1], { h: 1.65, ropa: r }); TM.add(H.g); H.feet0 = H.feet.map(f => [...f]); return H; });
+  label('Tragamonedas', 'fig', TM, [0, 2.75, 0]); FIG['Tragamonedas'] = TM;
+  const pub = humano('Público', [0, 0, 0], { h: 1.75, ropa: ROPA_PUBLICO }); pub.feet0 = pub.feet.map(f => [...f]);   // quien se acerca a jugar
+  // recorrido: lazo cerrado por la pista, con 3 paradas para jugar
+  const curva = path(ruta, { closed: true, color: PURPLE }), LEN = curva.getLength(), V = .55, RAMPA = .9, T_JUEGO = 10;
+  const CICLO = LEN / Math.round(LEN / .9), DUTY = .6, PASO = CICLO * DUTY, ALTO = .09;   // ≈ 0,9 m por ciclo (entero en la vuelta) · 60 % con el pie apoyado
+  const NT = 400, RUMBO = [];   // rumbo (desenrollado) a lo largo del lazo: en las curvas, la de afuera camina más que la de adentro
+  for (let i = 0; i <= NT; i++) { const t = curva.getTangentAt(Math.min(i / NT, .9999)), a = Math.atan2(t.x, t.z); RUMBO.push(i ? a + 2 * Math.PI * Math.round((RUMBO[i - 1] - a) / (2 * Math.PI)) : a); }
+  const rumbo = u => { const x = Math.min(NT - 1e-3, Math.max(0, u * NT)), i = x | 0; return RUMBO[i] + (RUMBO[i + 1] - RUMBO[i]) * (x - i); };
+  const apoyo = u => { const f = u * LEN / CICLO; return CICLO * (Math.round((f - .05) * 2) / 2 + .05) / LEN; };   // parar con los dos pies en el piso
+  const PARADAS = [.12, .45, .7], RONDAS = [[0, 2, 1], [1, 0, 2], [2, 1, 0]];   // qué fruta elige cada una: siempre las 3 distintas, el público nunca gana
+  const tramos = []; let tc = 0, uc = 0;
+  PARADAS.map(apoyo).forEach((u, r) => { const ds = (u - uc) * LEN, dur = ds / V + RAMPA; tramos.push({ t0: tc, t1: tc + dur, s0: uc * LEN, s1: u * LEN }); tc += dur;
+    tramos.push({ t0: tc, t1: tc + T_JUEGO, s0: u * LEN, s1: u * LEN, ronda: r }); tc += T_JUEGO; uc = u; });
+  { const ds = (1 - uc) * LEN, dur = ds / V + RAMPA; tramos.push({ t0: tc, t1: tc + dur, s0: uc * LEN, s1: LEN }); tc += dur; }
+  const TOTAL = tc;
+  const rampa = (u, r) => u < r ? u * u / (2 * r * (1 - r)) : u > 1 - r ? 1 - (1 - u) * (1 - u) / (2 * r * (1 - r)) : (u - r / 2) / (1 - r);   // arranca y frena sin tirones
+  const estado = t => { const tt = ((t % TOTAL) + TOTAL) % TOTAL, g = tramos.find(x => tt < x.t1) ?? tramos[tramos.length - 1];
+    if (g.ronda != null) return { s: g.s0, ronda: g.ronda, tau: tt - g.t0 };
+    const dur = g.t1 - g.t0; return { s: g.s0 + (g.s1 - g.s0) * rampa((tt - g.t0) / dur, Math.min(.45, RAMPA / dur)), tau: -1 }; };
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  // marcha: el pie apoyado va hacia atrás a la velocidad del cuerpo; en el aire avanza y se levanta (fase = distancia / ciclo)
+  //  fAlza ≠ f: pasos en el lugar (los pies quedan donde están y solo se levantan alternados, para girar sin patinar)
+  const marcha = (H, f, alza, fAlza = f) => H.feet.forEach((pie, i) => { const uu = ((f + i * .5) % 1 + 1) % 1, ua = ((fAlza + i * .5) % 1 + 1) % 1, f0 = H.feet0[i];
+    if (uu < DUTY) pie[1] = f0[1] + PASO / 2 - PASO * uu / DUTY; else pie[1] = f0[1] - PASO / 2 + PASO * sm((uu - DUTY) / (1 - DUTY));
+    pie[2] = ua < DUTY ? 0 : ALTO * Math.sin(Math.PI * (ua - DUTY) / (1 - DUTY)) * alza; });
+  const ALC = [[70, 0, 25], [70, -19, 25], [72, -40, 25]];   // brazo derecho hacia cada fruta (derecha, centro, izquierda), por encima del estante
+  const MANO = P_({ drop: .06, lean: 4, aL: [72, 10, 45], aR: [72, 10, 45] }),   // antebrazos apoyados sobre el estante
+    p = new THREE.Vector3(), tg = new THREE.Vector3(), v = new THREE.Vector3();
+  anims.push(t => {
+    const st = estado(t), st2 = estado(t + .05), vel = Math.abs(st2.s - st.s) / .05, wv = Math.min(1, vel / V);
+    const u = (st.s % LEN) / LEN; curva.getPointAt(u, p); curva.getTangentAt(u, tg);
+    TM.position.copy(p); TM.rotation.y = Math.atan2(tg.x, tg.z);
+    const vuelta = Math.floor(t / TOTAL), fase = st.s / CICLO, alza = Math.min(1, vel / (.3 * V));
+    const sTot = st.s + vuelta * LEN, giro = rumbo(u) - RUMBO[0] + vuelta * (RUMBO[NT] - RUMBO[0]);   // sigue sumando entre vueltas: sin saltos al reiniciar
+    caja.position.y = -.012 * Math.cos(fase * 4 * Math.PI) * wv;   // el rebote del paso
+    const ronda = st.ronda != null ? RONDAS[st.ronda] : null, tau = st.tau;
+    // ── público: se acerca caminando, aprieta el botón, se agarra la cabeza (perdió), se da vuelta y se va
+    const LEJOS = 2.6, CERCA = .5, PULSA = 2.7, fwd = new THREE.Vector3(Math.sin(TM.rotation.y), 0, Math.cos(TM.rotation.y));
+    pub.g.visible = !!ronda && tau < 9.8;
+    if (pub.g.visible) {
+      const va = tau < 2 ? rampa(tau / 2, .35) : 1, vuelve = tau > 8 ? rampa(Math.min(1, (tau - 8) / 2), .35) : 0;
+      const gira = sm(tau - 7), recorrido = LEJOS * (va + vuelve), lejos = LEJOS * (1 - va + vuelve);   // se da vuelta en 1 s
+      pub.g.position.copy(p).addScaledVector(fwd, D / 2 + CERCA + lejos); pub.g.rotation.y = TM.rotation.y + Math.PI + Math.PI * gira;
+      const andando = (tau < 2 && va < .999) || (tau > 8 && vuelve < .999) ? 1 : 0, girando = gira > 0 && gira < 1 ? 1 : 0, ph = recorrido / CICLO;
+      marcha(pub, ph, Math.max(andando, girando), ph + 2 * gira);   // al darse vuelta: dos ciclos de pasos en el lugar
+      const junta = sm((tau - 2) / .4) * (1 - sm((tau - 8) / .4));   // al llegar junta los pies (y los abre para irse): parado, gira sin patinar
+      const mueve = Math.abs(pub.feet[0][1] - pub.feet0[0][1]) > Math.abs(pub.feet[1][1] - pub.feet0[1][1]) ? 0 : 1;
+      pub.feet.forEach((pie, i) => { pie[1] += (pub.feet0[i][1] - pie[1]) * junta; if (i === mueve && junta > 0 && junta < 1) pie[2] = Math.max(pie[2], ALTO * Math.sin(Math.PI * junta)); });
+      let pp = P_({ drop: .03, lean: 2, aL: [10 + 18 * Math.sin(ph * 2 * Math.PI) * andando, 10, 15], aR: [10 - 18 * Math.sin(ph * 2 * Math.PI) * andando, 10, 15] });
+      const toca = sm((tau - (PULSA - .35)) / .35) * (1 - sm((tau - (PULSA + .25)) / .4));   // estira el brazo hasta el botón
+      pp = mixPose(pp, P_({ drop: .05, lean: 18, aL: [10, 10, 15], aR: [58, -15, 0] }), toca);
+      const pierde = sm((tau - 3.4) / .4) * (1 - sm((tau - 5.2) / .4));   // se agarra la cabeza: perdió
+      pp = mixPose(pp, P_({ drop: .03, lean: -4, aL: [150, 30, 115], aR: [150, 30, 115] }), pierde);
+      pub.g.updateMatrixWorld(true); posar(pub, pp, v.copy(p).setY(1.5));
+    }
+    // ── performers: cuando el público aprieta el botón, las 3 agarran su objeto y lo muestran al mismo tiempo
+    const agarra = PULSA + .05, muestra = [100, 5, 50];   // muestra la fruta a la altura de la cara
+    P.forEach((H, k) => {
+      marcha(H, (sTot - (1 - k) * W * giro) / CICLO, alza);   // cada una con su propio recorrido (en las curvas, la de afuera camina más)
+      let pose = P_({ ...MANO, drop: .06 + .015 * Math.cos(fase * 4 * Math.PI) * wv });
+      const elige = ronda ? ronda[k] : 0;
+      if (ronda) {
+        let aR = pose.aR;
+        if (tau >= agarra && tau < agarra + .3) aR = mixPose({ a: MANO.aR }, { a: ALC[elige] }, sm((tau - agarra) / .3)).a;
+        else if (tau >= agarra + .3 && tau < 6.6) aR = mixPose({ a: ALC[elige] }, { a: muestra }, sm((tau - agarra - .3) / .4)).a;
+        else if (tau >= 6.6 && tau < 7.5) aR = tau < 7.1 ? mixPose({ a: muestra }, { a: ALC[elige] }, sm((tau - 6.6) / .5)).a : mixPose({ a: ALC[elige] }, { a: MANO.aR }, sm((tau - 7.1) / .4)).a;
+        pose = P_({ ...pose, aR });
+      }
+      posar(H, pose, pub.g.visible ? v.copy(pub.g.position).setY(1.6) : null);
+      // frutas: en el estante, o en la mano derecha mientras la muestra
+      frutas[k].forEach((m, j) => { const enMano = ronda && j === elige && tau >= agarra + .3 && tau < 7.1;
+        if (enMano) { TM.updateMatrixWorld(true); H.arms[1].palm.getWorldPosition(m.position); caja.worldToLocal(m.position); m.position.y += .05; } else m.position.copy(m.userData.casa); });
+    });
+    boton.material.color.setHex(ronda && tau > PULSA - .05 && tau < PULSA + .35 ? 0x9dff9a : 0x2fbf4a);   // se ilumina al apretarlo
+  });
+  return { TM, P, TOTAL };
+}
+
 const dashMat = (c, ds = .32, gs = .2) => new THREE.LineDashedMaterial({ color: c, dashSize: ds, gapSize: gs });
 function curveOf(pts, closed = false) {
   const v = pts.map(p => new THREE.Vector3(...p));
@@ -1289,16 +1412,19 @@ function bungee(name, anchor, lean) {
 const SCENES = [
   { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario'], tarima: [16.5, 12.0], cam: 'iso',
     guion: 'Bloque previo al show. Un DJ sostiene la hora completa mientras los personajes entran por el lounge y la pista e interactúan con el público.',
-    esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'], ['Voleibolistas haciendo “pepper” (remate con salto de 0,5 m, pase de antebrazos y armado); la pelota vuela con gravedad real', 1], ['Tarima estacionada contra la pared para liberar la pista', 1]],
-    tec: ['Sonido DJ', 'Tragamonedas box (3 actores)', 'Shots de la enfermera'],
-    pend: ['Recorrido lounge → pista', 'Dónde se guarda la tragamonedas entre pasadas', 'Rutina real de los voleibolistas (hoy: pepper, supuesto)', 'Altura de los voleibolistas (supuesto: 1,90 m)'],
+    esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'],
+      ['Tragamonedas humana: 3 performers adentro de una estructura de madera liviana colgada de los hombros, con 3 compartimentos y 3 objetos en cada uno (manzana, limón, naranja). Alguien del público toca el botón de afuera y las 3 eligen un objeto al mismo tiempo; si coinciden los 3, gana. En el visor siempre salen distintos: el público no gana'],
+      ['Recorrido de la tragamonedas por la pista, con 3 paradas para jugar', 1], ['Voleibolistas haciendo “pepper” (remate con salto de 0,5 m, pase de antebrazos y armado); la pelota vuela con gravedad real', 1], ['Tarima estacionada contra la pared para liberar la pista', 1]],
+    tec: ['Sonido DJ', 'Tragamonedas: estructura de madera liviana con 3 compartimentos, botón y cartel JACKPOT', 'Shots de la enfermera'],
+    pend: ['Recorrido lounge → pista', 'Dónde se guarda la tragamonedas entre pasadas', 'Rutina real de los voleibolistas (hoy: pepper, supuesto)', 'Altura de los voleibolistas (supuesto: 1,90 m)',
+      'Tragamonedas: altura de las performers (supuesto 1,65 m), medidas y peso de la estructura (supuesto ≈ 1,95 × 0,6 × 1,6 m, colgada de los hombros con tiradores)',
+      'Tragamonedas: el botón, ¿hace sonido o luz?', 'Público que juega: vestuario genérico (supuesto)'],
     build() {
       dj();
       const v1 = humano('Voleibolista', [8.8, 0, 4.4], { face: 0, ropa: ROPA_70.v69 }), v2 = humano('Voleibolista', [8.8, 0, 8.6], { face: Math.PI, ropa: ROPA_70.v77 });
       pepper(v1, v2);
       figure('Enfermera', [14.5, 0, 9.4]);
-      propBox(12.4, 13.4, 0, 2.1, 3.0, 3.8, 'Tragamonedas');
-      figure('', [12.1, 0, 3.4]); figure('', [13.7, 0, 3.4]); figure('', [12.9, 0, 4.2]);
+      tragamonedas([[12, 0, 3.3], [16.8, 0, 3.3], [17.6, 0, 5.8], [16.2, 0, 7.3], [12.4, 0, 7.3], [11, 0, 5.4]]);
     } },
   { n: 1, t: 'Intro', k: 'Escena de apertura', el: ['torreC', 'techo'], cam: 'iso',
     guion: 'Una explosión “revela” un debris espacial: una nave con dos astronautas girando alrededor, sostenidos por una estructura aérea de toroide. A lo lejos entra volando el Capitán Psicodelia hasta el escenario.',
