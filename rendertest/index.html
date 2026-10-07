@@ -1708,12 +1708,32 @@ const SCENES = [
       const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(TOR.x, TORO.yWork, TOR.z); sceneGroup.add(flash);
       anims.push(t => { const k = (((t % TORO_T.TOTAL) + TORO_T.TOTAL) % TORO_T.TOTAL - TORO_T.llega) / 1.6; flash.visible = k > 0 && k < 1; flash.scale.setScalar(0.3 + k * 4); flash.material.opacity = Math.max(0, 0.5 * (1 - k)); });   // la explosión cuando llega
     } },
-  { n: 3, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario'], cam: 'publico',
-    guion: 'Bloque de 30 min de High Energy. Personaje y detalles a definir; probablemente Chicho Sarli (ver escena 10).',
+  { n: 3, t: 'Esfera / Cabeza', k: 'Escena · aparece el Capitán', el: ['escenario', 'telon'], cam: 'escCabeza',
+    guion: 'La cabeza baja del techo sobre el escenario. Por los agujeros de la nariz, las orejas y los cachetes salen brazos y piernas. Simula una explosión, sale humo de adentro y la cabeza se parte en 2 mitades: aparece una esfera llena de luces y láser y, adentro, el Capitán Psicodelia. Sale, se para en el medio del escenario y baila con un micrófono.',
+    esp: [['Bajada como estaba: truss con riel y 2 motores de cadena. La cabeza es nueva (fotos de producción): gorro cónico de pelo naranja, cachetes enormes, ojos desorbitados, boca abierta con brackets'],
+      ['Brazos y piernas de los 4 performers que van adentro de la cabeza: guantes amarillo, rosa, turquesa y piel; medias rayadas, red con bota plateada, botas negras (render de producción)'],
+      ['Explosión: fogonazo y humo desde adentro, por el corte. En el mismo momento los 2 técnicos de piso tiran de las cuerdas y las mitades se abren ≈ 2,4 m por el riel, hamacándose por el tirón'],
+      ['Cada cuerda sale de la periferia de su mitad, pasa por una polea en la pared lateral, baja a una polea en el piso y el técnico la tira caminando hacia atrás'],
+      ['La esfera cuelga aparte del mismo riel, independiente de la cabeza: forrada de equipos de luz y láser rojo, con una plataforma adentro'],
+      ['El Capitán ya está adentro de la esfera: al abrirse la cabeza aparece (se lo ve por una ventana sin equipos hacia el público), sale por una puerta lateral y baja al escenario', 1],
+      ['La esfera ocupa el centro del escenario: sube ≈ 2,4 m con un motor propio y el Capitán baila abajo, con la esfera girando y el láser encima', 1]],
+    tec: ['Cabeza de cartapesta en 2 mitades', 'Esfera de luces y láser Ø 3 m', '2 motores de cadena de 1,5 t', 'Truss con riel y 4 carros', '2 poleas de pared + 2 de piso y 2 cuerdas', 'Humo y efecto de explosión', 'Micrófono inalámbrico', 'Motor de la esfera (propuesta)'],
+    pend: ['Medidas de la cabeza (supuesto, con las proporciones de la foto: 4,2 m de ancho, 7 m de alto con el gorro, 3,6 m de fondo). Con 7 m de alto no se esconde arriba: guardada, la punta de abajo queda a ≈ 3,5 m del piso',
+      'Bajada de ≈ 2,6 m en 9 s (≈ 17 m/min): hacen falta motores de velocidad variable o bajar más lento',
+      'Dónde van los 4 performers adentro de cada mitad: entre la cáscara y la esfera quedan ≈ 0,3 a 0,5 m',
+      'Cuándo y por dónde entra el Capitán a la esfera sin que se vea (acá ya está adentro cuando se abre la cabeza). Atrás de la cabeza queda ≈ 0,15 m hasta la pantalla',
+      'Motor propio para subir la esfera (propuesta): sin eso el Capitán no puede bailar en el medio, la esfera ocupa ese lugar',
+      'Cómo se cierra la cabeza para volver a subirla (acá la escena empieza de nuevo a oscuras)',
+      'Altura del Capitán (supuesto 1,75 m) y de los técnicos (1,78 m)'],
+    build() {
+      const up = buildCabeza({ auto: true, val: 0 }); anims.push(up); up(t);
+    } },
+  { n: 4, t: 'High Energy', k: 'DJ set · 30 min', el: ['escenario'], cam: 'publico',
+    guion: 'Bloque de 30 min de High Energy. Personaje y detalles a definir; probablemente Chicho Sarli (ver escena 11).',
     esp: [['DJ en cabina sobre el escenario', 1], ['Pista libre para el público']],
     tec: ['Sonido DJ'], pend: ['Confirmar si el DJ es Chicho Sarli u otro personaje'],
     build() { dj('DJ · a confirmar'); } },
-  { n: 4, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
+  { n: 5, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
     guion: 'Milano Paolini toma la cabina. En paralelo, un músico toca techno con un dispositivo de tubos de PVC. En el aire aparece un mono en bicicleta volando: es el astronauta de la escena 2, que reingresa transformado.',
     esp: [['Milano Paolini en cabina'], ['Músico de tubos PVC sobre la tarima móvil en el centro de la pista', 1], ['Mono en bicicleta sobre cable tendido entre las torres A y B (6 m, ≈ 11 m de luz)', 1]],
     tec: ['Dispositivo de tubos PVC', 'Cable entre torres', 'Bicicleta aérea'],
@@ -1725,7 +1745,7 @@ const SCENES = [
       const m = figure('Mono en bici', [0, 0, 0], { color: PURPLE, air: true });
       anims.push(t => { const k = (Math.sin(t * .35) + 1) / 2; const p = c.getPointAt(k); m.position.set(p.x, p.y - 1.95, p.z); });
     } },
-  { n: 5, t: 'La monja', k: 'Escena', el: ['tarima', 'torreA', 'techo'], tarima: [TOR.x, TOR.z], cam: 'iso',
+  { n: 6, t: 'La monja', k: 'Escena', el: ['tarima', 'torreA', 'techo'], tarima: [TOR.x, TOR.z], cam: 'iso',
     guion: 'Entra en escena la Monja. Coreografía y duración a definir.',
     esp: [['La Monja entra sobre la tarima móvil, girando, y la tarima queda centrada debajo del tubo del techo'],
       ['Desde la torre A se larga una Punk con arnés, colgada de una cuerda que sale por el agujero del tubo'],
@@ -1743,7 +1763,7 @@ const SCENES = [
       'Revoleo sobre la pista a ≈ 20 km/h: a radio máximo los pies van a ≈ 2,5 m del piso, pero al arrancar y al frenar bajan hasta ≈ 1,75 m. Hace falta un círculo libre de ≈ 10 m de diámetro, sin público',
       'Carga del punto del techo con péndulo y revoleo (fuerzas dinámicas, no solo el peso)'],
     build() { escenaMonja(); } },
-  { n: 6, t: 'Cañón de remeras', k: 'Escena', el: ['torreA', 'torreB'], cam: 'iso',
+  { n: 7, t: 'Cañón de remeras', k: 'Escena', el: ['torreA', 'torreB'], cam: 'iso',
     guion: 'Dos performers en bungee disparan remeras al público con pistolas / cañones. Reemplaza a la vieja “guerra de cubos”.',
     esp: [['Un bungee colgado de cada torre de 6 m, con brazo hacia la pista', 1], ['Disparos de remeras hacia el centro de la pista']],
     tec: ['Bungee ×2', 'Cañones de remeras', 'Brazos de colgado en torres'],
@@ -1753,7 +1773,7 @@ const SCENES = [
       arcs([12.3, 5, 2.4], [[9, 0, 6], [12, 0, 5], [15, 0, 4]]); arcs([12.3, 5, 10.6], [[9, 0, 9], [13, 0, 7.5], [16, 0, 10]]);
       ring([12.3, 2.4], 1.2, PURPLE); ring([12.3, 10.6], 1.2, PURPLE);
     } },
-  { n: 7, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
+  { n: 8, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
     guion: 'Desfile de personajes. Estética y ritmo a definir.',
     esp: [['Circuito: escenario → escalera → vuelta por la pista → tarima → escalera opuesta', 1], ['Tarima como punto de pose al fondo de la pista', 1]],
     tec: ['Pasillo despejado en la pista'], pend: ['Estética', 'Ritmo y cantidad de personajes', 'Cómo se abre paso entre el público'],
@@ -1761,12 +1781,12 @@ const SCENES = [
       const c = path([[SX + 1.4, 1, 3], [SXE + .3, 1, 2.15], [SXE + 1.2, 0, 2.15], [10.5, 0, 2.6], [15.5, 1.0, 6.5], [10.5, 0, 10.4], [SXE + 1.2, 0, 10.85], [SXE + .3, 1, 10.85], [SX + 1.4, 1, 10]], { color: ORANGE, closed: true });
       for (let i = 0; i < 5; i++) follow(figure(i === 0 ? 'Personajes' : '', [0, 0, 0]), c, 0.035, i * 0.2);
     } },
-  { n: 8, t: 'Casamiento', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
+  { n: 9, t: 'Casamiento', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
     guion: 'Escena de casamiento. Interviene el vestuario de Novios (traje y vestido, V19 en catálogo).',
     esp: [['Tarima en el centro de la pista como altar, rodeada por el público', 1]],
     tec: ['Vestuario Novios (V19)'], pend: ['Oficiante / personajes que acompañan'],
     build() { figure('Novio', [10.5, 1, 6.5]); figure('Novia', [11.3, 1, 6.5], { color: WHITE }); ring([10.9, 6.5], 3, ORANGE); } },
-  { n: 9, t: 'Vals', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
+  { n: 10, t: 'Vals', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
     guion: 'Vals: continuación del arco del casamiento.',
     esp: [['Los novios bailan sobre la tarima en el centro de la pista', 1]],
     tec: [], pend: ['Duración'],
@@ -1775,17 +1795,17 @@ const SCENES = [
       anims.push(t => { const r = .38; a.position.set(10.9 + Math.cos(t * .9) * r, 1, 6.5 + Math.sin(t * .9) * r); b.position.set(10.9 - Math.cos(t * .9) * r, 1, 6.5 - Math.sin(t * .9) * r); });
       ring([10.9, 6.5], 3, ORANGE);
     } },
-  { n: 10, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario'], cam: 'escenario',
+  { n: 11, t: 'Fiesta de casamiento', k: 'DJ set · 30 min · Chicho Sarli', el: ['escenario'], cam: 'escenario',
     guion: 'Entra Chicho Sarli, personaje bien porteño con estética Miami años 90. Ingresa disparando billetes con pistolas lanza billetes (E16 en catálogo). 30 min de su set.',
     esp: [['Chicho Sarli entra por la escalera lateral y dispara billetes hacia la pista', 1], ['Luego toma la cabina']],
     tec: ['Pistolas lanza billetes (E16)', 'Sonido DJ'], pend: ['Limpieza de billetes antes de la escena siguiente'],
     build() { propBox(SX + 1.55, SX + 2.2, 1.0, 1.95, 5.6, 7.4, 'Cabina DJ'); figure('Chicho Sarli', [SX + 2.0, 1.0, 3.2], { color: WHITE }); arcs([SX + 2.1, 2.4, 3.2], [[9, 0, 3], [11, 0, 6], [10, 0, 10], [14, 0, 5]]); } },
-  { n: 11, t: 'Warm music', k: 'Transición', el: ['escenario'], cam: 'iso',
+  { n: 12, t: 'Warm music', k: 'Transición', el: ['escenario'], cam: 'iso',
     guion: 'Bloque de música más contenido, de transición. DJ y duración a definir.',
     esp: [['Cabina DJ en el escenario'], ['Momento para reposicionar la tarima al centro', 1]],
     tec: ['Sonido DJ'], pend: ['DJ', 'Duración', 'Personaje del bloque'],
     build() { dj('DJ · a definir'); } },
-  { n: 12, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
+  { n: 13, t: 'Volcánico + máquina de mosh', k: 'Escena', el: ['tarima', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
     guion: 'Se mete una escalera dentro del público y el Capitán Psicodelia invita a todos a subirse; entre staff y público se arma un mosh mutuo. En paralelo, en el aire, dos performers femeninas corren tipo correcaminos: una persecución, un enfrentamiento aéreo.',
     esp: [['Escalera junto a la tarima, en el centro de la pista', 1], ['Zona de mosh alrededor de la tarima (radio ≈ 3,5 m)', 1], ['Correcaminos en danza vertical sobre el Pelea telón', 1]],
     tec: ['Escalera de mosh', 'Arneses de danza vertical ×2', 'Staff de contención'],
@@ -1797,7 +1817,7 @@ const SCENES = [
       wallRunner('Correcaminos 1', null, t => 6.5 + Math.sin(t * .7) * 2.1, t => 5.2 + Math.sin(t * 1.3) * .6);
       wallRunner('Correcaminos 2', null, t => 6.5 + Math.sin(t * .7 - .9) * 2.1, t => 5.4 + Math.cos(t * 1.1) * .6);
     } },
-  { n: 13, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'telon'], cam: 'publico', luz: 'pico',
+  { n: 14, t: 'Año nuevo', k: 'Escena · pico', el: ['escenario', 'telon'], cam: 'publico', luz: 'pico',
     guion: 'Cuenta regresiva y fuegos artificiales. Pico de energía.',
     esp: [['Cuenta regresiva proyectada sobre la pantalla', 1], ['Línea de efectos al frente del escenario', 1]],
     tec: ['Proyección / pantalla', 'Efecto “fuegos artificiales”'],
@@ -1808,7 +1828,7 @@ const SCENES = [
       for (let i = 0; i < 7; i++) { const z = 1.5 + i * 10 / 6; const m = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1, 8, 1, true), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, opacity: .7 })); m.position.set(SXE - .1, 1.5, z); sceneGroup.add(m); fs.push(m); }
       anims.push(t => fs.forEach((m, i) => { const s = 0.6 + 1.6 * Math.abs(Math.sin(t * 3 + i)); m.scale.set(1, s, 1); m.position.y = 1 + s / 2; }));
     } },
-  { n: 14, t: 'El trompetista peposo', k: 'Escena · bajón', el: ['torreC'], cam: 'escenario', luz: 'frio',
+  { n: 15, t: 'El trompetista peposo', k: 'Escena · bajón', el: ['torreC'], cam: 'escenario', luz: 'frio',
     guion: 'Bajón repentino después del pico. Clima nocturno, frío. Aparece “el trompetista peposo”, que toca trompeta con delay.',
     esp: [['Trompetista arriba de la torre C, de frente al escenario y con la sala a oscuras', 1], ['Un único haz cenital sobre él', 1]],
     tec: ['Micrófono de trompeta + delay', 'Seguidor o cenital'], pend: ['Cambio de luces pico → frío'],
@@ -1817,7 +1837,7 @@ const SCENES = [
       const beam = new THREE.Mesh(new THREE.ConeGeometry(1.1, 11, 28, 1, true), new THREE.MeshBasicMaterial({ color: 0x9fb8ff, transparent: true, opacity: .07, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.set(19.5, 3 + 5.5, 6.1); sceneGroup.add(beam);
     } },
-  { n: 15, t: 'Cajón', k: 'Escena', el: ['techo'], cam: 'publico',
+  { n: 16, t: 'Cajón', k: 'Escena', el: ['techo'], cam: 'publico',
     guion: 'Baja el Cajón del techo lentamente y queda flotando en el centro del espacio, sobre la cabeza de los espectadores. Los performers lo hacen hamacar en un gran péndulo, después empiezan a girar mientras pendulan y del Cajón sale humo, luces y láser. Un quick release suelta una punta del eje y el Cajón sigue pendulando de forma irregular, con sensación de peligro.',
     esp: [['Baja de canto, con los performers sentados en el aire a cada lado, colgados del arnés y con las suelas contra el Cajón (referencia de producción)'],
       ['Abajo gira a horizontal: un performer queda parado arriba y el otro colgado cabeza abajo; el eje queda a ≈ 5,5 m del piso', 1],
@@ -1836,14 +1856,6 @@ const SCENES = [
       'Cómo se vuelve a armar el Cajón colgado de una punta para subirlo (acá la escena vuelve a empezar)'],
     build() {
       const up = buildCajon({}, { escena: true }); anims.push(up); up(t);
-    } },
-  { n: 16, t: 'Esfera / Cabeza', k: 'Escena', el: ['escenario', 'telon'], cam: 'lateral',
-    guion: 'Descienden 4 caras esculpidas. De cada una baja un personaje sin cara, con estructuras en los brazos que los hacen ver con brazos largos.',
-    esp: [['Una cabeza de cartapesta baja sobre el escenario y se abre en 2: adentro, la esfera de hierro de 3 m (ficha de Bruno)'], ['De los orificios de la cabeza salen brazos y piernas de los 4 personajes sin cara']],
-    tec: ['Cabeza de cartapesta', 'Esfera de hierro Ø 3 m', '2 motores de cadena de 1,5 t', 'Extensiones de brazos'],
-    pend: ['Medidas de la cabeza', 'Si Mariano mantiene 4 personajes sin cara con 1 sola cabeza'],
-    build() {
-      const up = buildCabeza({ auto: true, val: 0 }); anims.push(up); up(t);
     } },
   { n: 17, t: 'Persecución', k: 'Vaca-monja vs. Punky-carnicera', el: [], cam: 'iso',
     guion: 'Retorno de la persecución. Los dos personajes vienen apareciendo desde el principio del show.',
@@ -2003,7 +2015,7 @@ const AIM = {
   tarima: (fx, i) => (t, o) => o.set(10.9 + Math.sin(i * 2.1) * .6, 1.0, 6.5 + Math.cos(i * 2.1) * .5),
   circTarima: (fx, i) => (t, o) => { const a = t * .35 + i * 1.05; o.set(10.9 + Math.cos(a) * 2.6, 0, 6.5 + Math.sin(a) * 2.6); },
   toroide: (fx, i) => (t, o) => { const a = t * .6 + i * 1.3; o.set(TOR.x + Math.cos(a) * 1.4, TORO.yWork, TOR.z + Math.sin(a) * 1.4); },
-  cabeza: (fx, i) => (t, o) => o.set(CAB.x + .3, CAB.y + (i % 2 ? .8 : -.4), CAB.z + (i % 3 - 1) * 1.2),
+  cabeza: (fx, i) => (t, o) => o.set(CAB.x + .3, CAB.yNow + (i % 2 ? .8 : -.4), CAB.z + (i % 3 - 1) * 1.2),
   caras: (fx, i) => (t, o) => { const [x, z] = CARAS[i % 4]; o.set(x, 6.5, z); },
   tela: (fx, i, n) => (t, o) => o.set(TEL.xPegado + .04, 2.8 + (i % 3) * 2 + Math.sin(t * .5 + i) * .6, TELA.z0 + .3 + (i / Math.max(1, n - 1)) * (TELA.z1 - TELA.z0 - .6)),
   track: (fx, i, n, look) => (t, o) => figTarget(look.names[i % look.names.length], o, [SX + 1.3, 2, 6.5]),
@@ -2077,20 +2089,20 @@ const LOOKS = {
   0:  { txt: 'Baños cálidos ámbar y magenta que respiran lento. Beams apagados, uplight ámbar sobre la tela.', wash: { c: [P.a, P.m], i: .6, aim: 'pista' }, parF: { i: .2 }, parU: { i: .4, c: P.a } },
   1:  { txt: 'Sala a oscuras. Solo un seguidor sobre el personaje al que le toca: el de la torre B queda a oscuras hasta que el A desaparece, y cada seguidor se apaga cuando su personaje entra al agujero.', wash: { c: P.v, i: .04, aim: 'pista' }, seg: ['Personaje A', 'Personaje B'] },
   2:  { txt: 'Sala casi a oscuras. Beams blancos giran alrededor del toroide, estrobos en la explosión y los dos seguidores toman a los astronautas.', wash: { c: P.v, i: .15, aim: 'pista' }, beam: { c: P.w, i: 1, aim: 'toroide' }, strobe: 'on', parU: { i: .45, c: P.v }, seg: ['Astronauta 1', 'Astronauta 2'] },
-  3:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
-  4:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
-  5:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y un seguidor para la Monja y otro para la Punk.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja', 'Punk'] },
-  6:  { txt: 'Beams de las torres siguen a cada bungee; el truss frontal barre la pista. Estrobos en cada disparo.', wash: { c: P.o, i: .5, aim: 'fan' }, beam: { c: P.w, i: .9, aim: 'fan' }, beamTorre: { c: P.o, i: 1, aim: 'track', names: ['Bungee 1', 'Bungee 2'] }, strobe: 'on', parU: { i: .4, c: P.o }, seg: ['Bungee 1', 'Bungee 2'] },
-  7:  { txt: 'Pasarela rosa: wash magenta, beams violeta cruzados y seguidores sobre la cabeza del desfile.', wash: { c: P.m, i: .6, aim: 'pista' }, beam: { c: P.v, i: .7, aim: 'cruz' }, parF: { i: .4 }, parU: { i: .4, c: P.m }, seg: ['Personajes'] },
-  8:  { txt: 'Blanco cálido de ceremonia sobre la tarima, uplight blanco en la tela, sin beams.', wash: { c: P.t, i: .55, aim: 'tarima' }, parF: { i: .3 }, parU: { i: .6, c: P.w }, seg: ['Novio', 'Novia'] },
-  9:  { txt: 'Vals en ámbar: beams dorados giran lentos alrededor de la tarima y los seguidores acompañan a los novios.', wash: { c: P.a, i: .45, aim: 'tarima' }, beam: { c: P.g, i: .45, aim: 'circTarima' }, parU: { i: .45, c: P.a }, seg: ['Novio', 'Novia'] },
-  10: { txt: 'Miami 90: cian y magenta a fondo, beams rápidos, estrobos y seguidores sobre Chicho Sarli.', wash: { c: [P.c, P.m], i: .75, aim: 'fan' }, beam: { c: [P.m, P.c], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .6, c: P.c }, seg: ['Chicho Sarli'] },
-  11: { txt: 'Transición contenida: ámbar bajo, beams fijos hacia el piso.', wash: { c: P.a, i: .35, aim: 'pista' }, beam: { c: P.a, i: .25, aim: 'down' }, parU: { i: .4, c: P.a } },
-  12: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
-  13: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
-  14: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
-  15: { txt: 'Cajón: los beams de las torres siguen a cada performer mientras pendula, violeta de fondo y un seguidor por performer. Al final, el humo, las luces y el láser salen del propio Cajón.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Performer 1', 'Performer 2'] }, parU: { i: .5, c: P.v }, seg: ['Performer 1', 'Performer 2'] },
-  16: { txt: 'Beams violetas y blancos sobre la cabeza mientras baja y se abre; al abrirse, la esfera suma sus propias luces y láser.', wash: { c: P.v, i: .25, aim: 'pista' }, beam: { c: [P.v, P.w], i: .9, aim: 'cabeza' }, parU: { i: .4, c: P.v } },
+  4:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
+  5:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
+  6:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y un seguidor para la Monja y otro para la Punk.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja', 'Punk'] },
+  7:  { txt: 'Beams de las torres siguen a cada bungee; el truss frontal barre la pista. Estrobos en cada disparo.', wash: { c: P.o, i: .5, aim: 'fan' }, beam: { c: P.w, i: .9, aim: 'fan' }, beamTorre: { c: P.o, i: 1, aim: 'track', names: ['Bungee 1', 'Bungee 2'] }, strobe: 'on', parU: { i: .4, c: P.o }, seg: ['Bungee 1', 'Bungee 2'] },
+  8:  { txt: 'Pasarela rosa: wash magenta, beams violeta cruzados y seguidores sobre la cabeza del desfile.', wash: { c: P.m, i: .6, aim: 'pista' }, beam: { c: P.v, i: .7, aim: 'cruz' }, parF: { i: .4 }, parU: { i: .4, c: P.m }, seg: ['Personajes'] },
+  9:  { txt: 'Blanco cálido de ceremonia sobre la tarima, uplight blanco en la tela, sin beams.', wash: { c: P.t, i: .55, aim: 'tarima' }, parF: { i: .3 }, parU: { i: .6, c: P.w }, seg: ['Novio', 'Novia'] },
+  10: { txt: 'Vals en ámbar: beams dorados giran lentos alrededor de la tarima y los seguidores acompañan a los novios.', wash: { c: P.a, i: .45, aim: 'tarima' }, beam: { c: P.g, i: .45, aim: 'circTarima' }, parU: { i: .45, c: P.a }, seg: ['Novio', 'Novia'] },
+  11: { txt: 'Miami 90: cian y magenta a fondo, beams rápidos, estrobos y seguidores sobre Chicho Sarli.', wash: { c: [P.c, P.m], i: .75, aim: 'fan' }, beam: { c: [P.m, P.c], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .6, c: P.c }, seg: ['Chicho Sarli'] },
+  12: { txt: 'Transición contenida: ámbar bajo, beams fijos hacia el piso.', wash: { c: P.a, i: .35, aim: 'pista' }, beam: { c: P.a, i: .25, aim: 'down' }, parU: { i: .4, c: P.a } },
+  13: { txt: 'Volcánico: rojo y naranja al máximo, beams caóticos, estrobos y seguidores en las correcaminos sobre la tela.', wash: { c: [P.r, P.o], i: .8, aim: 'fan' }, beam: { c: [P.r, P.w], i: 1, aim: 'fanFast' }, strobe: 'on', parU: { i: .7, c: P.r }, seg: ['Correcaminos 1', 'Correcaminos 2'] },
+  14: { txt: 'Pico: beams blancos fijos al público, estrobos de las torres y uplight dorado a pleno.', wash: { c: P.g, i: .8, aim: 'fan' }, beam: { c: P.w, i: 1, aim: 'publico' }, strobe: 'on', blinder: 1, parF: { i: .8 }, parU: { i: .8, c: P.g } },
+  15: { txt: 'Bajón: casi todo apagado. Solo los beams de las torres, en azul frío, sobre el trompetista.', wash: { c: P.b, i: .1, aim: 'pista' }, beam: { i: 0 }, beamTorre: { c: '9fb8ff', i: .85, aim: 'track', names: ['Trompetista'] }, parU: { i: .12, c: P.b } },
+  16: { txt: 'Cajón: los beams de las torres siguen a cada performer mientras pendula, violeta de fondo y un seguidor por performer. Al final, el humo, las luces y el láser salen del propio Cajón.', wash: { c: P.v, i: .3, aim: 'pista' }, beam: { c: P.w, i: .85, aim: 'track', names: ['Performer 1', 'Performer 2'] }, parU: { i: .5, c: P.v }, seg: ['Performer 1', 'Performer 2'] },
+  3:  { txt: 'Sala oscura. Beams violetas y blancos siguen a la cabeza mientras baja. Fogonazo naranja en la explosión; al abrirse, la esfera dispara sus luces y el láser rojo. Los dos seguidores toman al Capitán desde que aparece.', wash: { c: P.v, i: .12, aim: 'pista' }, beam: { c: [P.v, P.w], i: .8, aim: 'cabeza' }, parU: { i: .25, c: P.v }, seg: ['Capitán Psicodelia', 'Capitán Psicodelia'] },
   17: { txt: 'Persecución: beams naranjas cruzados, estrobos y un seguidor para cada personaje.', wash: { c: [P.w, P.o], i: .5, aim: 'fan' }, beam: { c: P.o, i: .75, aim: 'cruz' }, strobe: 'on', seg: ['Vaca-monja', 'Punky-carnicera'] },
   18: { txt: 'Cierre: todo el rig encendido con arcoíris en chase, estrobos y seguidores en el elenco.', wash: { c: [P.o, P.v, P.m, P.c, P.g], i: .8, aim: 'fan' }, beam: { c: [P.o, P.v, P.m, P.c, P.g], i: 1, aim: 'fanFast' }, strobe: 'on', blinder: .7, parF: { i: .6 }, parU: { i: .7, c: [P.o, P.v, P.m, P.c] }, seg: ['Elenco', 'Trompetista'] },
 };
@@ -2233,7 +2245,7 @@ function buildToroide(st, { escena = false } = {}) {
 }
 
 // Cajón: caja de aluminio 1,9 × 1,9 × 0,3 m que gira sobre su eje; percha de 2,25 m; péndulo desde el motor central
-/* ───────── Cajón (escena 15) ─────────
+/* ───────── Cajón (escena 16) ─────────
    Cuadrado de 1,9 × 1,9 × 0,3 m con un eje en el medio: el eje atraviesa dos lados, sobresale y de sus puntas
    bajan dos cables verticales desde la percha. El cajón gira sobre el eje; todo el conjunto pendula del motor central.
    Percha a 2,8 m sobre el eje: un performer parado (1,75 m + brazos arriba ≈ 2,4 m desde el eje) no llega al caño.
@@ -2322,7 +2334,7 @@ function cajonModelo(c) {
   label('Cajón 1,9 × 1,9 m', 'fig air', box, [0, .6, 1.4]);
   return { leds, luces, laser };
 }
-/* Coreografía (escena 15, 74 s en loop):
+/* Coreografía (escena 16, 74 s en loop):
    0–12 s baja lento de canto, con los performers sentados en el aire contra las caras (como en la foto);
    abajo de la boca del tubo gira a horizontal y los performers se paran: uno arriba, el otro colgado cabeza abajo.
    15–33 s lo hamacan a lo largo de la sala: el de arriba se agacha en los extremos y se para abajo (bombeo), hasta ±22°.
@@ -2501,61 +2513,390 @@ function buildCajon(st, { escena = false } = {}) {
   };
 }
 
-// Esfera / Cabeza: truss con riel bajado por 2 motores de cadena; esfera de hierro fija al truss; la cabeza se abre en 2 por el riel
-const CAB = { x: SX + 2.0, z: D / 2, y: STAGE.h + 2.2, rx: 1.7, ry: 2.1, rz: 1.9, open: 2.2, trussStore: 11.0, motorY: 11.6 };
-CAB.trussWork = CAB.y + CAB.ry + .6;
+/* ───────── Esfera / Cabeza (escena 3) ─────────
+   Mecánica como estaba: truss con riel, bajado por 2 motores de cadena. Del riel cuelgan por separado las 2 mitades
+   de la cabeza (2 carros cada una) y la esfera de luces y láser. Estética según las fotos de producción: gorro cónico
+   de pelo naranja, cachetes enormes, ojos desorbitados, boca abierta con brackets.
+   Coordenadas de la cabeza: origen = centro de la esfera, +x hacia el público, mitades en ±z. */
+const CAB = { x: SX + 2.0, z: D / 2, y: STAGE.h + 1.78, rEsf: 1.5, rx: 1.75, rz: 2.25, frente: 1.85, nuca: 1.8, pera: 1.75, punta: 5.3,
+  colgado: 5.75, open: 2.4, sube: 2.4, piso: -1.2, trussStore: 11.0, motorY: 11.6 };   // colgado: del truss al centro de la esfera
+CAB.trussWork = CAB.y + CAB.colgado; CAB.yNow = CAB.y;
+// guion (s): baja (el Capitán ya está adentro de la esfera) · salen brazos y piernas · explosión y se abre · aparece · sale · la esfera sube · baila
+const CABT = { baja: [1, 10], brazos: 11.5, explota: 21, abre: 1.8, aparece: 22.3, sale: [25.5, 27], salto: .55,
+  sube: [27.4, 33.4], centro: [34, 36], fin: 56, TOTAL: 58 };
+const ROPA_TECNICO = { piel: 0xc8956c, pelo: { tipo: 'corto', c: 0x1a1410 }, remera: { c: 0x141417, mangas: 'largas' }, pantalon: { c: 0x141417 },
+  zapas: { c: 0x111111 }, guantes: 0x222226 };   // técnico de piso: todo negro (supuesto)
+// Recorta una geometría y deja la parte con n·p ≥ d: corta los triángulos y arrastra normal y color.
+function recortar(geo, n, d = 0) {
+  const g = geo.index ? geo.toNonIndexed() : geo, names = ['position', 'normal', 'color'].filter(k => g.attributes[k]);
+  const A = names.map(k => g.attributes[k]), out = names.map(() => []), cnt = g.attributes.position.count;
+  const vert = i => A.map(a => [a.getX(i), a.getY(i), a.getZ(i)]);
+  const lado = v => n[0] * v[0][0] + n[1] * v[0][1] + n[2] * v[0][2] - d;
+  const mezcla = (a, b, u) => a.map((arr, j) => arr.map((x, k) => x + (b[j][k] - x) * u));
+  for (let i = 0; i < cnt; i += 3) {
+    const tri = [vert(i), vert(i + 1), vert(i + 2)], s = tri.map(lado), poly = [];
+    for (let k = 0; k < 3; k++) { const a = tri[k], b = tri[(k + 1) % 3], sa = s[k], sb = s[(k + 1) % 3];
+      if (sa >= 0) poly.push(a); if ((sa >= 0) !== (sb >= 0)) poly.push(mezcla(a, b, sa / (sa - sb))); }
+    for (let k = 1; k + 1 < poly.length; k++) [poly[0], poly[k], poly[k + 1]].forEach(v => v.forEach((arr, j) => out[j].push(...arr)));
+  }
+  const r = new THREE.BufferGeometry(); names.forEach((k, j) => r.setAttribute(k, new THREE.Float32BufferAttribute(out[j], 3)));
+  return r;
+}
+// Pelo: desplaza los vértices hacia afuera con ruido (mechones) y los pinta naranja con manchas rojas, como la foto.
+function peludo(geo, centro, amp, eje = false) {
+  const p = geo.attributes.position, col = new Float32Array(p.count * 3), v = new THREE.Vector3(), d = new THREE.Vector3();
+  const A = new THREE.Color(0xff6c14), B = new THREE.Color(0xd8301a), C = new THREE.Color(0xffa64a), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i);
+    const n = Math.sin(v.x * 11.3 + v.y * 4.1) * Math.sin(v.y * 9.7 - v.z * 7.3) * Math.sin(v.z * 10.9 + v.x * 3.3);
+    d.copy(v).sub(centro); if (eje) d.y = 0; d.normalize(); v.addScaledVector(d, amp * (.4 + n)); p.setXYZ(i, v.x, v.y, v.z);
+    const m = .5 + .5 * Math.sin(v.x * 1.9 + v.y * 2.4) * Math.sin(v.z * 2.2 - v.y * 1.4);
+    c.copy(A).lerp(B, m * m); if (n > .45) c.lerp(C, .5); col.set([c.r, c.g, c.b], i * 3); }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); return geo;
+}
+// Forma de la cara (foto de producción): corazón visto de frente, ancha en los cachetes caídos y terminada en punta abajo.
+// Tabla por altura y: medio ancho (z), fondo adelante y fondo atrás (x). a = ángulo alrededor del eje vertical (0 = al público).
+const CARA_T = [[2.1, 0, 0, 0], [1.95, .75, .8, .9], [1.75, 1.15, 1.2, 1.35], [1.4, 1.45, 1.42, 1.6], [.9, 1.62, 1.55, 1.65], [.3, 1.9, 1.62, 1.65],
+  [-.3, 2.02, 1.62, 1.65], [-.8, 1.86, 1.55, 1.55], [-1.2, 1.38, 1.35, 1.3], [-1.5, .82, 1.0, .95], [-1.75, 0, .3, .3]];
+const gaus = (x, s) => Math.exp(-((x / s) ** 2));
+function caraTabla(y) {
+  const T = CARA_T, n = T.length; let i = 0; while (i < n - 2 && y < T[i + 1][0]) i++;
+  const u = Math.max(0, Math.min(1, (T[i][0] - y) / (T[i][0] - T[i + 1][0]))), p0 = T[Math.max(0, i - 1)], p1 = T[i], p2 = T[i + 1], p3 = T[Math.min(n - 1, i + 2)];
+  const cr = k => .5 * (2 * p1[k] + (-p0[k] + p2[k]) * u + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * u * u + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * u * u * u);
+  return [Math.max(0, cr(1)), Math.max(0, cr(2)), Math.max(0, cr(3))];
+}
+function caraRadio(a, y) {   // distancia horizontal al eje en la dirección a, con cachetes caídos, surcos y cuencas
+  const [W, Df, Db] = caraTabla(y), cx = Math.cos(a), cz = Math.sin(a), D = cx > 0 ? Df : Db;
+  if (W < 1e-4 || D < 1e-4) return 0;
+  const r0 = 1 / Math.sqrt((cx / D) ** 2 + (cz / W) ** 2), aa = Math.abs(((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI);
+  const borde = Math.min(1, W / .5);   // los relieves se apagan hacia la punta de abajo y arriba
+  return r0 + borde * (.4 * gaus(aa - .88, .42) * gaus(y + .25, .6) - .09 * gaus(aa - .34, .09) * gaus(y + .3, .85) - .05 * gaus(aa - .19, .1) * gaus(y - 1.25, .15));
+}
+function caraPunto(a, y, off = 0, n) {   // punto de la superficie (y normal hacia afuera, si se pide)
+  const r = caraRadio(a, y) + off, p = new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r);
+  if (n) { const e = .01, pa = new THREE.Vector3(Math.cos(a + e) * (caraRadio(a + e, y) + off), y, Math.sin(a + e) * (caraRadio(a + e, y) + off)).sub(p),
+      py = new THREE.Vector3(Math.cos(a) * (caraRadio(a, y + e) + off), y + e, Math.sin(a) * (caraRadio(a, y + e) + off)).sub(p);
+    n.crossVectors(py, pa).normalize(); if (n.x * Math.cos(a) + n.z * Math.sin(a) < 0) n.negate(); }
+  return p;
+}
+const C_SURCO = new THREE.Color(0x9a5c42), C_OJERA = new THREE.Color(0x8a4440), C_BOCA = new THREE.Color(0xc87060), C_BRILLO = new THREE.Color(0xe8b48c);
+function caraGeo(off = 0, colores = true) {   // cáscara de la cara: esfera deformada, con color de piel pintada (surcos y ojeras más oscuros)
+  const g = new THREE.SphereGeometry(1, 96, 72), p = g.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const ux = p.getX(i), uy = p.getY(i), uz = p.getZ(i), y = 2.1 - Math.acos(Math.max(-1, Math.min(1, uy))) / Math.PI * 3.85, a = Math.atan2(uz, ux);
+    const r = Math.hypot(ux, uz) < 1e-6 ? 0 : caraRadio(a, y) + off; p.setXYZ(i, Math.cos(a) * r, y, Math.sin(a) * r);
+    if (colores) { const aa = Math.abs(a);
+      c.setHex(0xd2946c);
+      c.lerp(C_SURCO, .5 * gaus(aa - .34, .1) * gaus(y + .3, .85));       // surcos de la nariz al mentón
+      c.lerp(C_OJERA, .65 * gaus(aa - .2, .14) * gaus(y - 1.1, .12));      // ojeras rojizas
+      c.lerp(C_BOCA, .3 * gaus(aa, .3) * gaus(y - .33, .35));              // alrededor de la boca
+      c.lerp(C_BRILLO, .4 * gaus(aa - .88, .3) * gaus(y + .2, .4));        // brillo de los cachetes
+      if (y < -1) c.multiplyScalar(1 - .1 * Math.min(1, -1 - y));
+      col.set([c.r, c.g, c.b], i * 3); }
+  }
+  if (colores) g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals(); return g;
+}
+const elip = (sx, sy, sz, x, y, z, seg = 40) => new THREE.SphereGeometry(1, seg, Math.round(seg * .7)).scale(sx, sy, sz).translate(x, y, z);
+const elipEn = (s, p, seg = 28) => elip(s[0], s[1], s[2], p.x, p.y, p.z, seg);
+// Mitad de la cabeza (sg = ±1): cáscara de cartapesta hueca, abierta del lado del corte.
+function cabezaMitad(sg) {
+  const g = new THREE.Group(), Zc = [0, 0, sg];
+  const piel = matCache.cabPielV ??= new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .5, metalness: .02, emissive: 0x2a1208, emissiveIntensity: .3 });
+  const pielLisa = matCache.cabPiel ??= new THREE.MeshStandardMaterial({ color: 0xd2946c, roughness: .48, metalness: .02, emissive: 0x2a1208, emissiveIntensity: .3 });
+  const crudo = matCache.cabCrudo ??= new THREE.MeshStandardMaterial({ color: 0x6e5f50, roughness: .95, side: THREE.BackSide });   // adentro: cartapesta y estructura
+  const pelo = matCache.cabPelo ??= new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, flatShading: true, side: THREE.DoubleSide, emissive: 0x401000, emissiveIntensity: .35 });
+  const cascara = (geo, mat = pielLisa) => { g.add(new THREE.Mesh(geo, mat)); g.add(new THREE.Mesh(geo, crudo)); };
+  const add = (geo, mat, pos) => { const m = new THREE.Mesh(geo, mat); if (pos) m.position.copy(pos); g.add(m); return m; };
+  const n = new THREE.Vector3(), Zv = new THREE.Vector3(0, 0, 1);
+  // cartapesta: cara en corazón, mentón largo bajo la boca, hocico y nariz finita
+  cascara(recortar(caraGeo(), Zc), piel);
+  cascara(recortar(elipEn([.3, .78, .34], caraPunto(0, -.8, -.16)), Zc));
+  cascara(recortar(elipEn([.3, .48, .55], caraPunto(0, .3, -.25)), Zc));
+  cascara(recortar(elipEn([.14, .3, .1], caraPunto(0, 1.05, -.06), 20), Zc));
+  const punta = caraPunto(0, .86, .02); cascara(recortar(elipEn([.12, .1, .15], punta, 20), Zc));
+  // ojos chicos y desorbitados: blanco, pupila negra, párpado de abajo rojo y lágrimas
+  const blanco = tela(0xf4efe6, .3), negro = tela(0x0c0c0c, .3), rojo = tela(0xb3262a, .5);
+  const ojo = caraPunto(sg * .2, 1.25, -.05, n);
+  add(new THREE.SphereGeometry(.14, 20, 14), blanco, ojo);
+  add(new THREE.SphereGeometry(.048, 12, 8), negro, ojo.clone().addScaledVector(n, .125));
+  const parp = add(new THREE.TorusGeometry(.145, .022, 8, 24, Math.PI), rojo, ojo.clone().addScaledVector(n, .05)); parp.quaternion.setFromUnitVectors(Zv, n); parp.rotateZ(Math.PI);
+  const lagr = new THREE.CatmullRomCurve3([[.27, 1.12], [.31, .9], [.35, .65], [.4, .4]].map(([a, y]) => caraPunto(sg * a, y, .012)));
+  add(new THREE.TubeGeometry(lagr, 16, .012, 6), matCache.cabLagr ??= new THREE.MeshStandardMaterial({ color: 0xeaf6ff, roughness: .05, metalness: .2, transparent: true, opacity: .3 }));
+  // cejas naranjas finitas en V invertida: la punta de adentro sube casi hasta el pelo
+  const ceja = new THREE.CatmullRomCurve3([[.05, 1.74], [.2, 1.56], [.4, 1.38], [.6, 1.24]].map(([a, y]) => caraPunto(sg * a, y, .015)));
+  add(new THREE.TubeGeometry(ceja, 20, .024, 8), tela(0xff7a1a, .7));
+  // boca grande abierta: labios rojos (el de arriba más grueso), hueco oscuro, dientes grandes con brackets
+  const labio = matCache.cabLabio ??= new THREE.MeshStandardMaterial({ color: 0xb01e2a, roughness: .22, metalness: .05 });
+  const M = caraPunto(0, .33, .1);
+  add(recortar(new THREE.TorusGeometry(.3, .07, 12, 40).scale(1.25, .95, 1).rotateY(Math.PI / 2).translate(M.x, M.y, 0), Zc), labio);
+  add(recortar(elip(.09, .07, .32, M.x + .02, M.y + .29, 0, 24), Zc), labio);
+  add(recortar(new THREE.CircleGeometry(.3, 28).scale(1.25, .95, 1).rotateY(Math.PI / 2).translate(M.x - .02, M.y, 0), Zc), tela(0x1a0606, .9));
+  const diente = tela(0xf2ead8, .35), alambre = metal(0xc8ccd4);
+  [[.06, .19, .11], [.17, .17, .1], [.27, .13, .09]].forEach(([z, h, w]) => {
+    add(new THREE.BoxGeometry(.04, h, w), diente, new THREE.Vector3(M.x + .01, M.y + .24 - h / 2, sg * z));   // fila de arriba
+    add(new THREE.BoxGeometry(.02, .028, .028), alambre, new THREE.Vector3(M.x + .035, M.y + .14, sg * z)); });   // brackets
+  add(new THREE.BoxGeometry(.04, .09, .1), diente, new THREE.Vector3(M.x, M.y - .2, sg * .14));   // abajo, con un hueco en el medio
+  add(new THREE.CylinderGeometry(.006, .006, .3, 6).rotateX(Math.PI / 2), alambre, new THREE.Vector3(M.x + .04, M.y + .14, sg * .15));
+  // pelo: gorro cónico alto con la punta redondeada, flecos que bajan por los costados de la cara, nuca y flequillo abajo
+  const prof = []; for (let h = 0; h <= 3.3; h += .15) prof.push(new THREE.Vector2(1.5 * (1 - h / 4.1) ** .75, h));
+  for (let k = 1; k <= 8; k++) { const b = k / 8 * Math.PI / 2; prof.push(new THREE.Vector2(.44 * Math.cos(b) + 1e-3, 3.3 + .44 * Math.sin(b))); }
+  const cono = peludo(new THREE.LatheGeometry(prof, 48).scale(.92, 1, 1).translate(-.1, 1.5, 0), new THREE.Vector3(-.1, 0, 0), .07, true);
+  add(recortar(cono, Zc), pelo);
+  const capa = () => peludo(caraGeo(.06, false), new THREE.Vector3(0, .2, 0), .05);
+  add(recortar(recortar(capa(), Zc), [0, 1, .25 * sg], 1.85), pelo);                         // frente: arriba de las cejas
+  add(recortar(recortar(recortar(capa(), Zc), [0, 0, sg], .72), [0, 1, 0], 1.38), pelo);     // el borde baja hacia los costados
+  add(recortar(recortar(recortar(capa(), Zc), [0, 0, sg], .98), [0, 1, 0], .42), pelo);       // flecos a los costados de la cara
+  add(recortar(recortar(recortar(capa(), Zc), [-1, 0, 0], .1), [0, 1, 0], .2), pelo);        // nuca
+  add(recortar(recortar(capa(), Zc), [0, -1, .3 * sg], 1.5), pelo);                          // flequillo en la punta de abajo
+  return g;
+}
+// Agujeros por donde salen brazos y piernas (centro, normal) y vestuario de cada performer
+const RED_TEX = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 32; const x = cv.getContext('2d');
+  x.strokeStyle = '#151515'; x.lineWidth = 3; x.beginPath(); x.moveTo(0, 0); x.lineTo(32, 32); x.moveTo(32, 0); x.lineTo(0, 32); x.stroke();
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 3); return t; })();
+function cabAgujeros(sg) {
+  const sup = (a, y, off) => { const n = new THREE.Vector3(); return [caraPunto(sg * a, y, off, n), n]; };
+  const punta = caraPunto(0, .86, .02), nariz = [new THREE.Vector3(punta.x + .03, punta.y - .07, sg * .07), new THREE.Vector3(.45, -.85, .2 * sg).normalize()];
+  const oreja = sup(1.4, .95, .1), cachete = sup(1.0, -.2, 0), abajo = sup(.75, -1.15, 0);
+  // vestuario de los 4 performers (render de producción): guantes de colores, medias rayadas, red, botas
+  return sg > 0
+    ? [{ h: nariz, tipo: 'brazo', R: { piel: 0xe0b08a, guante: 0xf2d22a, puno: 0xf2d22a } },
+       { h: oreja, tipo: 'pierna', R: { piel: 0xe8c0a0, red: true, bota: 0xd9dbe0 } },
+       { h: cachete, tipo: 'brazo', R: { piel: 0xc98e6a, manga: 0x151517, guante: 0x2fc4b2 } },
+       { h: abajo, tipo: 'pierna', R: { piel: 0xc98e6a, media: 0x151517, bota: 0x151517 } }]
+    : [{ h: nariz, tipo: 'brazo', R: { piel: 0xe8c0a0, guante: 0xe8c0a0, puno: 0x151517 } },
+       { h: oreja, tipo: 'pierna', R: { piel: 0xe8c0a0, media: 0xf4f2ee, rayas: 0xc0262e, zapa: 0xf4f2ee } },
+       { h: cachete, tipo: 'brazo', R: { piel: 0xd9a585, guante: 0xff4fa0, puno: 0xff4fa0 } },
+       { h: abajo, tipo: 'pierna', R: { piel: 0xd9a585, media: 0x6a2e6a, zapa: 0x2b2b2e } }];
+}
+// Brazo o pierna articulado que asoma por un agujero (eje local +z = hacia afuera)
+function extremidad(tipo, R) {
+  const root = new THREE.Group(), j = [root], skin = tela(R.piel, .6);
+  const seg = (par, len, r0, r1, mat) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, len, 12).rotateX(Math.PI / 2).translate(0, 0, len / 2), mat); par.add(m); return m; };
+  const art = (par, z) => { const o = new THREE.Group(); o.position.z = z; par.add(o); j.push(o); return o; };
+  if (tipo === 'brazo') {
+    seg(root, .3, .048, .042, R.manga ? tela(R.manga, .7) : skin); const el = art(root, .3);
+    el.add(new THREE.Mesh(new THREE.SphereGeometry(.043, 10, 8), R.manga ? tela(R.manga, .7) : skin));
+    seg(el, .26, .04, .032, R.manga ? tela(R.manga, .7) : skin); const wr = art(el, .26);
+    if (R.puno) seg(el, .08, .042, .045, tela(R.puno, .5)).position.z = .2;
+    const gl = tela(R.guante, .35);
+    wr.add(new THREE.Mesh(new THREE.BoxGeometry(.085, .035, .1).translate(0, 0, .05), gl));
+    for (let k = 0; k < 4; k++) wr.add(new THREE.Mesh(new THREE.CapsuleGeometry(.011, .06, 3, 6).rotateX(Math.PI / 2).translate(-.03 + k * .02, 0, .13), gl));
+    wr.add(new THREE.Mesh(new THREE.CapsuleGeometry(.012, .045, 3, 6).rotateX(Math.PI / 2).rotateY(.7).translate(.05, 0, .06), gl));
+  } else {
+    const red = R.red ? (matCache.cabRed ??= new THREE.MeshStandardMaterial({ map: RED_TEX, transparent: true, alphaTest: .3, roughness: .7 })) : null;
+    const pierna = R.media ? tela(R.media, .7) : skin;
+    seg(root, .43, .078, .058, R.media && !R.rayas ? pierna : skin); if (red) seg(root, .43, .081, .061, red);
+    const kn = art(root, .43); kn.add(new THREE.Mesh(new THREE.SphereGeometry(.058, 10, 8), R.media && !R.rayas ? pierna : skin));
+    seg(kn, .42, .055, .042, pierna); if (red) seg(kn, .42, .058, .045, red);
+    if (R.rayas) for (let k = 0; k < 3; k++) seg(kn, .035, .057, .057, tela(R.rayas, .6)).position.z = .2 + k * .065;
+    if (R.bota) seg(kn, .22, .06, .055, matCache['cabBota' + R.bota] ??= new THREE.MeshStandardMaterial({ color: R.bota, metalness: R.bota === 0xd9dbe0 ? .8 : .1, roughness: .3 })).position.z = .21;
+    const an = art(kn, .42), zm = R.bota ? matCache['cabBota' + R.bota] : tela(R.zapa ?? 0x222222, .5);
+    an.add(new THREE.Mesh(new THREE.BoxGeometry(.1, .27, .1).translate(0, .08, .03), zm));
+    if (R.zapa) an.add(new THREE.Mesh(new THREE.BoxGeometry(.105, .28, .025).translate(0, .08, .085), tela(0xe8e8e8, .6)));   // suela
+  }
+  return { root, j, largo: tipo === 'brazo' ? .55 : .75, tipo };
+}
+// Esfera Ø 3 m: estructura de hierro forrada de equipos de luz y láser, plataforma adentro, puerta del lado +z
+function esferaModelo(sph) {
+  const rE = CAB.rEsf - .14, enPuerta = p => p.y > -1.2 && p.y < .92 && ((p.z > .5 && Math.abs(p.x) < .58) || (p.x > .5 && Math.abs(p.z) < .62));   // puerta lateral (+z) y ventana al público (+x)
+  const tp = [], P = (a, b) => new THREE.Vector3(rE * Math.sin(b) * Math.cos(a), rE * Math.cos(b), rE * Math.sin(b) * Math.sin(a));
+  for (let i = 0; i < 16; i++) for (let k = 0; k < 18; k++) { const a = i / 16 * 2 * Math.PI, p = P(a, k / 18 * Math.PI), q = P(a, (k + 1) / 18 * Math.PI);
+    if (!enPuerta(p.clone().add(q).multiplyScalar(.5))) tp.push(p.toArray(), q.toArray()); }
+  for (let k = 1; k < 9; k++) for (let i = 0; i < 32; i++) { const b = k / 9 * Math.PI, p = P(i / 32 * 2 * Math.PI, b), q = P((i + 1) / 32 * 2 * Math.PI, b);
+    if (!enPuerta(p.clone().add(q).multiplyScalar(.5))) tp.push(p.toArray(), q.toArray()); }
+  segs(tp, new THREE.LineBasicMaterial({ color: 0x5a5d66 }), sph);
+  const dirs = []; for (let i = 0, N = 230; i < N; i++) { const b = Math.acos(1 - 2 * (i + .5) / N), a = i * 2.39996;
+    const d = new THREE.Vector3(Math.sin(b) * Math.cos(a), Math.cos(b), Math.sin(b) * Math.sin(a)); if (!enPuerta(d.clone().multiplyScalar(rE))) dirs.push(d); }
+  const caja = new THREE.InstancedMesh(new THREE.BoxGeometry(.17, .17, .14), new THREE.MeshStandardMaterial({ color: 0x17171b, roughness: .5, metalness: .4 }), dirs.length);
+  const lente = new THREE.InstancedMesh(new THREE.CircleGeometry(.055, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), dirs.length);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), Zz = new THREE.Vector3(0, 0, 1), one = new THREE.Vector3(1, 1, 1);
+  dirs.forEach((d, i) => { q.setFromUnitVectors(Zz, d); caja.setMatrixAt(i, M.compose(d.clone().multiplyScalar(rE + .04), q, one)); lente.setMatrixAt(i, M.compose(d.clone().multiplyScalar(rE + .112), q, one)); lente.setColorAt(i, new THREE.Color(0)); });
+  sph.add(caja); sph.add(lente);
+  const piso = new THREE.Mesh(new THREE.CylinderGeometry(.88, .88, .04, 28), metal(0x6a6e78)); piso.position.y = CAB.piso; sph.add(piso);
+  const nucleo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); nucleo.scale.setScalar(2.4); sph.add(nucleo);
+  // láser: un rayo por cada 4 equipos, desde la lente hacia afuera
+  const rd = dirs.filter((_, i) => i % 4 === 0), lg = new THREE.BufferGeometry(), lp = [];
+  rd.forEach(d => lp.push(...d.clone().multiplyScalar(rE + .12).toArray(), ...d.clone().multiplyScalar(16).toArray()));
+  lg.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3));
+  const lm = new THREE.LineBasicMaterial({ color: new THREE.Color(3.2, .15, .1), transparent: true, opacity: 0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
+  const laser = new THREE.LineSegments(lg, lm); laser.frustumCulled = false; sph.add(laser);
+  [[0, 1], [1, 0]].forEach(([ax, az]) => {   // contorno violeta: propuesta
+    const pts = [[-.58, -1.2], [-.58, .9], [.58, .9], [.58, -1.2]].map(([u, y]) => { const n = Math.sqrt(Math.max(0, rE * rE - u * u - y * y)); return new THREE.Vector3(az ? u : n, y, az ? n : u); });
+    const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), dashMat(PURPLE, .1, .07)); pl.computeLineDistances(); sph.add(pl); });
+  return { lente, n: dirs.length, nucleo, laser, lm };
+}
 function buildCabeza(st) {
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), q = .15, Y1 = new THREE.Vector3(0, 1, 0);
   const g = new THREE.Group(); sceneGroup.add(g);
+  // motores, cadenas y truss con riel (como estaba)
   const motMat = new THREE.MeshStandardMaterial({ color: 0xff4a3a, emissive: 0xff4a3a, emissiveIntensity: .35 });
   const mz = [CAB.z - 1.3, CAB.z + 1.3];
   mz.forEach(zz => { const m = new THREE.Mesh(new THREE.BoxGeometry(.4, .45, .4), motMat); m.position.set(CAB.x, CAB.motorY, zz); sceneGroup.add(m); });
   segs(mz.flatMap(zz => [[CAB.x, CAB.motorY + .22, zz], [CAB.x, H, zz]]), dashMat(0x5c5c63, .25, .25), sceneGroup);
   const lm = new THREE.Object3D(); lm.position.set(CAB.x, CAB.motorY + .6, CAB.z); sceneGroup.add(lm); label('2 motores de cadena · 1,5 t', 'fig', lm);
   const chains = [dynLine(0xff4a3a), dynLine(0xff4a3a)];
-  // truss con riel
-  const L = 2 * (CAB.rz + CAB.open) + .4, h = L / 2, q = .15, tp = [];
+  const L = 2 * (CAB.rz + CAB.open) + .4, h = L / 2, tp = [];
   for (const [yy, xx] of [[q, q], [q, -q], [-q, q], [-q, -q]]) tp.push([xx, yy, -h], [xx, yy, h]);
   for (let i = 0, n = Math.round(L / .6); i < n; i++) { const z0 = -h + i * L / n, z1 = z0 + L / n; tp.push([q, i % 2 ? q : -q, z0], [q, i % 2 ? -q : q, z1], [-q, i % 2 ? q : -q, z0], [-q, i % 2 ? -q : q, z1]); }
   segs(tp, new THREE.LineBasicMaterial({ color: INK }), g);
-  label('Truss con riel y 4 carros', 'fig', g, [0, .45, h - 1]);
-  // esfera de hierro Ø 3 m, fija al truss
-  const sph = new THREE.Group(); sph.position.y = -(CAB.ry + .6); g.add(sph);
-  sph.add(new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.SphereGeometry(1.5, 18, 12)), new THREE.LineBasicMaterial({ color: 0xa8aeb8 })));
-  segs([[0, 1.5, 0], [0, CAB.ry + .6 - q, 0]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), sph);
-  const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); core.scale.setScalar(2.6); sph.add(core);
-  const lasers = new THREE.Group(); sph.add(lasers);
-  { const lp = []; for (let i = 0; i < 14; i++) { const a = i * 2.39, b = Math.acos(1 - 2 * ((i + .5) / 14)); const d = [Math.sin(b) * Math.cos(a), Math.cos(b), Math.sin(b) * Math.sin(a)];
-      lp.push([0, 0, 0], d.map(v => v * 6)); }
-    segs(lp, new THREE.LineBasicMaterial({ color: 0x33ff88, transparent: true, opacity: .0, blending: THREE.AdditiveBlending, depthWrite: false }), lasers); }
-  label('Esfera Ø 3 m', 'fig air', sph, [0, -1.9, 0]);
-  // cabeza de cartapesta en 2 mitades, colgadas de carros en el riel
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xe6d6bd, roughness: .9, flatShading: true, side: THREE.DoubleSide });
-  const dark = new THREE.MeshBasicMaterial({ color: 0x141414, side: THREE.DoubleSide });
-  const hy = -(CAB.ry + .6);
-  const halves = [1, -1].map(sg => {
-    const hg = new THREE.Group(); g.add(hg);
-    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20, sg > 0 ? 0 : Math.PI, Math.PI), headMat); m.scale.set(CAB.rx, CAB.ry, CAB.rz); m.position.y = hy; hg.add(m);
-    const eye = new THREE.Mesh(new THREE.CircleGeometry(.28, 20), dark); eye.rotation.y = Math.PI / 2; eye.position.set(CAB.rx * .93, hy + .55, sg * .7); hg.add(eye);
-    const mouth = new THREE.Mesh(new THREE.PlaneGeometry(.55, .22), dark); mouth.rotation.y = Math.PI / 2; mouth.position.set(CAB.rx * .92, hy - .75, sg * .28); hg.add(mouth);
-    for (const cz of [.4, 1.5]) { const c = new THREE.Mesh(new THREE.BoxGeometry(.25, .15, .3), figMat(0xbfc0ff)); c.position.set(0, -q - .08, sg * cz); hg.add(c);
-      segs([[0, -q - .15, sg * cz], [0, hy + CAB.ry * Math.sqrt(1 - Math.min(.95, (cz / CAB.rz) ** 2)), sg * cz]], new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), hg); }
-    // brazos y piernas que asoman por los orificios (personajes sin cara)
-    const limb = new THREE.CapsuleGeometry(.09, .7, 4, 8);
-    const arm = new THREE.Mesh(limb, figMat(ORANGE)); arm.rotation.x = Math.PI / 2; arm.position.set(.2, hy + .2, sg * (CAB.rz + .3)); hg.add(arm);
-    const leg = new THREE.Mesh(limb, figMat(ORANGE)); leg.position.set(.5, hy - CAB.ry - .2, sg * .6); hg.add(leg);
-    return [hg, sg];
+  label('Truss con riel · 4 carros + punto fijo de la esfera', 'fig', g, [0, .45, h - 1]);
+  // esfera: colgada aparte del mismo riel; propuesta: motor propio para subirla mientras baila el Capitán
+  const sph = new THREE.Group(); g.add(sph); const esf = esferaModelo(sph);
+  const motE = new THREE.Mesh(new THREE.BoxGeometry(.3, .3, .3), new THREE.MeshStandardMaterial({ color: PURPLE, emissive: PURPLE, emissiveIntensity: .3 })); motE.position.y = q + .2; g.add(motE);
+  label('Esfera Ø 3 m · luces y láser', 'fig air', sph, [0, -1.95, 0]);
+  const cEsf = [dynLine(0xbfc0c6), dynLine(0xbfc0c6)];
+  // mitades de la cabeza: cuelgan de 2 carros cada una (3 cables al gorro); pivotan en el riel
+  const mitades = [1, -1].map(sg => {
+    const hg = new THREE.Group(); g.add(hg); const hd = cabezaMitad(sg); hd.position.y = -CAB.colgado; hg.add(hd);
+    const carro = metal(0xbfc0ff), cab = [];
+    [[0, .3, 5.1], [.5, 1.2, 2.2], [-.5, 1.2, 2.2]].forEach(([x, z, y]) => { cab.push([x, -q - .1, sg * z], [x, y - CAB.colgado, sg * z]); });
+    [.3, 1.2].forEach(z => { const c = new THREE.Mesh(new THREE.BoxGeometry(.3, .14, .3), carro); c.position.set(0, -q - .07, sg * z); hg.add(c); });
+    segs(cab, new THREE.LineBasicMaterial({ color: 0xbfc0c6 }), hg);
+    const ext = cabAgujeros(sg).map(({ h: [p, n], tipo, R }) => {
+      const hole = new THREE.Mesh(new THREE.CircleGeometry(tipo === 'brazo' ? .085 : .11, 16), tela(0x0a0606, .9));
+      hole.position.copy(p).addScaledVector(n, .015); hole.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n); hd.add(hole);
+      const e = extremidad(tipo, R); e.root.quaternion.copy(hole.quaternion); hd.add(e.root); e.p = p; e.n = n; return e; });
+    // punto de la periferia donde se ata la cuerda para abrir
+    const ata = new THREE.Object3D(); ata.position.copy(caraPunto(sg * Math.PI / 2, -.4, .02)); hd.add(ata);
+    const ojal = new THREE.Mesh(new THREE.TorusGeometry(.05, .015, 6, 12), metal(0xd0d0d0)); ojal.position.copy(ata.position); hd.add(ojal);
+    return { hg, hd, sg, ext, ata };
   });
-  label('Cabeza de cartapesta', 'fig', g, [CAB.rx + .3, hy + CAB.ry - .2, 0]);
+  label('Cabeza de cartapesta en 2 mitades', 'fig', g, [CAB.frente + .3, 1 - CAB.colgado, 0]);
+  // poleas en las paredes laterales y técnicos de piso
+  const yAta = CAB.y - .4, polMat = metal(0xd8d8de), w0 = new THREE.Vector3(), w1 = new THREE.Vector3();
+  const tecnicos = mitades.map(({ sg }, i) => {
+    const zw = sg > 0 ? D - .06 : .06, P1 = new THREE.Vector3(CAB.x, yAta, zw), P2 = new THREE.Vector3(CAB.x, .12, zw);
+    [P1, P2].forEach(p => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, .05, 16).rotateZ(Math.PI / 2), polMat); m.position.copy(p); sceneGroup.add(m); });
+    const lp = new THREE.Object3D(); lp.position.copy(P1).add(new THREE.Vector3(0, .35, 0)); sceneGroup.add(lp); label('Polea en la pared', 'fig air', lp);
+    const zt = zw - sg * .55, x0 = CAB.x - .55;
+    const T = humano(`Técnico ${i + 1}`, [x0 - .45, 0, zt], { h: 1.78, ropa: ROPA_TECNICO, face: Math.PI / 2 }); T.feet0 = T.feet.map(f => [...f]);
+    return { T, P1, P2, x0, zt, c1: dynLine(0xffd23a), c2: dynLine(0xffd23a), c3: dynLine(0xffd23a), c4: dynLine(0xffd23a) };
+  });
+  // apertura: perfil del carro (tirón fuerte que frena contra el tope) + vaivén de cada mitad sobre el riel (oscilador amortiguado)
+  const abre = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);   // tirón: ≈ 2 m/s en el medio
+  const DT = 1 / 240, NS = Math.ceil(CABT.TOTAL / DT), PHI = new Float32Array(NS);
+  { const w = Math.sqrt(GRAV / 3.6), acc = tt => { const e = 1e-3, s = x => CAB.open * abre((x - CABT.explota) / CABT.abre); return (s(tt + e) - 2 * s(tt) + s(tt - e)) / (e * e); };
+    let f = 0, v = 0; for (let i = 0; i < NS; i++) { PHI[i] = f; const a = acc(i * DT); v += (-w * w * (f - .12 * a / GRAV) - .9 * v) * DT; f += v * DT; } }   // la cuerda tira de abajo: el borde de abajo se adelanta
+  const phi = tt => PHI[Math.max(0, Math.min(NS - 1, Math.round(tt / DT)))];
+  // Capitán Psicodelia, con micrófono en la mano derecha
+  const CAP = humano('Capitán Psicodelia', [0, 0, 0], { h: 1.75, ropa: ROPA_CAPITAN }); CAP.feet0 = CAP.feet.map(f => [...f]);
+  const capLab = CAP.g.children.find(o => o.isCSS2DObject);
+  const mic = new THREE.Group(); CAP.arms[1].palm.add(mic); mic.rotation.set(2.094, 0, -1.047); mic.position.set(0, -.01, .02);   // en el puño, apuntando a la boca
+  mic.add(new THREE.Mesh(new THREE.CylinderGeometry(.016, .012, .19, 10).translate(0, .06, 0), tela(0x151515, .4)));
+  mic.add(new THREE.Mesh(new THREE.SphereGeometry(.032, 12, 8).translate(0, .17, 0), metal(0xb8bcc4)));
+  // humo y fogonazo de la explosión
+  const NH = 340, VIDA = 7.5, hgeo = new THREE.BufferGeometry(), hp = new Float32Array(NH * 3), hs = new Float32Array(NH), ha = new Float32Array(NH);
+  hgeo.setAttribute('position', new THREE.BufferAttribute(hp, 3)); hgeo.setAttribute('aSize', new THREE.BufferAttribute(hs, 1)); hgeo.setAttribute('aAlpha', new THREE.BufferAttribute(ha, 1));
+  const hm = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: humoTex() }, uPx: { value: 800 } },
+    vertexShader: 'attribute float aSize; attribute float aAlpha; uniform float uPx; varying float vA; void main(){ vA = aAlpha; vec4 mv = modelViewMatrix * vec4(position, 1.); gl_PointSize = aSize * uPx / -mv.z; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform sampler2D map; varying float vA; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(vec3(.82, .8, .86) * c.rgb, c.a * vA); }' });
+  const humo = new THREE.Points(hgeo, hm); humo.frustumCulled = false; sceneGroup.add(humo);
+  const semilla = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  const part = Array.from({ length: NH }, (_, i) => ({ tb: CABT.explota - .05 + 3.4 * semilla(i) ** 2, x: -1.3 + 3.1 * semilla(i + 7), y: -1.3 + 5.2 * semilla(i + 13) ** 1.6,
+    s: semilla(i + 21) < .5 ? -1 : 1, v: 1.6 + 3.2 * semilla(i + 31), r: semilla(i + 41) }));
+  const flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); flash.scale.setScalar(9); sceneGroup.add(flash);
+  const luzF = new THREE.PointLight(0xffa040, 0, 30, 1.6); sceneGroup.add(luzF);
+  const segsFx = FX.filter(f => f.grp === 'seg'), col = new THREE.Color(), v = new THREE.Vector3(), ojo = new THREE.Vector3(13, 1.6, CAB.z);
+  // pose de baile: 124 bpm, paso de costado con rebote, micrófono en la boca y el brazo izquierdo cambia cada compás
+  const BPM = 124 / 60, BRAZO = [b => [120 + 45 * Math.max(0, Math.sin(Math.PI * b)), 20, 60], () => [95, 8, 6], b => [165, 30 + 22 * Math.sin(Math.PI * b), 15], () => [25, 50, 105]];
+  const bailar = (tb, k = 1, bajo = false) => {   // bajo: sin brazos arriba (al costado de la esfera)
+    const b = tb * BPM, bar = Math.floor(b / 4), u = sm(((b % 4) - 3.4) / .6), aL0 = BRAZO[bar % 4](b), aL1 = BRAZO[(bar + 1) % 4](b);
+    const paso = Math.floor(b) % 2, fr = b % 1;
+    CAP.feet.forEach((p, i) => { const f0 = CAP.feet0[i]; p[0] = f0[0] * 1.25; p[1] = f0[1]; p[2] = i === paso ? .07 * Math.sin(Math.PI * fr) * k : 0; });
+    const alto = (bar % 8) >= 6;   // cada 8 compases levanta el micrófono hacia el público
+    return { pose: P_({ drop: .08 + .07 * (.5 - .5 * Math.cos(2 * Math.PI * b)) * k, lean: 6, aL: bajo ? [55 + 30 * Math.sin(Math.PI * b), 25, 75] : aL0.map((x, j) => x + (aL1[j] - x) * u),
+      aR: alto && !bajo ? [115, 5, 25] : [48 + 4 * Math.sin(Math.PI * b), 5, 135] }), giro: .28 * Math.sin(Math.PI * b) * k, yaw: .4 * Math.sin(2 * Math.PI * tb / 9) };
+  };
   return (t) => {
-    if (st.auto) { const p = (t % 30) / 30;
-      st.val = p < .15 ? 50 * sstep(0, .15, p) : p < .3 ? 50 : p < .45 ? 50 + 50 * sstep(.3, .45, p) : p < .65 ? 100 : p < .8 ? 100 - 50 * sstep(.65, .8, p) : p < .88 ? 50 : 50 - 50 * sstep(.88, 1, p); }
-    const kd = Math.min(1, st.val / 50), ko = Math.max(0, (st.val - 50) / 50);
-    const ty = CAB.trussStore + (CAB.trussWork - CAB.trussStore) * kd;
-    g.position.set(CAB.x, ty, CAB.z);
-    halves.forEach(([hg, sg]) => { hg.position.z = sg * ko * CAB.open; });
-    lasers.rotation.y = t * .6; lasers.children[0].material.opacity = .55 * ko;
-    core.material.color.setRGB(1.6 * ko, .7 * ko, .3 * ko);
-    chains.forEach((c, i) => c(new THREE.Vector3(CAB.x, CAB.motorY - .22, mz[i]), new THREE.Vector3(CAB.x, ty + q, mz[i])));
+    let tt;
+    if (st.auto) { tt = ((t % CABT.TOTAL) + CABT.TOTAL) % CABT.TOTAL; st.val = tt / CABT.TOTAL * 100; } else tt = st.val / 100 * CABT.TOTAL;
+    // bajada y apertura
+    const kd = sm((tt - CABT.baja[0]) / (CABT.baja[1] - CABT.baja[0])), ty = CAB.trussStore + (CAB.trussWork - CAB.trussStore) * kd;
+    g.position.set(CAB.x, ty, CAB.z); CAB.yNow = ty - CAB.colgado;
+    const sAb = CAB.open * abre((tt - CABT.explota) / CABT.abre), f = phi(tt);
+    const tiembla = tt > CABT.explota - 1.8 && tt < CABT.explota ? .012 * sm((tt - CABT.explota + 1.8) / 1.2) : 0;   // adentro empujan
+    mitades.forEach(({ hg, sg, ext }, i) => {
+      hg.position.z = sg * sAb; hg.rotation.x = -sg * f + tiembla * Math.sin(tt * 37 + i * 2); hg.rotation.z = tiembla * .6 * Math.sin(tt * 29 + i);
+      ext.forEach((e, k) => { const t0 = CABT.brazos + (k * 2 + i) * .65, ee = sm((tt - t0) / 1.1), loco = 1 + 1.2 * sm((tt - CABT.explota + 2) / 1.5);
+        e.root.visible = ee > .01; if (!e.root.visible) return;
+        e.root.position.copy(e.p).addScaledVector(e.n, -e.largo * (1 - ee));
+        const w = (e.tipo === 'brazo' ? 2.6 : 2.0) * loco, ph = k * 1.7 + i * 2.3, a = Math.min(1.4, ee * loco);
+        if (e.tipo === 'brazo') { e.j[0].rotation.set(.45 * a * Math.sin(w * tt + ph), .4 * a * Math.sin(.7 * w * tt + ph * 2), 0);
+          e.j[1].rotation.x = -(.25 + .9 * (.5 + .5 * Math.sin(1.3 * w * tt + ph))) * a; e.j[2].rotation.set(.5 * a * Math.sin(2 * w * tt + ph), 0, .4 * Math.sin(w * tt)); }
+        else { e.j[0].rotation.set(.35 * a * Math.sin(w * tt + ph), .25 * a * Math.sin(.6 * w * tt + ph), 0);
+          e.j[1].rotation.x = -(.15 + .95 * (.5 + .5 * Math.sin(w * tt + ph + 1))) * a; e.j[2].rotation.x = .5 * a * Math.sin(w * tt * 1.4 + ph); } });
+    });
+    // esfera: sube con su motor (propuesta) y gira despacio cuando el Capitán ya salió
+    const rise = CAB.sube * sm((tt - CABT.sube[0]) / (CABT.sube[1] - CABT.sube[0]));
+    sph.position.y = -CAB.colgado + rise; sph.rotation.y = Math.max(0, tt - CABT.sale[1] - .8) * .3;
+    const fin = 1 - sm((tt - CABT.fin) / 1.2), luces = sm((tt - CABT.explota - .2) / .4) * fin, lz = sm((tt - CABT.explota - .5) / .3) * fin;
+    for (let k = 0; k < esf.n; k++) { const on = Math.sin(tt * 9 + k * 1.37) > .2 - .6 * (tt > CABT.sube[0] ? 1 : 0); col.setRGB(1, k % 5 ? .08 : .9, k % 5 ? .05 : .85).multiplyScalar(luces * (on ? 2.2 : .25)); esf.lente.setColorAt(k, col); }
+    esf.lente.instanceColor.needsUpdate = true;
+    esf.nucleo.material.color.setRGB(2.2 * luces, .25 * luces, .15 * luces);
+    esf.lm.opacity = lz * (.55 + .35 * Math.sin(tt * 13)); esf.laser.visible = lz > .01;
+    esf.laser.rotation.set(.25 * Math.sin(tt * .7), tt * .5, .2 * Math.sin(tt * .9));
+    chains.forEach((c, i) => c(w0.set(CAB.x, CAB.motorY - .22, mz[i]), w1.set(CAB.x, ty + q, mz[i])));
+    [-.45, .45].forEach((x, i) => cEsf[i](w0.set(CAB.x + x, ty - q, CAB.z), w1.set(CAB.x + x, ty - CAB.colgado + rise + Math.sqrt(CAB.rEsf ** 2 - x * x), CAB.z)));
+    // explosión: fogonazo y humo desde adentro, por el corte
+    const ex = tt - CABT.explota, fl = ex > 0 ? Math.exp(-ex / .28) : 0;
+    flash.position.set(CAB.x + 1.2, CAB.y + .6, CAB.z); flash.material.color.setRGB(3 * fl, 1.6 * fl, .6 * fl); flash.visible = fl > .01;
+    luzF.position.set(CAB.x + 2.5, CAB.y + .8, CAB.z); luzF.intensity = 900 * fl;
+    hm.uniforms.uPx.value = renderer.domElement.height / (2 * Math.tan(camera.fov * DEG / 2));
+    humo.visible = ex > -.1 && tt < CABT.fin + 2;
+    if (humo.visible) {
+      part.forEach((p, i) => { const age = tt - p.tb; if (age < 0 || age > VIDA) { ha[i] = 0; return; }
+        const dz = p.s * p.v * .65 * (1 - Math.exp(-age / .65)) + p.s * sAb * .5;
+        hp[i * 3] = CAB.x + p.x + .25 * Math.sin(age * .8 + i) * age * .3 + .25 * age * (p.x > 0 ? 1 : -.3);
+        hp[i * 3 + 1] = Math.max(.2, CAB.y + p.y + .5 * (1 - Math.exp(-age / .8)) - .16 * age);
+        hp[i * 3 + 2] = CAB.z + dz + .3 * Math.cos(age * .7 + i * 1.3) * age * .25;
+        hs[i] = .5 + .45 * age; ha[i] = .42 * Math.min(1, age / .12) * (1 - age / VIDA) ** 1.2 * (1 - sm((tt - CABT.fin) / 1.5)); });
+      hgeo.attributes.position.needsUpdate = hgeo.attributes.aSize.needsUpdate = hgeo.attributes.aAlpha.needsUpdate = true;
+    }
+    // técnicos de piso: la cuerda pasa por la polea de la pared, baja al piso y la tiran caminando hacia atrás
+    tecnicos.forEach(({ T, P1, P2, x0, zt, c1, c2, c3, c4 }, i) => {
+      const m = mitades[i], tira = sm(ex / .25) * (1 - sm((ex - CABT.abre) / .5)), listo = sm((tt - CABT.explota + 3) / 1);
+      T.g.position.set(x0 - .45 - sAb, 0, zt); caminar(T, -sAb / .8, 1.3);
+      posar(T, P_({ drop: .06 + .12 * tira + .04 * listo, lean: 4 - 26 * tira - 6 * listo, aL: [72, 6, 25], aR: [72, -6, 25] }), P1);
+      m.ata.getWorldPosition(w0); sceneGroup.worldToLocal(w0);
+      c1(w0, P1); c2(P1, P2);
+      T.arms[1].palm.getWorldPosition(w1); sceneGroup.worldToLocal(w1); c3(P2, w1);
+      T.arms[0].palm.getWorldPosition(v); sceneGroup.worldToLocal(v); c4(v, w0.set(v.x - .9, .02, v.z));   // la cola de la cuerda queda en el piso
+    });
+    // Capitán Psicodelia
+    let vis = true, pp = P_({ drop: .03, lean: 2, aL: [10, 10, 15], aR: [10, 10, 15] }), giro = 0, mira = true;
+    const plat = CAB.y + rise + CAB.piso + .02, zDoor = CAB.z + .7, zLand = CAB.z + 1.8, xBaila = CAB.x - .2;
+    if (tt < CABT.explota + .25) vis = false;   // ya está adentro de la esfera desde antes: no se lo ve entrar
+    else if (tt < CABT.sale[0]) {   // adentro de la esfera: agachado hasta que se abre, se para y aparece con los brazos arriba
+      CAP.g.position.set(CAB.x, plat, CAB.z); CAP.g.rotation.y = Math.PI / 2; CAP.feet.forEach((p, i) => { p[0] = CAP.feet0[i][0] * 1.3; p[1] = CAP.feet0[i][1]; p[2] = 0; });
+      const up = sm((tt - CABT.aparece + .6) / .8), vv = Math.sin((tt - CABT.aparece) * 4);
+      pp = mixPose(P_({ drop: .38, lean: 30, aL: [40, 20, 90], aR: [40, 20, 90] }), P_({ drop: .06, lean: -6, aL: [158 + 8 * vv, 38, 10], aR: [158 - 8 * vv, 38, 15] }), up);
+    } else if (tt < CABT.sale[1]) {   // camina hasta la puerta lateral
+      const u = sm((tt - CABT.sale[0]) / (CABT.sale[1] - CABT.sale[0]));
+      CAP.g.rotation.y = Math.PI / 2 * (1 - sm((tt - CABT.sale[0]) / .5)); CAP.g.position.set(CAB.x, plat, CAB.z + .7 * u); caminar(CAP, .7 * u / .9, 1);
+    } else if (tt < CABT.sale[1] + CABT.salto + .35) {   // salta al escenario
+      const u = Math.min(1, (tt - CABT.sale[1]) / CABT.salto), y0 = plat;
+      CAP.g.position.set(CAB.x + (xBaila - CAB.x) * u, y0 + (STAGE.h - y0) * u + .28 * 4 * u * (1 - u), zDoor + (zLand - zDoor) * u); CAP.g.rotation.y = 0;
+      CAP.feet.forEach((p, i) => { p[0] = CAP.feet0[i][0]; p[1] = CAP.feet0[i][1]; p[2] = 0; });
+      const land = sm((tt - CABT.sale[1] - CABT.salto) / .12) * (1 - sm((tt - CABT.sale[1] - CABT.salto - .12) / .23));
+      pp = u < 1 ? P_({ drop: 0, lean: 10, tuck: .25 * Math.sin(Math.PI * u), aL: [70, 30, 40], aR: [70, 30, 40], toe: 20 }) : P_({ drop: .1 + .25 * land, lean: 10 + 20 * land, aL: [50, 30, 50], aR: [50, 30, 50] });
+    } else {   // baila: primero al costado mientras sube la esfera, después en el centro
+      const tb = tt - CABT.sale[1] - CABT.salto - .35, r = bailar(tb, tt < CABT.centro[0] ? .6 : 1, tt < CABT.centro[0]);
+      const gira = sm(tb / .6), yaw = tt > CABT.centro[1] ? r.yaw * sm((tt - CABT.centro[1]) / 2) : 0;
+      if (tt >= CABT.centro[0] && tt < CABT.centro[1]) {   // camina al centro: gira hacia donde va y vuelve a mirar al público
+        const uc = (tt - CABT.centro[0]) / (CABT.centro[1] - CABT.centro[0]), d = (zLand - CAB.z) * sm(uc);
+        CAP.g.position.set(xBaila, STAGE.h, zLand - d); CAP.g.rotation.y = Math.PI / 2 + Math.PI / 2 * sm(uc / .25) * (1 - sm((uc - .75) / .25));
+        caminar(CAP, d / .9, 1); pp = P_({ drop: .05, lean: 6, aL: [25, 10, 30], aR: [48, 5, 135] });
+      } else {
+        CAP.g.position.set(xBaila, STAGE.h, tt < CABT.centro[0] ? zLand : CAB.z); CAP.g.rotation.y = gira * Math.PI / 2 + yaw; pp = r.pose; giro = r.giro;
+        if (tt > CABT.fin) pp = mixPose(pp, P_({ drop: .05, lean: 0, aL: [170, 25, 5], aR: [170, 25, 5] }), sm((tt - CABT.fin) / .6));
+      }
+    }
+    CAP.g.visible = vis; if (capLab) capLab.visible = vis;
+    if (vis) { posar(CAP, pp, mira ? ojo : null); CAP.chest.rotation.y = giro; CAP.pelvis.rotation.y = -.4 * giro; CAP.neck.rotation.y -= .6 * giro; }
+    // seguidores: toman al Capitán desde que aparece
+    const sigue = vis && tt > CABT.aparece - .4 && tt < CABT.fin + .8;
+    segsFx.forEach(fx => { fx.tInt = sigue ? .95 : 0; });
   };
 }
 
@@ -2684,21 +3025,25 @@ const MECS = [
     st: { auto: true, val: 0 }, range: { label: 'Secuencia', min: 0, max: 100, unit: '%' },
     fuente: 'Notion › Mecanismos y estructuras › Esfera / Cabeza · actualizado por Bruno el 28/09',
     escenas: '15 · Esfera · Cara (Notion) · 3 · La Cabeza y 6 · Bloque de fiesta en el texto de Mariano.',
-    desc: 'Una cara esculpida desciende sobre el escenario; por sus orificios salen brazos y piernas. La cara se divide en 2 y adentro aparece una esfera de hierro con luces y láser.',
-    func: ['Truss con riel y 4 carros, bajado por 2 motores de cadena de 1,5 t.', 'La esfera de hierro va anclada fija al truss; la cabeza, independiente y por fuera, cuelga de los carros.',
-      'Una cuerda paralela al riel abre y cierra la cabeza, como una cortina.', 'La esfera es parte de la iluminación (luces, láser y humo) y se accede a ella desde el lado del backstage.'],
+    desc: 'Una cabeza gigante de cartapesta y pelo naranja baja sobre el escenario; por sus agujeros salen brazos y piernas. Explota, se parte en 2 y adentro aparece una esfera llena de luces y láser con el Capitán Psicodelia.',
+    func: ['Truss con riel y 4 carros, bajado por 2 motores de cadena de 1,5 t (como estaba).', 'Cada mitad de la cabeza cuelga de 2 carros (3 cables al gorro). La esfera cuelga aparte, de un punto fijo del mismo riel.',
+      'Para abrir: una cuerda desde la periferia de cada mitad pasa por una polea en la pared lateral, baja a una polea en el piso y la tira un técnico de piso. Cada mitad corre ≈ 2,4 m.',
+      'La esfera tiene una plataforma adentro, puerta lateral y acceso por atrás.'],
     ubic: 'Sobre el escenario, delante de la pantalla.',
-    ficha: [['Tipo', 'Aérea'], ['Performers', '4 (personajes sin cara)'], ['Operadores / riggers', '1 rigger + 2 técnicos'], ['Dimensiones', 'Esfera Ø 3 m · cabeza a definir'], ['Peso aprox.', '500 kg'], ['Motorización', '2 motores de cadena de 1,5 t'], ['Origen', 'a definir']],
+    ficha: [['Tipo', 'Aérea'], ['Performers', '4 adentro de la cabeza + el Capitán Psicodelia'], ['Operadores / riggers', '1 rigger + 2 técnicos de piso'], ['Dimensiones', 'Esfera Ø 3 m · cabeza ≈ 4,2 × 7 × 3,6 m (supuesto)'], ['Peso aprox.', '500 kg'], ['Motorización', '2 motores de cadena de 1,5 t (+ motor de la esfera, propuesta)'], ['Origen', 'a definir']],
     el: ['escenario', 'telon'], cam: 'mecCabeza', look: { wash: { c: '8a8fff', i: .2, aim: 'pista' }, beamTorre: { c: ['ffffff', '8a8fff'], i: .9, aim: 'cabeza' }, parU: { i: .2, c: '8a8fff' } },
-    pend: ['Medidas de la cabeza (supuesto: 3,8 m de ancho × 4,2 m de alto × 3,4 m de fondo)', 'Altura de guardado cuando está arriba', 'Si baja hasta apoyar en el escenario o queda colgada',
-      'Cómo se accede a la esfera desde el backstage si la pantalla queda en el medio', 'Por dónde entran y salen los 4 personajes sin cara'],
+    pend: ['Medidas de la cabeza (supuesto: 4,2 m de ancho × 7 m de alto × 3,6 m de fondo)', 'Altura de guardado: con 7 m de alto la cabeza no se esconde arriba', 'Cuándo entra el Capitán a la esfera sin que se vea',
+      'Dónde van los 4 performers adentro de cada mitad', 'Cómo se cierra para volver a subir', 'Motor propio de la esfera (propuesta)'],
     build() {
       const st = this.st, up = buildCabeza(st); anims.push(t => { up(t); syncRange(st, '%'); }); up(t);
-      const over = CAB.x + CAB.rx - SXE, backGap = CAB.x - CAB.rx - TEL.xPegado, width = 2 * (CAB.rz + CAB.open);
+      const over = CAB.x + CAB.frente - SXE, backGap = CAB.x - CAB.nuca - TEL.xPegado, width = 2 * (CAB.rz + CAB.open), pasillo = CAB.z + CAB.rz + CAB.open - STAGE.z1;
+      const guarda = CAB.trussStore - CAB.colgado - CAB.pera, pera = CAB.y - CAB.pera, vel = (CAB.trussStore - CAB.trussWork) / (CABT.baja[1] - CABT.baja[0]) * 60;
       this.notes = [
-        [`La cabeza (supuesta de 3,8 × 4,2 × 3,4 m) sobresale ≈ ${f1(over)} m del frente del escenario, sobre la pista.`, 'warn'],
-        [`Abierta, cada mitad se corre ≈ ${f1(CAB.open)} m por el riel: el conjunto ocupa ≈ ${f1(width)} m de ancho, casi todo el escenario.`],
-        [`Queda a ≈ ${f1(backGap, 2)} m de la pantalla y la tapa mientras está abajo.`, 'warn'],
+        [`La cabeza sobresale ≈ ${f1(over)} m del frente del escenario y la pera queda a ≈ ${f1(pera)} m del piso de la pista: el público no puede estar debajo.`, 'warn'],
+        [`Abierta, el conjunto ocupa ≈ ${f1(width)} m de ancho: ${pasillo > .05 ? `cada mitad asoma ≈ ${f1(pasillo, 2)} m sobre el pasillo lateral` : 'cada mitad llega justo al borde del escenario y cruza el pasillo solo con la cuerda, a ≈ ' + f1(CAB.y - .6) + ' m de altura'}.`, 'warn'],
+        [`Atrás queda ≈ ${f1(backGap, 2)} m hasta la pantalla: por atrás no se pasa, el acceso va por los costados.`, 'warn'],
+        [`Guardada arriba la pera queda a ≈ ${f1(guarda)} m del piso: la cabeza se ve antes de bajar.`, 'warn'],
+        [`Bajada a ≈ ${Math.round(vel)} m/min: motores de velocidad variable.`],
         ['Baja por el mismo lugar donde cuelga la percha del Pelea telón: no pueden estar a la vez.', 'warn'],
         ['Los cuelgues de los 2 motores atraviesan el borde de la tela del tornado.', 'warn'],
         ['500 kg de esfera más la cabeza y el truss sobre 2 motores de 1,5 t: verificar la carga del punto de colgado con el rigger.'],
@@ -2871,7 +3216,8 @@ const VIEWS = {
   mecTelon: { pos: R(14.5, 6.2, 1.5), target: R(SX + 1, 5.6, 6.5) },
   mecCajon: { pos: R(19, 2.2, 0.5), target: R(TOR.x, 6.5, 6.5) },
   mecToroide: { pos: R(19, 3.5, 1), target: R(TOR.x, 7.5, 6.5) },
-  mecCabeza: { pos: R(14.5, 4.5, 1.5), target: R(SX + 2, 4.5, 6.5) },
+  mecCabeza: { pos: R(15.5, 5, 0.8), target: R(SX + 2, 4.2, 6.5) },
+  escCabeza: { pos: R(14.5, 3.6, 2.2), target: R(SX + 2, 3.4, 6.5) },
   mecAgujero: { pos: R(19, 1.8, 0.6), target: R(SX + 8, 9.5, 6.5) },
   lateral: { pos: R(10.5, 6.5, -15), target: R(10, 4, 6.5) },
   torre: { pos: R(19.4, 4.7, 6.1), target: R(0, 2.6, 6.5) },
