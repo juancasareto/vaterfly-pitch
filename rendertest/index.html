@@ -2023,9 +2023,9 @@ function escenaMosh() {
   /* ── 3. Tobogán contra la pared (propuesta): escalera, plataforma a 2,6 m, rampa y frenado ── */
   const TB = { x: 8.2, zTop: 11.8, yTop: 2.6, zBot: 8.2, yBot: .45, run: 1.6, mu: .25, muRun: .8 };   // rozamiento supuesto: rampa .25 y frenado .8
   { const vio = new THREE.MeshStandardMaterial({ color: 0xff8a3a, roughness: .5, transparent: true, opacity: .9 }), len = Math.hypot(TB.zTop - TB.zBot, TB.yTop - TB.yBot), ang = Math.atan2(TB.yTop - TB.yBot, TB.zTop - TB.zBot);
-    const ch = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, len), vio); ch.position.set(TB.x, (TB.yTop + TB.yBot) / 2 - .03, (TB.zTop + TB.zBot) / 2); ch.rotation.x = ang; sceneGroup.add(ch);
+    const ch = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, len), vio); ch.position.set(TB.x, (TB.yTop + TB.yBot) / 2 - .03, (TB.zTop + TB.zBot) / 2); ch.rotation.x = -ang; sceneGroup.add(ch);   // alta del lado de la escalera
     const run = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, TB.run), vio); run.position.set(TB.x, TB.yBot - .03, TB.zBot - TB.run / 2); sceneGroup.add(run);
-    [-1, 1].forEach(sg => { const r = new THREE.Mesh(new THREE.BoxGeometry(.05, .25, len), vio); r.position.copy(ch.position).add(new THREE.Vector3(sg * .37, .1, 0)); r.rotation.x = ang; sceneGroup.add(r); });
+    [-1, 1].forEach(sg => { const r = new THREE.Mesh(new THREE.BoxGeometry(.05, .25, len), vio); r.position.copy(ch.position).add(new THREE.Vector3(sg * .37, .1, 0)); r.rotation.x = -ang; sceneGroup.add(r); });
     propBox(TB.x - .5, TB.x + .5, TB.yTop - .05, TB.yTop, TB.zTop, TB.zTop + .7, 'Tobogán (propuesta)', ORANGE);
     const lad = []; for (const sx of [-.25, .25]) lad.push([TB.x + sx, 0, 12.65], [TB.x + sx, TB.yTop + 1, 12.65]); for (let y = .3; y < TB.yTop + .9; y += .3) lad.push([TB.x - .25, y, 12.65], [TB.x + .25, y, 12.65]);
     segs(lad, new THREE.LineBasicMaterial({ color: 0xffb070 }), sceneGroup);
