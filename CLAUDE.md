@@ -53,8 +53,10 @@ Eje de simetría de la sala `TX` = punto medio entre el frente del escenario y l
 ahí están el agujero del techo y las torres A y B de 6 m, enfrentadas contra las paredes largas.
 Torre C de 3 m con truss de músicos. 2 accesos de público junto a la torre C.
 Techo: tela en tornado a 10,5 m (50 cm sobre las trusses laterales), cuadrada de pared a pared y desde el frente del
-escenario hasta la pared de los accesos, con el tubo central Ø 2,5 m × 1,7 m (boca a 9 m) y el motor central
-(Agujero negro, Cajón, Toroide, Presentación, MOSH). La estructura sobre el techo está a definir.
+escenario hasta la pared de los accesos. Sobre la tela: plataforma de riggers a 11,4 m (clipan y desclipan las escenas y a
+los actores que vuelan; escalera de gato en la esquina del backstage, a la derecha mirando el escenario, y pasarela contra la pared) y parrilla con el motor central a 12,7 m, para que lo que entra y
+sale por el agujero no se vea. Tubo central Ø 2,5 m desde la plataforma hasta la boca, a 9 m (Agujero negro, Cajón,
+Toroide, Presentación, MOSH).
 Trusses de luces laterales a 10 m, contra las paredes largas (el del escenario se sacó).
 
 ## Cómo trabajar

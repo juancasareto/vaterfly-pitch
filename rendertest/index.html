@@ -524,17 +524,21 @@ let projOn = true;
 /* ───────── Techo: tela en tornado + parrilla + tubo central (bocetos de Juan, 27/09) ───────── */
 // Tela a 10,5 m, 50 cm sobre las trusses laterales (producción, 08/10). Cuadrada, de pared a pared y desde el frente del
 // escenario hasta la pared de los accesos; el agujero queda en el centro de ese rectángulo. Tubo más corto (1,7 m).
-const TOR = { x: TX, z: D / 2, yPlane: 10.5, tubeR: 1.25, tubeBottom: 9.0, arms: 8, Rx: (W - SXE) / 2, Rz: D / 2, gx: [TX - 4, TX + 4], gz: [3.5, 9.5] };
+const TOR = { x: TX, z: D / 2, yPlane: 10.5, tubeR: 1.25, tubeBottom: 9.0, arms: 8, Rx: (W - SXE) / 2, Rz: D / 2, gx: [TX - 4, TX + 4], gz: [3.5, 9.5],
+  yDeck: 11.4, yParrilla: 12.7, deck: 2.5 };   // sobre la tela: plataforma de riggers a 11,4 m y parrilla con el motor 2 m más arriba (12,7 m), para que lo que entra y sale no se vea
 const techo = makeEl('techo', {
   nombre: 'Techo · tornado de tela', estado: 'plano',
   medidas: ['Tela en espiral tipo tornado, de 8 brazos, que se cierra en un tubo central', 'Tela a 10,5 m, 50 cm sobre las trusses laterales',
     'Cuadrada: de pared a pared y desde el frente del escenario hasta la pared de los accesos (≈ 13,7 × 13 m), con el agujero en el centro',
-    'Parrilla de truss ≈ 8 × 6 m (supuesto) · tubo Ø 2,5 m y 1,7 m de largo, con la boca a ≈ 9 m', 'Motor arriba del tubo: el cable baja por adentro y por ahí bajan los performers'],
+    'Parrilla de truss ≈ 8 × 6 m (supuesto) a ≈ 12,7 m, 2,2 m sobre la tela, con el motor central arriba: lo que entra y sale por el agujero queda guardado sin verse',
+    'Plataforma de riggers a ≈ 11,4 m (5 × 5 m, con baranda y el hueco del tubo en el centro): clipan y desclipan las escenas y a los actores que vuelan (propuesta)',
+    'Acceso: escalera de gato con jaula en la esquina del backstage (a la derecha mirando el escenario) y pasarela contra la pared larga, por arriba de la tela, hasta la plataforma',
+    'Tubo Ø 2,5 m desde la plataforma hasta la boca, a ≈ 9 m (1,5 m a la vista bajo la tela)', 'El cable del motor baja por adentro del tubo y por ahí bajan los performers'],
   notas: 'Medidas leídas de los bocetos: a confirmar. El alto de la carpa (15 m) también es un supuesto.'
 });
 let techoMat;
 {
-  const g = techo.group, yT = TOR.yPlane + .2, q = .15;
+  const g = techo.group, yT = TOR.yParrilla, q = .15;
   // parrilla de truss (celeste en el boceto)
   const tp = [];
   const boxTruss = (a, b) => {
@@ -551,19 +555,36 @@ let techoMat;
   segs(tp, techo.edgeMat, g);
   const hang = []; for (const x of [TOR.gx[0], TOR.x, TOR.gx[1]]) for (const z of [TOR.gz[0], TOR.gz[1]]) hang.push([x, yT + q, z], [x, H, z]);
   segs(hang, new THREE.LineDashedMaterial({ color: 0x5c5c63, dashSize: .25, gapSize: .25 }), g);
-  // amarillo del boceto: ¿plataforma de acceso?
-  const pf = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2, .08, TOR.gz[1] - TOR.gz[0])), new THREE.LineDashedMaterial({ color: 0xe8c86a, dashSize: .2, gapSize: .12 }));
-  pf.computeLineDistances(); pf.position.set(TOR.gx[1] - 1, yT + q + .05, TOR.z); g.add(pf);
-  const pfm = new THREE.Mesh(new THREE.BoxGeometry(2, .06, TOR.gz[1] - TOR.gz[0]), new THREE.MeshBasicMaterial({ color: 0xe8c86a, transparent: true, opacity: .18, depthWrite: false }));
-  pfm.position.copy(pf.position); g.add(pfm);
-  label('¿Plataforma? (amarillo del boceto)', 'fig', pf, [0, .45, 0]);
+  // plataforma de riggers sobre la tela (propuesta): piso de rejilla con el hueco del tubo, baranda, pasarela y escalera de gato a la torre A
+  { const yD = TOR.yDeck, h = TOR.deck, amarillo = 0xe8c86a, sh = new THREE.Shape([[-h, -h], [h, -h], [h, h], [-h, h]].map(([a, b]) => new THREE.Vector2(a, b)));
+    const hole = new THREE.Path(); hole.absarc(0, 0, TOR.tubeR + .08, 0, Math.PI * 2, true); sh.holes.push(hole);
+    const piso = new THREE.Mesh(new THREE.ShapeGeometry(sh, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: amarillo, transparent: true, opacity: .22, side: THREE.DoubleSide, depthWrite: false }));
+    piso.position.set(TOR.x, yD, TOR.z); piso.userData.el = 'techo'; pickables.push(piso); g.add(piso);
+    // acceso: escalera de gato en la esquina del backstage (a la derecha mirando el escenario, lado torre B) y pasarela contra la pared larga
+    const rl = [], c = [[-h, -h], [h, -h], [h, h], [-h, h]], zP = D - .6, xE = .6, pas = [];
+    for (let i = 0; i < 4; i++) { const [x0, z0] = c[i], [x1, z1] = c[(i + 1) % 4];
+      for (const y of [yD, yD + .5, yD + 1.1]) if (i !== 2 || y === yD) rl.push([TOR.x + x0, y, TOR.z + z0], [TOR.x + x1, y, TOR.z + z1]);
+      rl.push([TOR.x + x0, yD, TOR.z + z0], [TOR.x + x0, yD + 1.1, TOR.z + z0]); }
+    for (const y of [yD + .5, yD + 1.1]) rl.push([TOR.x - h, y, TOR.z + h], [TOR.x - .4, y, TOR.z + h], [TOR.x + .4, y, TOR.z + h], [TOR.x + h, y, TOR.z + h]);   // hueco para entrar
+    const tramo = (x0, z0, x1, z1, w) => { const dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz), nx = -dz / L * w / 2, nz = dx / L * w / 2;
+      for (const sg of [-1, 1]) for (const y of [yD, yD + 1.1]) rl.push([x0 + sg * nx, y, z0 + sg * nz], [x1 + sg * nx, y, z1 + sg * nz]);
+      pas.push([(x0 + x1) / 2, (z0 + z1) / 2, Math.abs(dx) + (Math.abs(dx) > Math.abs(dz) ? 0 : w), Math.abs(dz) + (Math.abs(dz) > Math.abs(dx) ? 0 : w)]); };
+    tramo(TOR.x, TOR.z + h, TOR.x, zP, .8); tramo(TOR.x, zP, xE, zP, .8);   // de la plataforma a la pared y por la pared hasta la esquina del backstage
+    for (const sx of [-.22, .22]) rl.push([xE + sx, 0, zP + .3], [xE + sx, yD + 1.1, zP + .3]);
+    for (let y = .3; y < yD + .05; y += .3) rl.push([xE - .22, y, zP + .3], [xE + .22, y, zP + .3]);
+    for (let y = 2.4; y < yD + 1; y += .9) { const pts = []; for (let k = 0; k <= 12; k++) { const a = Math.PI * k / 12; pts.push([xE + .38 * Math.cos(a), y, zP + .3 - .38 * Math.sin(a)]); } for (let k = 0; k < 12; k++) rl.push(pts[k], pts[k + 1]); }   // jaula
+    segs(rl, new THREE.LineBasicMaterial({ color: amarillo }), g);
+    pas.forEach(([x, z, w, d]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), piso.material); m.position.set(x, yD, z); g.add(m); });
+    const o = new THREE.Object3D(); o.position.set(TOR.x + h - .4, yD + 1.5, TOR.z - h); g.add(o); label('Plataforma de riggers · 11,4 m (propuesta)', 'fig', o);
+    const o2 = new THREE.Object3D(); o2.position.set(xE + .6, yD / 2, zP); g.add(o2); label('Escalera de ingreso al techo (backstage)', 'fig air', o2);
+    const o3 = new THREE.Object3D(); o3.position.set((xE + TOR.x) / 2, yD + 1.5, zP); g.add(o3); label('Pasarela', 'fig air', o3); }
   // motor (rojo) sobre el tubo
   const mg = new THREE.BoxGeometry(.6, .45, .6);
   const mot = new THREE.Mesh(mg, new THREE.MeshStandardMaterial({ color: 0xff4a3a, emissive: 0xff4a3a, emissiveIntensity: .35 }));
   mot.position.set(TOR.x, yT + q + .25, TOR.z); g.add(mot);
   label('Motor', 'fig', mot, [0, .55, 0]);
   // tubo central
-  const tl = yT - TOR.tubeBottom, tg = new THREE.CylinderGeometry(TOR.tubeR, TOR.tubeR, tl, 32, 1, true);
+  const tl = TOR.yDeck - TOR.tubeBottom, tg = new THREE.CylinderGeometry(TOR.tubeR, TOR.tubeR, tl, 32, 1, true);   // de la boca a la plataforma
   const tube = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ color: INK, transparent: true, opacity: .08, side: THREE.DoubleSide, depthWrite: false }));
   tube.position.set(TOR.x, TOR.tubeBottom + tl / 2, TOR.z); tube.userData.el = 'techo'; pickables.push(tube); g.add(tube);
   const te = new THREE.LineSegments(new THREE.EdgesGeometry(tg, 30), techo.edgeMat); te.position.copy(tube.position); g.add(te);
@@ -653,9 +674,10 @@ const tcm = makeEl('trussMusicos', {
 }
 
 /* ───────── Tarima móvil ───────── */
-const TARIMA_HOME = [10.9, 5.85];
+const TARIMA_GUARDA = [16.5, 12.0];   // guardada: esquina de los accesos, lado torre B (producción: sale solo en 06, 09, 10 y 14)
+const TARIMA_HOME = TARIMA_GUARDA;
 const tar = makeEl('tarima', { nombre: 'Tarima móvil', estado: 'plano', medidas: ['≈ 2,4 × 1,3 m', 'Sobre ruedas', 'Altura igual al escenario (≈ 1,0 m)'],
-  notas: 'Se desplaza según la escena: la posición de cada escena es propuesta.' });
+  notas: 'Guardada en la esquina de los accesos (lado torre B). Sale solo en La monja (06), Casamiento (09), Vals (10) y MOSH (14); la posición en cada una es propuesta.' });
 tar.group.position.set(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
 addBox(tar, -1.2, 1.2, 0.3, STAGE.h, -0.65, 0.65, { face: .14 });
 {
@@ -1129,7 +1151,7 @@ function escenaMonja() {
   const posPend = (tau, out) => { const th = thAt(tau), L = Lp(tau);
     return out.set(PIVOTE.x + L * Math.sin(th) * dirA.x, PIVOTE.y - L * Math.cos(th), PIVOTE.z + L * Math.sin(th) * dirA.z); };
   // ── línea de tiempo
-  const PARK = [16.5, 12.0], T_IN = 7, T_PUNK = 5.5, T_SALTO = 10;
+  const PARK = TARIMA_GUARDA, T_IN = 7, T_PUNK = 5.5, T_SALTO = 10;
   const T_PLOMO = T_SALTO + T_PEND, T_GRAB = T_PLOMO + 2, T_CON = T_GRAB + 2.5, T_SUBE = 8, T_GIRA = 15, T_BAJA = 8;
   const T_CON_END = T_CON + T_SUBE + T_GIRA + T_BAJA, T_FIN = T_CON_END + 2.5, TOTAL = T_FIN + 4;
   // ── pasadas: según la altura de los pies de la Punk, la Monja mira, se agacha o salta de costado
@@ -2148,7 +2170,7 @@ function bungee(name, anchor, lean) {
 
 /* ───────── Guion → escenas ───────── */
 const SCENES = [
-  { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario'], tarima: [16.5, 12.0], cam: 'iso',
+  { n: 0, t: 'Warm up', k: 'DJ set · ~60 min', el: ['escenario'], cam: 'iso',
     guion: 'Bloque previo al show. Un DJ sostiene la hora completa mientras los personajes entran por el lounge y la pista e interactúan con el público.',
     esp: [['Cabina DJ al centro del escenario', 1], ['Voleibolistas ×2, enfermera y tragamonedas humana circulan por la pista'],
       ['Tragamonedas humana: 3 performers adentro de una estructura de madera liviana colgada de los hombros, con 3 compartimentos y 3 objetos en cada uno (manzana, limón, naranja). Alguien del público toca el botón de afuera y las 3 eligen un objeto al mismo tiempo; si coinciden los 3, gana. En el visor siempre salen distintos: el público no gana'],
@@ -2179,7 +2201,7 @@ const SCENES = [
       'Saltan corriendo (≈ 4 m/s): el péndulo pasa sobre el público a ≈ 25 km/h, con los pies a ≈ 3,2 m del piso. Zona despejada en la línea A–B. Al saltar corriendo el cable queda flojo un instante: el motor tiene que recogerlo',
       'Si el péndulo usa el motor central, el Toroide de la escena siguiente no puede estar colgado: hay que reengancharlo en el cambio'],
     build() { escenaPresentacion(); } },
-  { n: 2, t: 'Intro', k: 'Escena de apertura', el: ['techo'], cam: 'iso',
+  { n: 2, t: 'Intro', k: 'Escena de apertura', el: ['techo'], cam: 'iso', proj: 'off',
     guion: 'Una explosión “revela” un debris espacial: el Toroide, con dos astronautas que quedaron flotando en el espacio unidos al dispositivo. Gira primero muy lento, se va acelerando y desaparece por el agujero del techo girando rápido.',
     esp: [['Toroide bajado del motor central por el tubo del techo, con el eje fijo a ≈ 6 m del piso', 1],
       ['Mecanismo: percha (como la del Cajón) con swivel, eje fijo de 2,30 m y eje móvil de 1,75 m con un astronauta en cada punta; el resto es escenografía'],
@@ -2187,7 +2209,9 @@ const SCENES = [
       ['Las arandelas de los brazos caen por gravedad y el giro va a tirones; el motor del eje lo acelera hasta ≈ una vuelta cada 3 s', 1],
       ['Todos los giros son simultáneos: la percha (swivel) acompaña al eje móvil, lenta al principio y rápida cuando acelera', 1],
       ['Sube girando; justo antes de entrar al tubo el eje móvil frena vertical y los aros alinean a los astronautas con el eje fijo, mientras la percha y los astronautas siguen girando rápido: así entra', 1],
-      ['Explosión en el centro del toroide', 1]],
+      ['Explosión en el centro del toroide', 1],
+      ['Luz: antes de que baje, toda la sala se pone azul (el espacio) y un haz ancho sale por el agujero desde luces alrededor del motor central. Baja lento a través del haz; cuando llega se prenden suave los seguidores. Después se van yendo todas las luces y en lo más vertiginoso quedan solo los seguidores y los estrobos, hasta que vuelve a entrar por el agujero'],
+      ['Luces alrededor del motor central, sobre el tubo (8 equipos en anillo)', 1]],
     tec: ['Toroide: percha con swivel, eje fijo de truss 2,30 m, eje móvil 1,75 m, 2 aros de cintura, 2 arandelas', 'Motor en el eje móvil (acelera el giro)', 'Motor en el swivel (la percha gira junto con el eje, supuesto)', 'Astronautas ×2 con arnés', 'Efecto explosión'],
     pend: ['Medidas (de Bruno: eje fijo 2,30 m, eje móvil 1,75 m · supuesto: percha a 2,40 m del eje, astronautas 1,75 m, aros de cintura Ø 0,56 m)',
       'Tubo: con el eje móvil vertical y los astronautas alineados, entra con ≈ 2 cm de margen (radio 1,23 m contra 1,25 m). Muy justo; girando el eje móvil no entra',
@@ -2201,7 +2225,32 @@ const SCENES = [
       const up = buildToroide({}, { escena: true }); anims.push(up); up(t);
       const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(TOR.x, TORO.yWork, TOR.z); sceneGroup.add(flash);
       anims.push(t => { const k = (((t % TORO_T.TOTAL) + TORO_T.TOTAL) % TORO_T.TOTAL - TORO_T.llega) / 1.6; flash.visible = k > 0 && k < 1; flash.scale.setScalar(0.3 + k * 4); flash.material.opacity = Math.max(0, 0.5 * (1 - k)); });   // la explosión cuando llega
-    } },
+
+      // haz ancho por el agujero: anillo de luces alrededor del motor central, sobre el tubo (propuesta)
+      const yB = TOR.tubeBottom, rB = 3.4, hazMat = new THREE.MeshBasicMaterial({ color: 0x6f9bff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const haz = new THREE.Mesh(new THREE.CylinderGeometry(TOR.tubeR - .05, rB, yB, 40, 1, true), hazMat); haz.position.set(TOR.x, yB / 2, TOR.z); sceneGroup.add(haz);
+      const nucleoMat = hazMat.clone(); const nucleo = new THREE.Mesh(new THREE.CylinderGeometry(TOR.tubeR * .55, rB * .55, yB, 32, 1, true), nucleoMat); nucleo.position.copy(haz.position); sceneGroup.add(nucleo);
+      const charco = new THREE.Mesh(new THREE.CircleGeometry(rB, 48), new THREE.MeshBasicMaterial({ color: 0x6f9bff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+      charco.rotation.x = -Math.PI / 2; charco.position.set(TOR.x, .03, TOR.z); sceneGroup.add(charco);
+      const lentes = []; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, m = new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, .22, 12), new THREE.MeshBasicMaterial({ color: 0, toneMapped: false }));
+        m.position.set(TOR.x + .85 * Math.cos(a), TOR.yPlane + .35, TOR.z + .85 * Math.sin(a)); sceneGroup.add(m); lentes.push(m); }
+      { const o = new THREE.Object3D(); o.position.set(TOR.x + 1.3, TOR.yPlane + .7, TOR.z); sceneGroup.add(o); label('Luces alrededor del motor central (propuesta)', 'fig air', o); }
+      // secuencia de luz (70 s): sala azul + haz → baja → seguidores → se van las luces → solo seguidores y estrobos → sube
+      const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), TT = TORO_T, G = g => FX.filter(f => f.grp === g), AZUL = new THREE.Color(0x2f55ff), AZUL2 = new THREE.Color(0x5b86ff);
+      anims.push(t => { const tt = ((t % TT.TOTAL) + TT.TOTAL) % TT.TOTAL;
+        const sala = (1 - sm((tt - 26) / 12)) + sm((tt - 63) / 5);                         // azul a pleno y después se va yendo
+        const hz = sm((tt - .8) / 1.6) * (1 - sm((tt - TT.llega) / 3.5));                  // haz por el agujero: desde antes de bajar hasta que llega
+        const seg = sm((tt - TT.llega) / 4) * (1 - sm((tt - 60.5) / 1.5));                // seguidores: entran suave cuando llega, se van cuando entra al tubo
+        const vertigo = tt > 38 && tt < 61;                                                  // lo más rápido: solo seguidores y estrobos
+        G('wash').forEach(f => { f.tColor.copy(AZUL); f.tInt = .6 * sala; });
+        G('parU').forEach(f => { f.tColor.copy(AZUL); f.tInt = .5 * sala; });
+        G('parM').forEach(f => { f.tColor.copy(AZUL); f.tInt = .25 * sala; });
+        G('beamTorre').forEach(f => { f.tColor.copy(AZUL2); f.tInt = .45 * sala; });
+        ['beamT1', 'parF', 'blinder', 'contra'].forEach(g => G(g).forEach(f => { f.tInt = 0; }));
+        G('seg').forEach(f => { f.tInt = .95 * seg; });
+        strobeMode = vertigo ? 'on' : 'off'; G('strobe').forEach(f => { f.tColor.set(0xffffff); f.tInt = vertigo ? .15 : 0; });
+        hazMat.opacity = .14 * hz; nucleoMat.opacity = .16 * hz; charco.material.opacity = .35 * hz; lentes.forEach(m => m.material.color.copy(AZUL2).multiplyScalar(4 * hz)); haz.visible = nucleo.visible = charco.visible = hz > .01;
+      });    } },
   { n: 3, t: 'Esfera / Cabeza', k: 'Escena · aparece el Capitán', el: ['escenario', 'telon'], cam: 'escCabeza',
     guion: 'La cabeza baja del techo sobre el escenario. Por los agujeros de la nariz, las orejas y los cachetes salen brazos y piernas. Simula una explosión, sale humo de adentro y la cabeza se parte en 2 mitades: aparece una esfera llena de luces y láser y, adentro, el Capitán Psicodelia. Sale, se para en el medio del escenario y baila con un micrófono.',
     esp: [['Bajada como estaba: truss con riel y 2 motores de cadena. La cabeza es nueva (fotos de producción): gorro cónico de pelo naranja, cachetes enormes, ojos desorbitados, boca abierta con brackets'],
@@ -2227,14 +2276,14 @@ const SCENES = [
     esp: [['DJ en cabina sobre el escenario', 1], ['Pista libre para el público']],
     tec: ['Sonido DJ'], pend: ['Confirmar si el DJ es Chicho Sarli u otro personaje'],
     build() { dj('DJ · a confirmar'); } },
-  { n: 5, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB', 'tarima'], tarima: [9.5, 6.5], cam: 'lateral',
+  { n: 5, t: 'Italo Disco', k: 'DJ set · 30 min · Milano Paolini', el: ['escenario', 'torreA', 'torreB'], cam: 'lateral',
     guion: 'Milano Paolini toma la cabina. En paralelo, un músico toca techno con un dispositivo de tubos de PVC. En el aire aparece un mono en bicicleta volando: es el astronauta de la escena 2, que reingresa transformado.',
-    esp: [['Milano Paolini en cabina'], ['Músico de tubos PVC sobre la tarima móvil en el centro de la pista', 1], ['Mono en bicicleta sobre cable tendido entre las torres A y B (6 m, ≈ 11 m de luz)', 1]],
+    esp: [['Milano Paolini en cabina'], ['Músico de tubos PVC en el centro de la pista, en el piso (la tarima está guardada)', 1], ['Mono en bicicleta sobre cable tendido entre las torres A y B (6 m, ≈ 11 m de luz)', 1]],
     tec: ['Dispositivo de tubos PVC', 'Cable entre torres', 'Bicicleta aérea'],
     pend: ['Cálculo de la línea entre torres y anclaje de las torres al piso', 'Microfoneo de los tubos PVC'],
     build() {
       dj('Milano Paolini');
-      figure('Músico PVC', [9.5, 1.0, 6.5]); propBox(9.9, 10.5, 1.0, 2.2, 5.9, 7.1, 'Tubos PVC');
+      figure('Músico PVC', [9.5, 0, 6.5]); propBox(9.9, 10.5, 0, 1.2, 5.9, 7.1, 'Tubos PVC');
       const c = path([[TX, 6, 1.05], [TX, 6, 11.95]]);
       const m = figure('Mono en bici', [0, 0, 0], { color: PURPLE, air: true });
       anims.push(t => { const k = (Math.sin(t * .35) + 1) / 2; const p = c.getPointAt(k); m.position.set(p.x, p.y - 1.95, p.z); });
@@ -2267,12 +2316,12 @@ const SCENES = [
       arcs([TX, 5, 2.4], [[9, 0, 6], [12, 0, 5], [15, 0, 4]]); arcs([TX, 5, 10.6], [[9, 0, 9], [13, 0, 7.5], [16, 0, 10]]);
       ring([TX, 2.4], 1.2, PURPLE); ring([TX, 10.6], 1.2, PURPLE);
     } },
-  { n: 8, t: 'Desfile', k: 'Escena', el: ['escenario', 'tarima'], tarima: [15.5, 6.5], cam: 'iso',
+  { n: 8, t: 'Desfile', k: 'Escena', el: ['escenario'], cam: 'iso',
     guion: 'Desfile de personajes. Estética y ritmo a definir.',
-    esp: [['Circuito: escenario → escalera → vuelta por la pista → tarima → escalera opuesta', 1], ['Tarima como punto de pose al fondo de la pista', 1]],
+    esp: [['Circuito: escenario → escalera → vuelta por la pista → punto de pose → escalera opuesta', 1], ['Punto de pose al fondo de la pista, en el piso (la tarima está guardada)', 1]],
     tec: ['Pasillo despejado en la pista'], pend: ['Estética', 'Ritmo y cantidad de personajes', 'Cómo se abre paso entre el público'],
     build() {
-      const c = path([[SX + 1.4, 1, 3], [SXE + .3, 1, 2.15], [SXE + 1.2, 0, 2.15], [10.5, 0, 2.6], [15.5, 1.0, 6.5], [10.5, 0, 10.4], [SXE + 1.2, 0, 10.85], [SXE + .3, 1, 10.85], [SX + 1.4, 1, 10]], { color: ORANGE, closed: true });
+      const c = path([[SX + 1.4, 1, 3], [SXE + .3, 1, 2.15], [SXE + 1.2, 0, 2.15], [10.5, 0, 2.6], [15.5, 0, 6.5], [10.5, 0, 10.4], [SXE + 1.2, 0, 10.85], [SXE + .3, 1, 10.85], [SX + 1.4, 1, 10]], { color: ORANGE, closed: true });
       for (let i = 0; i < 5; i++) follow(figure(i === 0 ? 'Personajes' : '', [0, 0, 0]), c, 0.035, i * 0.2);
     } },
   { n: 9, t: 'Casamiento', k: 'Escena', el: ['tarima'], tarima: [10.9, 6.5], cam: 'publico',
@@ -2358,7 +2407,7 @@ const SCENES = [
     guion: 'Baja el Cajón del techo lentamente y queda flotando en el centro del espacio, sobre la cabeza de los espectadores. Los performers lo hacen hamacar en un gran péndulo, después empiezan a girar mientras pendulan y del Cajón sale humo, luces y láser. Un quick release suelta una punta del eje y el Cajón sigue pendulando de forma irregular, con sensación de peligro.',
     esp: [['Baja de canto, con los performers sentados en el aire a cada lado, colgados del arnés y con las suelas contra el Cajón (referencia de producción)'],
       ['Abajo gira a horizontal: un performer queda parado arriba y el otro colgado cabeza abajo; el eje queda a ≈ 5,5 m del piso', 1],
-      ['Lo hamacan a lo largo de la sala bombeando con el cuerpo (se agachan en los extremos y se paran abajo), hasta ±22°'],
+      ['Lo hamacan a lo largo de la sala bombeando con el cuerpo (se agachan en los extremos y se paran abajo), hasta ±17°'],
       ['Giran sobre el eje mientras pendulan; humo, luces y láser salen de toda la periferia del Cajón'],
       ['Quick release: se suelta una punta del eje y el Cajón queda colgado de la otra. Péndulo doble: se mueve irregular, sin repetirse'],
       ['Eslinga de seguridad directa de la argolla de la percha a la punta que queda: al soltar no hay caída libre', 1]],
@@ -2366,10 +2415,10 @@ const SCENES = [
     pend: ['Altura de los performers (supuesto 1,75 m) y masas (supuesto: Cajón con equipos y performers 260 kg, percha y cables 30 kg)', 'Vestuario de los performers: falta la referencia',
       'Bajada: de canto y con los performers sentados en el aire, el conjunto entra en el tubo con ≈ 2 cm de margen (1,23 m de radio contra 1,25 m). Muy justo',
       'Quick release sin eslinga de seguridad: la percha se inclina y todo cae ≈ 0,6 m hasta que el cable se tensa. Pico ≈ 18 veces el peso. No va',
-      'Quick release con eslinga de seguridad: el modelo da picos de ≈ 9 veces el peso (≈ 26 kN) en el primer segundo, cuando el Cajón pivota y latiguea; baja a ≈ 2 veces en 20 s. Valor orientativo (modelo simplificado, conservador): motor, argolla, eslinga, quick release, eje y rulemanes los tiene que calcular un ingeniero para esa carga dinámica',
+      'Quick release con eslinga de seguridad: el modelo da picos de ≈ 10 veces el peso (≈ 28 kN) en el primer segundo, cuando el Cajón pivota y latiguea; baja a ≈ 2 veces en 20 s. Valor orientativo (modelo simplificado, conservador): motor, argolla, eslinga, quick release, eje y rulemanes los tiene que calcular un ingeniero para esa carga dinámica',
       'Después del quick release el performer más bajo pasa a ≈ 2,8 m del piso: ≈ 0,5 m sobre las manos levantadas del público',
-      'Choque: con la tela a 10,5 m y el tubo de 1,7 m, el Cajón guardado asoma ≈ 2,2 m por debajo de la boca del tubo. Hace falta subir el motor (estructura sobre el techo, a definir) o una percha que se pliegue',
-      'Amplitud: ±22°. Con el pivote en el motor, 1,9 m arriba de la boca, el cable se corre ≈ 0,8 m en la boca (radio 1,25 m): el máximo sin rozar sería ≈ ±33°',
+      'Guardado: con el motor en la parrilla a 12,9 m, la percha queda a la altura de la plataforma de riggers y el Cajón asoma apenas ≈ 0,2 m por debajo de la boca del tubo',
+      'Amplitud: ±17°. El péndulo cuelga del motor, que ahora está 3,9 m arriba de la boca del tubo: a ±17° el cable se corre ≈ 1,2 m en la boca (radio 1,25 m), justo sin rozar. Para hamacarlo más hace falta una roldana o guía en la boca',
       'Cómo se vuelve a armar el Cajón colgado de una punta para subirlo (acá la escena vuelve a empezar)'],
     build() {
       const up = buildCajon({}, { escena: true }); anims.push(up); up(t);
@@ -2383,14 +2432,14 @@ const SCENES = [
       follow(figure('Vaca-monja', [0, 0, 0], { color: WHITE }), c, 0.05, 0.1);
       follow(figure('Punky-carnicera', [0, 0, 0]), c, 0.05, 0);
     } },
-  { n: 19, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'tarima', 'torreA', 'torreB', 'torreC', 'telon'], tarima: [10.9, 6.5], cam: 'iso',
+  { n: 19, t: 'Cierre', k: '“Hella Good” remix', el: ['escenario', 'torreA', 'torreB', 'torreC', 'telon'], cam: 'iso',
     guion: 'Van entrando todos los personajes para el cierre coral, con “Hella Good” (remix) sonando.',
-    esp: [['Personajes en escenario, tarima y torres', 1], ['Público al centro de la pista']],
+    esp: [['Personajes en escenario y torres; los novios en el centro de la pista (la tarima está guardada)', 1], ['Público al centro de la pista']],
     tec: ['Todos los vestuarios'], pend: ['Orden de entrada', 'Cantidad total de personajes en escena'],
     build() {
       dj('DJ');
       [[1.2, 2.2], [1.2, 3.6], [1.2, 9.4], [1.2, 10.8], [1.6, 4.7], [1.6, 8.3]].forEach(([x, z], i) => figure(i === 0 ? 'Elenco' : '', [SX + x, 1, z], { color: i % 2 ? WHITE : ORANGE }));
-      figure('', [10.5, 1, 6.5]); figure('', [11.3, 1, 6.5], { color: WHITE });
+      figure('', [10.5, 0, 6.5]); figure('', [11.3, 0, 6.5], { color: WHITE });
       figure('', [TX, 6, 0.55], { color: PURPLE }); figure('', [TX, 6, 12.45], { color: PURPLE }); figure('Trompetista', [19.5, 3, 6.1], { color: 0x9fb8ff });
     } },
 ];
@@ -2605,7 +2654,7 @@ const P = { o: 'ff6b3d', v: '8a8fff', m: 'ff3fa4', c: '3fd8ff', a: 'ffa040', w: 
 const LOOKS = {
   0:  { txt: 'Baños cálidos ámbar y magenta que respiran lento. Beams apagados, uplight ámbar sobre la tela.', wash: { c: [P.a, P.m], i: .6, aim: 'pista' }, parF: { i: .2 }, parU: { i: .4, c: P.a } },
   1:  { txt: 'Sala a oscuras. Solo un seguidor sobre el personaje al que le toca: el de la torre B queda a oscuras hasta que el A desaparece, y cada seguidor se apaga cuando su personaje entra al agujero.', wash: { c: P.v, i: .04, aim: 'pista' }, seg: ['Personaje A', 'Personaje B'] },
-  2:  { txt: 'Sala casi a oscuras. Beams blancos giran alrededor del toroide, estrobos en la explosión y los dos seguidores toman a los astronautas.', wash: { c: P.v, i: .15, aim: 'pista' }, beam: { c: P.w, i: 1, aim: 'toroide' }, strobe: 'on', parU: { i: .45, c: P.v }, seg: ['Astronauta 1', 'Astronauta 2'] },
+  2:  { txt: 'El espacio: toda la sala en azul y un haz ancho que sale por el agujero (luces alrededor del motor central). Baja el Toroide lento a través del haz; cuando llega, entran suave los seguidores. Después se van yendo todas las luces y en lo más vertiginoso quedan solo los seguidores y los estrobos, hasta que vuelve a entrar por el agujero.', wash: { c: '2f55ff', i: .6, aim: 'pista' }, beamTorre: { c: '5b86ff', i: .45, aim: 'pista' }, parU: { i: .5, c: '2f55ff' }, parM: .25, seg: ['Astronauta 1', 'Astronauta 2'] },
   4:  { txt: 'High energy: beams en abanico rápido, wash naranja y violeta, estrobos en los golpes.', wash: { c: [P.o, P.v], i: .7, aim: 'fan' }, beam: { c: [P.w, P.o], i: 1, aim: 'fanFast' }, strobe: 'on', parF: { i: .3 }, parU: { i: .5, c: P.o } },
   5:  { txt: 'Italo: magenta y cian. Los beams de las torres siguen al mono en bici; un seguidor queda en el músico de PVC.', wash: { c: [P.m, P.c], i: .6, aim: 'pista' }, beam: { c: [P.m, P.c], i: .8, aim: 'fan' }, beamTorre: { c: P.c, i: 1, aim: 'track', names: ['Mono en bici'] }, parU: { i: .5, c: P.m }, seg: ['Mono en bici', 'Músico PVC'] },
   6:  { txt: 'Pista en azul bajo, uplight blanco sobre la pantalla y un seguidor para la Monja y otro para la Punk.', wash: { c: P.b, i: .2, aim: 'pista' }, parF: { i: .7 }, parU: { i: .3, c: P.w }, seg: ['Monja', 'Punk'] },
@@ -2630,8 +2679,8 @@ const LOOKS = {
 /* ───────── Mecanismos del motor central y de la cabeza (fichas de Bruno en Notion, 28/09) ───────── */
 const sstep = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 function cycle(t, P) { const p = (t % P) / P; return p < .2 ? sstep(0, .2, p) : p < .8 ? 1 : 1 - sstep(.8, 1, p); }
-const MOTOR_Y = TOR.yPlane + .4;          // gancho del motor central, sobre el tubo
-const Y_GUARDA = TOR.yPlane + .1;         // percha guardada dentro del tubo, por encima del nivel de la tela
+const MOTOR_Y = TOR.yParrilla + .2;       // gancho del motor central, en la parrilla sobre la plataforma
+const Y_GUARDA = MOTOR_Y - .3;            // percha guardada arriba, a la altura del pecho de los riggers en la plataforma (clipan ahí)
 const metal = c => new THREE.MeshStandardMaterial({ color: c, metalness: .6, roughness: .35 });
 
 // Toroide: percha de 2,25 m que gira; eje de astronautas de 1,75 m que gira sobre la percha; cada astronauta gira sobre sí
@@ -2649,7 +2698,7 @@ const TORO = { eje: 2.3, brazo: 1.75, drop: 2.4, yWork: 6, h: 1.75, aro: .28, mA
 TORO.R = TORO.brazo / 2;
 const ROPA_ASTRO = { piel: 0xe8b8d0, remera: { c: 0xe58fc8, rough: .3, mangas: 'largas' }, pantalon: { c: 0xe58fc8 }, botas: { c: 0xd86bb2, cordones: 0xd86bb2 },
   arnes: 0x2b4fd6, casco: { c: 0xf6d6ea, visor: 0xff9ad5 }, guantes: 0xe58fc8 };   // referencia: traje rosa metalizado, arnés azul, casco con visor espejado
-const TORO_T = { TOTAL: 60, llega: 10, abre: [10, 13], acelera: [10, 40], sube: [40, 54], alinea: [45, 48.5] };   // sube girando; el eje móvil frena vertical justo antes de entrar al tubo
+const TORO_T = { TOTAL: 70, previa: 6, llega: 18, abre: [18, 21], acelera: [18, 48], sube: [48, 62], alinea: [53, 56.5] };   // previa: sala azul y haz por el agujero antes de que baje   // sube girando; el eje móvil frena vertical justo antes de entrar al tubo
 function toroSim(modo, TOTAL, yawRate, alto = Infinity) {   // alto: desde ahí los aros frenan alineados   // integra el giro del eje móvil, las arandelas y el swivel (paso 1/240 s) · modo(t) = { w } (velocidad) o { frena: true } (para vertical)
   const DT = 1 / 240, N = Math.ceil(TOTAL / DT) + 2, T = TORO, g = GRAV;
   const TH = new Float32Array(N), OM = new Float32Array(N), R1 = new Float32Array(N), R2 = new Float32Array(N), YAW = new Float32Array(N), PHI = new Float32Array(N);
@@ -2736,7 +2785,7 @@ function buildToroide(st, { escena = false } = {}) {
     const tt = escena ? ((t % TT.TOTAL) + TT.TOTAL) % TT.TOTAL : ((t % 60) + 60) % 60;
     let y, abierto = 1;   // abierto: aros girando y astronautas libres · 0: alineados con el eje fijo, brazos al cuerpo (así entra en el tubo)
     if (escena) { const [s0, s1] = TT.sube;
-      y = tt < TT.llega ? yArriba + (T.yWork - yArriba) * sm(tt / TT.llega) : tt < s0 ? T.yWork : T.yWork + (yArriba - T.yWork) * sm((tt - s0) / (s1 - s0));
+      y = tt < TT.llega ? yArriba + (T.yWork - yArriba) * sm((tt - TT.previa) / (TT.llega - TT.previa)) : tt < s0 ? T.yWork : T.yWork + (yArriba - T.yWork) * sm((tt - s0) / (s1 - s0));
       abierto = sm((tt - TT.abre[0]) / (TT.abre[1] - TT.abre[0])) * (1 - sm((tt - TT.alinea[0]) / (TT.alinea[1] - TT.alinea[0]))); }
     else { const k = st.auto ? cycle(t, 26) : st.val / 100; if (st.auto) st.val = k * 100; y = yArriba + (T.yWork - yArriba) * k; abierto = sstep(.8, 1, k); }
     const s = SIM(tt), wv = Math.min(1, s.w / T.wMax);
@@ -2769,7 +2818,7 @@ function buildToroide(st, { escena = false } = {}) {
    Percha a 2,8 m sobre el eje: un performer parado (1,75 m + brazos arriba ≈ 2,4 m desde el eje) no llega al caño.
    Tapas de acrílico tornasolado; luces y láser empotrados en toda la periferia.
    Quick release en una punta del eje: al soltarla, el cajón queda colgado de la otra punta (péndulo doble). */
-const CJ = { lado: 1.9, alto: .3, ejeL: 2.4, percha: 2.4, drop: 2.8, yWork: 5.5, h: 1.75, amp: 22 * DEG,
+const CJ = { lado: 1.9, alto: .3, ejeL: 2.4, percha: 2.4, drop: 2.8, yWork: 5.5, h: 1.75, amp: 17 * DEG,
   masaCajon: 260, masaPercha: 30 };   // kg, supuestos: cajón con equipos + 2 performers · percha, cables y argollas
 CJ.yGuarda = Y_GUARDA - CJ.drop;   // altura del eje con la percha guardada en el tubo
 CJ.eslinga = Math.hypot(CJ.percha / 2, .6);   // de la argolla a cada punta de la percha
@@ -2855,7 +2904,7 @@ function cajonModelo(c) {
 /* Coreografía (escena 17, 74 s en loop):
    0–12 s baja lento de canto, con los performers sentados en el aire contra las caras (como en la foto);
    abajo de la boca del tubo gira a horizontal y los performers se paran: uno arriba, el otro colgado cabeza abajo.
-   15–33 s lo hamacan a lo largo de la sala: el de arriba se agacha en los extremos y se para abajo (bombeo), hasta ±22°.
+   15–33 s lo hamacan a lo largo de la sala: el de arriba se agacha en los extremos y se para abajo (bombeo), hasta ±17°.
    33 s empiezan a girar sobre el eje mientras pendulan. 42 s humo, luces y láser.
    46 s quick release: se suelta una punta del eje y el cajón queda colgado de la otra (péndulo doble, irregular). */
 const CJT = { baja: 12, pend0: 15, pend1: 33, giro0: 33, giro1: 39, fx0: 42, qr: 46, TOTAL: 74 };
@@ -3489,7 +3538,7 @@ const MECS = [
       'Hasta dónde baja el performer: pista, tarima o queda en el aire', 'Cuántos brazos tiene la tela y si cubre todo el techo o solo el centro',
       'Los cuelgues de los trusses de luces atraviesan la tela: colgarlos de la parrilla o pasar por la tela'],
     build() {
-      const st = this.st, x = TOR.x, z = TOR.z, yTop = TOR.tubeBottom + .3, yMot = TOR.yPlane + .6;
+      const st = this.st, x = TOR.x, z = TOR.z, yTop = TOR.tubeBottom + .3, yMot = MOTOR_Y;
       segs([[x, TOR.tubeBottom, z], [x, 0, z]], dashMat(ORANGE, .3, .22), sceneGroup);
       ring([x, z], 2, ORANGE, .03);
       const o = new THREE.Object3D(); o.position.set(x, .35, z + 1.9); sceneGroup.add(o); label('Zona de descenso · despejar público', 'fig', o);
@@ -3523,7 +3572,7 @@ const MECS = [
     ubic: 'Centro de la sala, con el motor central. Toda la obra queda guardado arriba de la tela del techo hasta su escena.',
     ficha: [['Tipo', 'Aérea'], ['Performers', '2'], ['Operadores / riggers', '1'], ['Dimensiones', '1,9 × 1,9 × 0,3 m · percha 2,4 m a 2,8 m del eje'], ['Peso aprox.', 'a definir'], ['Origen', 'a definir']],
     el: ['techo'], cam: 'mecCajon', look: { wash: { c: '8a8fff', i: .2, aim: 'pista' }, beamTorre: { c: 'ffffff', i: .9, aim: 'track', names: ['Performer 1', 'Performer 2'] }, seg: ['Performer 1', 'Performer 2'] },
-    pend: ['Peso del Cajón con luces, láser y humo', 'Altura del eje en la escena (supuesto: ≈ 5,5 m del piso)', 'Amplitud del péndulo (supuesto: ±22°)',
+    pend: ['Peso del Cajón con luces, láser y humo', 'Altura del eje en la escena (supuesto: ≈ 5,5 m del piso)', 'Amplitud del péndulo (supuesto: ±17°, límite del tubo sin roldana)',
       'Alimentación y datos de luces, láser y humo a bordo (cable o batería)', 'Guardado: con la percha más alta el Cajón no entra entero en el tubo'],
     build() {
       const st = this.st, up = buildCajon(st); anims.push(t => { up(t); syncRange(st, '%'); }); up(t);
@@ -3535,8 +3584,8 @@ const MECS = [
         [`Percha a ${f1(CJ.drop)} m del eje: el performer parado llega a ≈ ${f1(alcance)} m del eje con los brazos arriba. Quedan ≈ ${f1(CJ.drop - alcance)} m hasta el caño.`],
         [`Guardado, la percha queda en el tubo pero el Cajón asoma ≈ ${f1(TOR.tubeBottom - (CJ.yGuarda - CJ.lado / 2))} m por debajo de la boca.`, 'warn'],
         [`El péndulo (≈ ${f1(Lw)} m hasta el eje, ±${f1(CJ.amp / DEG, 0)}°) barre ≈ ±${f1(sw)} m; con los performers girando, despejar un círculo de ≈ ${f1(2 * (sw + alcance), 0)} m de diámetro.`, 'warn'],
-        [`En la boca del tubo el cable se corre ≈ ${f1(clear)} m: entra en el radio de 1,25 m sin rozar, justo. Más amplitud necesita una roldana en la boca.`],
-        ['Quick release: sin eslinga de seguridad la percha se inclina y todo cae ≈ 0,6 m (pico ≈ 18 veces el peso). Con eslinga, picos de ≈ 9 veces en el primer segundo (orientativo): calcular toda la línea de carga.', 'warn'],
+        [`En la boca del tubo el cable se corre ≈ ${f1(clear)} m: ${clear < TOR.tubeR ? 'entra en el radio de 1,25 m sin rozar' : 'roza el borde del tubo'}. El máximo sin rozar es ≈ ±${f1(Math.atan(TOR.tubeR / (MOTOR_Y - TOR.tubeBottom)) / DEG, 0)}°; más amplitud necesita una roldana en la boca.`, clear < TOR.tubeR ? '' : 'warn'],
+        ['Quick release: sin eslinga de seguridad la percha se inclina y todo cae ≈ 0,6 m (pico ≈ 18 veces el peso). Con eslinga, picos de ≈ 10 veces en el primer segundo (orientativo): calcular toda la línea de carga.', 'warn'],
         ['Comparte el motor central con el Agujero negro y el Toroide: uno por vez.'],
       ];
     } },
