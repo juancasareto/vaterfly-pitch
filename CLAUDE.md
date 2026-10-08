@@ -48,10 +48,14 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
 ## Planta actual (resumen)
 
 Sala 20 × 13 m, carpa a 15 m (supuesto). Backstage de 4 m. Escenario de 10 × 2,3 m con pasillos de 1,5 m a los lados.
-Pantalla = Pelea telón, marco Layher 6 × 6 m (retroproyección desde el backstage). Torres A y B de 6 m enfrentadas
-(x 11–13,6). Torre C de 3 m con truss de músicos. 2 accesos de público junto a la torre C. Techo con tela en tornado
-(plano a 12 m), parrilla y tubo central Ø 2,5 m con el motor central (Agujero negro, Cajón, Toroide).
-Trusses de luces laterales a 10 m (el del escenario se sacó).
+Pantalla = Pelea telón, marco Layher 6 × 6 m (retroproyección desde el backstage).
+Eje de simetría de la sala `TX` = punto medio entre el frente del escenario y la pared de los accesos (x ≈ 13,15):
+ahí están el agujero del techo y las torres A y B de 6 m, enfrentadas contra las paredes largas.
+Torre C de 3 m con truss de músicos. 2 accesos de público junto a la torre C.
+Techo: tela en tornado a 10,5 m (50 cm sobre las trusses laterales), cuadrada de pared a pared y desde el frente del
+escenario hasta la pared de los accesos, con el tubo central Ø 2,5 m × 1,7 m (boca a 9 m) y el motor central
+(Agujero negro, Cajón, Toroide, Presentación, MOSH). La estructura sobre el techo está a definir.
+Trusses de luces laterales a 10 m, contra las paredes largas (el del escenario se sacó).
 
 ## Cómo trabajar
 
