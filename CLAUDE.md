@@ -36,6 +36,13 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
   (control deslizante), `build()` y `notes` (choques detectados). Los mecanismos del motor central y la cabeza
   se arman con `buildToroide`, `buildCajon`, `buildCabeza`, que también usan las escenas.
 - **Luces:** `fixture(type, pos, rig, grupo)` + `applyLook(look)`. Rider en `showRider()`.
+- **Calidad alta (HQ, por defecto):** sección *Calidad visual (HQ)* al final del script. Al arrancar convierte las líneas de
+  torres, trusses, techo y marco de la pantalla en tubos de aluminio, las aristas de los equipos en cuerpos sólidos, y pone
+  materiales con textura a piso, carpa, escenario, tarima y puertas; suma reflectores reales (con sombras) detrás de los haces,
+  tono AgX, entorno de reflejos, niebla y SMAA. Botón **Vista técnica** = vuelve a las líneas (`hqSet(false)`); se recuerda en
+  `localStorage`. Lo activo de la escena se tiñe de naranja (`hqActive`). Personajes y mecanismos no se convierten: solo reciben
+  sombras (`hqSombras`). Estructura nueva: dibujarla con `segs(..., el.edgeMat, ...)` dentro de su `makeEl` y sumarla a la lista
+  de ids de la sección HQ si tiene que verse como caño. **No usar MSAA en el composer** (da bloques negros): el suavizado es SMAA.
 - **Personajes:** se están pasando de cápsula (`figure()`) a humano articulado (`humano()`, con `vestir()` y `posar()`). Todo personaje nuevo se crea con
   `humano(nombre, [x, y, z], { h, face, ropa })`: **nombre** + **referencia de vestuario** (la imagen que pasa
   producción) traducida a un objeto de ropa como `ROPA_70` (piel, pelo, remera, short, medias, zapatillas, accesorios).

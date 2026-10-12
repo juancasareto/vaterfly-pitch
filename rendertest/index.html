@@ -269,6 +269,7 @@
       <label class="chk"><input type="checkbox" id="lyProj" checked> Proyección</label>
       <label class="chk"><input type="checkbox" id="lyTecho" checked> Techo</label>
       <span class="spacer"></span>
+      <button class="tbtn" id="btnHQ" aria-pressed="true">Vista técnica</button>
       <button class="tbtn" id="btnShow" aria-pressed="false">Modo show</button>
       <button class="tbtn" id="btnMeasure" aria-pressed="false">Medir</button>
       <button class="tbtn" id="btnPause" aria-pressed="false">Pausar</button>
@@ -305,6 +306,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /* ───────── Sala (metros). x: largo 0→20 (escenario en x=0) · z: ancho 0→13 · y: alto ───────── */
 const W = 20, D = 13, H = 15;
@@ -3668,6 +3671,7 @@ function setActive(ids) {
     el.faceMats.forEach(m => { m.color.set(on ? ORANGE : INK); m.opacity = Math.min(1, m.userData.base * (on ? 2.4 : 1) * (showMode ? .35 : 1)); });
     el.labelEl?.classList.toggle('on', on);
   }
+  hqActive(ids);
 }
 function goScene(i, { moveCam = true } = {}) {
   mode = 'guion';
@@ -3890,8 +3894,156 @@ renderer.setAnimationLoop(() => {
     if (k >= 1) camTween = null;
   }
   controls.update();
-  composer.render(); labelR.render(scene, camera);
+  hqTick(); composer.render(); labelR.render(scene, camera);
 });
+
+/* ═════════ Calidad visual (HQ): caños y truss reales, materiales con textura, luces reales y render ═════════
+   Se aplica a la estructura base y a las luces. Personajes y mecanismos no se tocan (solo reciben sombras).
+   El botón "Vista técnica" vuelve a las líneas del plano. */
+var HQ = null;
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  const fog = new THREE.FogExp2(0x060609, .02);
+  composer.addPass(new SMAAPass());   // suavizado de bordes (el MSAA del composer daba bloques negros)
+
+  const tex = (draw, rep, srgb = true) => {
+    const c = document.createElement('canvas'); c.width = c.height = 512; draw(c.getContext('2d'), 512, 512);
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); t.anisotropy = 8;
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t;
+  };
+  const ruido = (x, w, h, base, amp, n) => { x.fillStyle = base; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < n; i++) { const v = Math.floor(Math.random() * amp); x.fillStyle = `rgba(${v},${v},${v},.5)`; x.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 1 + Math.random() * 2); } };
+  const tablas = (x, w, h) => {                       // tablas de escenario pintadas de negro, con juntas
+    for (let i = 0; i < 8; i++) { const g = 22 + Math.floor(Math.random() * 10); x.fillStyle = `rgb(${g},${g},${g + 2})`; x.fillRect(0, i * h / 8, w, h / 8);
+      x.fillStyle = 'rgba(0,0,0,.6)'; x.fillRect(0, i * h / 8, w, 2); x.fillRect(Math.random() * w, i * h / 8, 2, h / 8); }
+    for (let i = 0; i < 4000; i++) { x.fillStyle = `rgba(255,255,255,${Math.random() * .03})`; x.fillRect(Math.random() * w, Math.random() * h, 6 + Math.random() * 20, 1); } };
+  const M = {
+    alu: () => new THREE.MeshStandardMaterial({ color: 0xc2c7cf, metalness: .9, roughness: .3 }),
+    acero: new THREE.MeshStandardMaterial({ color: 0x5a5d63, metalness: .85, roughness: .42 }),
+    equipo: new THREE.MeshStandardMaterial({ color: 0x1e1e22, metalness: .55, roughness: .38 }),
+    madera: () => new THREE.MeshStandardMaterial({ map: tex(tablas, [3, 3]), roughness: .72, metalness: .05 }),
+    piso: new THREE.MeshStandardMaterial({ map: tex((x, w, h) => ruido(x, w, h, '#1a1a1e', 60, 9000), [10, 7]),
+      roughnessMap: tex((x, w, h) => ruido(x, w, h, '#8a8a8a', 255, 14000), [10, 7], false), roughness: .9, metalness: .05 }),
+    carpa: new THREE.MeshStandardMaterial({ color: 0x0e0e12, roughness: .96, side: THREE.DoubleSide }),
+    puerta: () => new THREE.MeshStandardMaterial({ color: 0x26262b, metalness: .6, roughness: .5 }),
+    pintado: new THREE.MeshStandardMaterial({ color: 0xc9a94e, metalness: .5, roughness: .45 }),   // barandas y escalera (amarillo de seguridad)
+    agujero: new THREE.MeshStandardMaterial({ color: 0x050507, roughness: 1, side: THREE.DoubleSide }),
+  };
+  HQ = { on: true, lines: [], swaps: [], hide: [], spots: [], elMats: {}, envTex, fog, frame: 0 };
+  const elMat = (id, mk) => (HQ.elMats[id] ??= []).push(mk) && mk;      // material propio por elemento: se tiñe cuando está activo
+
+  // líneas → tubos (caños y truss) · aristas → cuerpos sólidos (equipos)
+  const tuboGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1);
+  const tubos = (line, r, mat) => {
+    const p = line.geometry.attributes.position, n = p.count / 2; if (!n) return;
+    const im = new THREE.InstancedMesh(tuboGeo, mat, n), A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), dir = new THREE.Vector3();
+    const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < n; i++) {
+      A.fromBufferAttribute(p, 2 * i); B.fromBufferAttribute(p, 2 * i + 1); dir.subVectors(B, A); const L = dir.length();
+      if (L < 1e-4) { im.setMatrixAt(i, M4.makeScale(0, 0, 0)); continue; }
+      Q.setFromUnitVectors(Y, dir.normalize()); S.set(r, L, r); im.setMatrixAt(i, M4.compose(C.addVectors(A, B).multiplyScalar(.5), Q, S));
+    }
+    im.castShadow = im.receiveShadow = true; im.userData.hq = 1;
+    im.position.copy(line.position); im.quaternion.copy(line.quaternion); im.scale.copy(line.scale);
+    line.parent.add(im); HQ.lines.push([line, im]);
+  };
+  const solido = (line, mat) => {
+    const geo = line.geometry.parameters?.geometry; if (!geo) return;
+    const m = new THREE.Mesh(geo, mat); m.position.copy(line.position); m.quaternion.copy(line.quaternion); m.scale.copy(line.scale);
+    m.castShadow = m.receiveShadow = true; m.userData.hq = 1; line.parent.add(m); HQ.lines.push([line, m]);
+  };
+  const swap = (mesh, mat) => { HQ.swaps.push([mesh, mesh.material, mat]); mesh.castShadow = mesh.receiveShadow = true; };
+  const esLinea = o => o.isLineSegments && !o.userData.hq;
+
+  // estructura: torres, truss de músicos, techo, marco de la pantalla
+  for (const [id, r] of [['torreA', .024], ['torreB', .024], ['torreC', .024], ['trussMusicos', .025], ['techo', .025], ['telon', .03]]) {
+    const el = EL[id]; if (!el) continue; const alu = elMat(id, M.alu());
+    const lineas = []; el.group.traverse(o => { if (esLinea(o)) lineas.push(o); });
+    for (const o of lineas) {
+      if (o.geometry.type === 'EdgesGeometry') solido(o, M.acero);
+      else if (o.material === el.edgeMat) tubos(o, r, alu);
+      else if (!o.material.isLineDashedMaterial && o.material.color.getHex() === 0xe8c86a) tubos(o, .02, M.pintado);   // barandas y escalera de gato
+    }
+  }
+  // techo: el tubo del agujero negro, oscuro y opaco
+  EL.techo?.group.traverse(o => { if (o.isMesh && o.geometry.type === 'CylinderGeometry' && o.material.isMeshBasicMaterial) swap(o, M.agujero); });
+  // luces: trusses laterales → tubos; cuerpos de equipos → sólidos; trípodes → caños finos
+  { const lineas = []; lightGroup.traverse(o => { if (esLinea(o)) lineas.push(o); });
+    const truss = M.alu();
+    for (const o of lineas) {
+      if (o.geometry.type === 'EdgesGeometry') solido(o, M.equipo);
+      else if (o.material.isLineDashedMaterial) continue;
+      else if (o.material.color.getHex() === PURPLE) tubos(o, .025, truss);
+      else if (o.material === bodyMat) tubos(o, .014, M.equipo);
+    } }
+  // superficies: piso, carpa, escenario, tarima, puertas, proyector, plataformas de las torres
+  EL.sala.group.traverse(o => {
+    if (o.isMesh && o.userData.floor) swap(o, M.piso);
+    else if (o.isMesh && o.material.opacity < .05) swap(o, M.carpa);
+    else if (o.isLineSegments && o.material.color.getHex() === 0x1c1c21) HQ.hide.push(o);   // grilla del piso
+  });
+  const caras = (id, mk, ocultarAristas = true) => { const el = EL[id]; if (!el) return; const mat = elMat(id, mk);
+    el.group.traverse(o => { if (o.isMesh && o.material.isMeshBasicMaterial && o.material.opacity < .5 && !o.userData.hq && o.material.userData.base !== undefined) swap(o, mat);
+      if (o.isLineSegments && o.material === el.edgeMat && ocultarAristas && o.geometry.type !== 'EdgesGeometry') HQ.hide.push(o); });
+    el.group.traverse(o => { if (o.isLineSegments && o.material === el.edgeMat && o.geometry.type === 'EdgesGeometry' && !o.userData.hq) HQ.hide.push(o); }); };
+  caras('escenario', M.madera()); caras('accesos', M.puerta()); caras('proyector', M.equipo);
+  { const el = EL.tarima; if (el) { const mat = elMat('tarima', M.madera());
+      el.group.traverse(o => { if (o.isMesh && o.material.isMeshBasicMaterial && o.material.opacity < .5) swap(o, mat); });
+      const ruedas = []; el.group.traverse(o => { if (o.isLineSegments && o.geometry.type === 'EdgesGeometry') ruedas.push(o); });
+      ruedas.forEach(o => { if (o.geometry.parameters.geometry.type === 'CylinderGeometry') solido(o, M.equipo); else HQ.hide.push(o); }); } }
+  for (const id of ['torreA', 'torreB', 'torreC']) EL[id]?.group.traverse(o => {            // plataformas de las torres
+    if (o.isMesh && o.material.isMeshBasicMaterial && o.material.userData.base > .1) swap(o, M.madera()); });
+  EL.backstage?.group.traverse(o => { if (o.isLineSegments) HQ.hide.push(o); });
+
+  // luces reales detrás de los haces (seguidores, beams, wash y contra), con sombras en las principales
+  const K = { seg: 5200, beam: 2600, wash: 1100, contra: 3200 };
+  FX.forEach(fx => {
+    if (!fx.beam || !K[fx.type]) return;
+    const sl = new THREE.SpotLight(0xffffff, 0, 45, Math.min(.6, fx.T.angle * Math.PI / 180 * 1.25), .5, 2);
+    sl.castShadow = fx.type === 'seg' || fx.type === 'contra' || fx.grp === 'beamTorre';
+    if (sl.castShadow) { sl.shadow.mapSize.set(1024, 1024); sl.shadow.bias = -.0005; sl.shadow.normalBias = .02; sl.shadow.camera.near = .4; sl.shadow.camera.far = 40; }
+    sl.position.copy(fx.lens); lightGroup.add(sl, sl.target); HQ.spots.push([fx, sl, K[fx.type]]);
+  });
+}
+function hqSombras(root3) {        // lo que se crea en cada escena (personajes, mecanismos) recibe y proyecta sombras
+  root3.traverse(o => {
+    if (!o.isMesh || o.userData.hqDone) return; o.userData.hqDone = 1;
+    const m = o.material; if (!m || Array.isArray(m)) return;
+    const fantasma = m.isShaderMaterial || m.blending === THREE.AdditiveBlending || m.visible === false || (m.transparent && m.opacity < .5);
+    o.castShadow = !fantasma; o.receiveShadow = !fantasma && (m.isMeshStandardMaterial || m.isMeshPhysicalMaterial);
+  });
+}
+function hqSet(on) {
+  HQ.on = on;
+  renderer.toneMapping = on ? THREE.AgXToneMapping : THREE.NoToneMapping; renderer.toneMappingExposure = on ? 1.2 : 1;
+  renderer.shadowMap.enabled = on; if (on) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  scene.environment = on ? HQ.envTex : null; scene.environmentIntensity = .28; scene.fog = on ? HQ.fog : null;
+  hemi.intensity = on ? .28 : 1.6; sun.intensity = on ? 0 : 1.4;
+  for (const [line, mesh] of HQ.lines) { line.visible = !on; mesh.visible = on; }
+  for (const [mesh, orig, hq] of HQ.swaps) mesh.material = on ? hq : orig;
+  for (const o of HQ.hide) o.visible = !on;
+  for (const [, sl] of HQ.spots) sl.visible = on;
+  scene.traverse(o => { const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach(x => x.needsUpdate = true); });
+  const b = document.getElementById('btnHQ'); if (b) { b.setAttribute('aria-pressed', on); b.textContent = on ? 'Vista técnica' : 'Calidad alta'; }
+  try { localStorage.setItem('vaterflyHQ', on ? '1' : '0'); } catch (e) {}
+}
+function hqActive(ids) {           // en calidad alta, lo activo en la escena se tiñe de naranja
+  if (!HQ) return;
+  for (const [id, mats] of Object.entries(HQ.elMats)) { const on = ids.includes(id);
+    mats.forEach(m => { m.emissive.setHex(on ? ORANGE : 0x000000); m.emissiveIntensity = on ? .28 : 0; }); }
+}
+function hqTick() {
+  if (!HQ.on) return;
+  for (const [fx, sl, k] of HQ.spots) {
+    sl.visible = lightGroup.visible && fx.int > .01; if (!sl.visible) continue;
+    sl.color.copy(fx.color); sl.intensity = fx.int * k; sl.target.position.copy(fx.target);
+  }
+  if (HQ.frame++ % 15 === 0) hqSombras(sceneGroup);
+}
+hqSombras(scene);
+document.getElementById('btnHQ').addEventListener('click', () => hqSet(!HQ.on));
+{ let pref = '1'; try { pref = localStorage.getItem('vaterflyHQ') ?? '1'; } catch (e) {} hqSet(pref !== '0'); }
 
 // Arranque (admite #escena-N en el link)
 const m = location.hash.match(/escena-(\d+)/), mm = location.hash.match(/mec-([\w-]+)/);
