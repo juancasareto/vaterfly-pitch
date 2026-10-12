@@ -2218,8 +2218,9 @@ const SCENES = [
       ['Sube girando; justo antes de entrar al tubo el eje móvil frena vertical y los aros alinean a los astronautas con el eje fijo, mientras la percha y los astronautas siguen girando rápido: así entra', 1],
       ['Explosión en el centro del toroide', 1],
       ['Luz: antes de que baje, toda la sala se pone azul (el espacio) y un haz ancho sale por el agujero desde luces alrededor del motor central. Baja lento a través del haz; cuando llega se prenden suave los seguidores. Después se van yendo todas las luces y en lo más vertiginoso quedan solo los seguidores y los estrobos, hasta que vuelve a entrar por el agujero'],
-      ['Luces alrededor del motor central, sobre el tubo (8 equipos en anillo)', 1]],
-    tec: ['Toroide: percha con swivel, eje fijo de truss 2,30 m, eje móvil 1,75 m, 2 aros de cintura, 2 arandelas', 'Motor en el eje móvil (acelera el giro)', 'Motor en el swivel (la percha gira junto con el eje, supuesto)', 'Astronautas ×2 con arnés', 'Efecto explosión'],
+      ['Luces alrededor del motor central, sobre el tubo (8 equipos en anillo)', 1],
+      ['Público: antes de que baje, 4 técnicos de piso entran al centro y caminan hacia afuera abriendo un círculo de Ø ≈ 7,2 m (alcance de los astronautas ≈ 2,9 m + 0,7 m). Lo sostienen mirando al público mientras el Toroide gira; cuando entra al tubo se retiran y el público vuelve al centro. Activá la capa Público para verlo', 1]],
+    tec: ['Técnicos de piso ×4 con bastón luminoso (despeje del público)', 'Toroide: percha con swivel, eje fijo de truss 2,30 m, eje móvil 1,75 m, 2 aros de cintura, 2 arandelas', 'Motor en el eje móvil (acelera el giro)', 'Motor en el swivel (la percha gira junto con el eje, supuesto)', 'Astronautas ×2 con arnés', 'Efecto explosión'],
     pend: ['Medidas (de Bruno: eje fijo 2,30 m, eje móvil 1,75 m · supuesto: percha a 2,40 m del eje, astronautas 1,75 m, aros de cintura Ø 0,56 m)',
       'Tubo: con el eje móvil vertical y los astronautas alineados, entra con ≈ 2 cm de margen (radio 1,23 m contra 1,25 m). Muy justo; girando el eje móvil no entra',
       'Choque: guardado con la percha en el tubo, el astronauta de abajo asoma ≈ 0,9 m por debajo de la boca (el conjunto mide ≈ 4,1 m de alto y el tubo 2,5 m)',
@@ -2227,7 +2228,8 @@ const SCENES = [
       'Carga en los astronautas a una vuelta cada 3 s: ≈ 1,4 g abajo y ≈ 0,6 g arriba',
       'Escenografía: tiene que quedar fuera de lo que barren los astronautas (hoy: aros de truss chicos y pantallas en las puntas, LED en la percha)',
       'Cables de la percha: girando rápido, los astronautas pasan a ≈ 6 cm. Muy justo: separar un poco más las puntas del eje fijo o ensayar la amplitud de brazos y piernas',
-      'Punto de colgado y carga admisible del techo', 'Tipo de efecto para la explosión (apto interior)'],
+      'Punto de colgado y carga admisible del techo', 'Tipo de efecto para la explosión (apto interior)',
+      'Despeje: confirmar el radio con el rigger y cómo se marca la zona (cinta, luz en el piso, señas de los técnicos)'],
     build() {
       const up = buildToroide({}, { escena: true }); anims.push(up); up(t);
       const flash = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: ORANGE, transparent: true, depthWrite: false })); flash.position.set(TOR.x, TORO.yWork, TOR.z); sceneGroup.add(flash);
@@ -2257,7 +2259,9 @@ const SCENES = [
         G('seg').forEach(f => { f.tInt = .95 * seg; });
         strobeMode = vertigo ? 'on' : 'off'; G('strobe').forEach(f => { f.tColor.set(0xffffff); f.tInt = vertigo ? .15 : 0; });
         hazMat.opacity = .14 * hz; nucleoMat.opacity = .16 * hz; charco.material.opacity = .35 * hz; lentes.forEach(m => m.material.color.copy(AZUL2).multiplyScalar(4 * hz)); haz.visible = nucleo.visible = charco.visible = hz > .01;
-      });    } },
+      });
+      coreoIntro();   // público: los técnicos abren el círculo bajo el Toroide
+    } },
   { n: 3, t: 'Esfera / Cabeza', k: 'Escena · aparece el Capitán', el: ['escenario', 'telon'], cam: 'escCabeza',
     guion: 'La cabeza baja del techo sobre el escenario. Por los agujeros de la nariz, las orejas y los cachetes salen brazos y piernas. Simula una explosión, sale humo de adentro y la cabeza se parte en 2 mitades: aparece una esfera llena de luces y láser y, adentro, el Capitán Psicodelia. Sale, se para en el medio del escenario y baila con un micrófono.',
     esp: [['Bajada como estaba: truss con riel y 2 motores de cadena. La cabeza es nueva (fotos de producción): gorro cónico de pelo naranja, cachetes enormes, ojos desorbitados, boca abierta con brackets'],
@@ -3681,7 +3685,7 @@ function goScene(i, { moveCam = true } = {}) {
   mode = 'guion';
   current = Math.max(0, Math.min(SCENES.length - 1, i));
   const s = SCENES[current];
-  clearScene(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {}); projMode = s.proj ?? 'on';
+  clearScene(); if (PUB) PUB.despeje = null; s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {}); projMode = s.proj ?? 'on';
   const tp = s.tarima ?? TARIMA_HOME; tarTarget.set(tp[0], 0, tp[1]);
   const [bg, hc] = LUZ[s.luz ?? 'normal']; renderer.setClearColor(bg); hemi.color.set(hc);
   if (paused) anims.forEach(f => f(t));
@@ -3692,7 +3696,7 @@ function goScene(i, { moveCam = true } = {}) {
 function goMec(i, { moveCam = true } = {}) {
   const m = MECS[i]; if (!m || m.soon) return;
   mode = 'mec'; curMec = i;
-  clearScene(); m.build(); setActive(m.el); applyLook(m.look ?? {}); projMode = m.proj ?? 'on';
+  clearScene(); if (PUB) PUB.despeje = null; m.build(); setActive(m.el); applyLook(m.look ?? {}); projMode = m.proj ?? 'on';
   tarTarget.set(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
   renderer.setClearColor(LUZ.normal[0]); hemi.color.set(LUZ.normal[1]);
   if (paused) anims.forEach(f => f(t));
@@ -4070,6 +4074,39 @@ var PUB = null;
     tArm: new THREE.Matrix4().makeTranslation(0, -.32, 0), Y: new THREE.Vector3(0, 1, 0), Zx: new THREE.Vector3(0, 0, 1), c: new THREE.Color(),
   };
 }
+/* ───────── Coreografía del público por escena ─────────
+   Una escena puede definir PUB.despeje = { c: [x, z], R: t => radio }: el público se corre de ese círculo
+   (se comprime en un anillo, sin atravesarse) y los que quedan cerca miran al centro. */
+// Intro: 4 técnicos de piso abren y sostienen el círculo bajo el Toroide antes de que baje; cuando sube, el público vuelve
+function coreoIntro() {
+  const TT = TORO_T, cx = TOR.x, cz = TOR.z, sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  const alcance = Math.hypot(TORO.eje / 2, TORO.brazo / 2 + TORO.h), R = Math.round((alcance + .7) * 10) / 10;   // alcance de los astronautas + 0,7 m
+  const rT = tt => tt < 2.5 ? 6 - 5.2 * sm(tt / 2.5) : tt < 6 ? .8 + (R - .8) * sm((tt - 2.5) / 3.5) : tt < 62 ? R : R + (6.5 - R) * sm((tt - 62) / 4);
+  const recorrido = tt => tt < 2.5 ? 6 - rT(tt) : tt < 6 ? 5.2 + rT(tt) - .8 : tt < 62 ? 4.4 + R : 4.4 + rT(tt);
+  const Rc = tt => tt < 2.5 ? 0 : tt < 6 ? Math.max(0, rT(tt) - .35) : tt < 62 ? R - .35 : (R - .35) * (1 - sm((tt - 63) / 6));
+  const loop = t => ((t % TT.TOTAL) + TT.TOTAL) % TT.TOTAL;
+  PUB.despeje = { c: [cx, cz], R: t => Rc(loop(t)) };
+  ring([cx, cz], R, ORANGE, .035);
+  { const o = new THREE.Object3D(); o.position.set(cx + R * .72, .4, cz + R * .72); sceneGroup.add(o); label(`Zona despejada · Ø ${f1(2 * R)} m`, 'fig', o); }
+  const baston = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff7a2a).multiplyScalar(2.2), toneMapped: false });
+  const tecs = [45, 135, 225, 315].map((deg, i) => {
+    const a = deg * Math.PI / 180, T = humano(i ? '' : 'Técnicos de piso ×4', [cx, 0, cz], { h: 1.78, ropa: ROPA_TECNICO }); T.feet0 = T.feet.map(f => [...f]);
+    const b = new THREE.Mesh(new THREE.CapsuleGeometry(.025, .32, 4, 8), baston); T.arms[1].palm.add(b); b.position.set(0, -.12, .02);   // bastón luminoso
+    return { T, a };
+  });
+  anims.push(t => {
+    const tt = loop(t), r = rT(tt), entra = tt < 2.5, empuja = tt >= 2.5 && tt < 6, sale = tt >= 62 && tt < 66;
+    tecs.forEach(({ T, a }) => {
+      T.g.visible = tt < 66.5; if (!T.g.visible) return;
+      T.g.position.set(cx + Math.cos(a) * r, 0, cz + Math.sin(a) * r);
+      T.g.rotation.y = Math.atan2(Math.cos(a), Math.sin(a)) + (entra ? Math.PI : 0);   // de espaldas al centro (al entrar, mirando al centro)
+      const anda = entra || empuja || sale;
+      caminar(T, anda ? recorrido(tt) / .8 : 0, anda ? 1 : 0);
+      posar(T, P_(empuja ? { aL: [62, 38, 18], aR: [62, 38, 18], lean: 8 } : { aL: [20, 14, 30], aR: [55, 10, 70], lean: 4 }));
+    });
+  });
+}
+
 const AFORO = { bajo: 120, medio: 280, lleno: 450 };
 function pubLayout() {
   const P = PUB, n = AFORO[document.getElementById('pubAforo').value] ?? 280;
@@ -4107,11 +4144,20 @@ function pubTick(time) {
   const energia = strobeMode !== 'off' ? 1 : .45, tp = tar.group.position;   // con estrobos, el público salta y levanta los brazos
   const { m, mp, q, qa, v, s, Y, Zx } = P;
   const set = (mesh, i, x, y, z) => mesh.setMatrixAt(i, mp.makeTranslation(x, y, z).premultiply(m));
+  const DS = P.despeje, Rc = DS ? DS.R(time) : 0, cx = DS?.c[0], cz = DS?.c[1];
   P.people.forEach((p, i) => {
-    const oculto = Math.hypot(p.x - tp.x, p.z - tp.z) < 1.8;                   // se corren cuando pasa la tarima
+    let px = p.x, pz = p.z, yaw = p.yaw;
+    if (DS) {                                                                     // se corren del círculo comprimiéndose en un anillo de 2,6 m
+      const dx = p.x - cx, dz = p.z - cz, d = Math.hypot(dx, dz) || .001, R2 = Rc + 2.95;
+      const f = Rc > .01 && d < R2 ? Rc + .35 + d / R2 * 2.6 : d;
+      px = Math.min(W - .4, Math.max(SXE + .6, cx + dx / d * f)); pz = Math.min(D - .4, Math.max(.4, cz + dz / d * f));
+      const w = Math.max(0, 1 - (f - Rc) / 6) * .85, dy = ((Math.atan2(cx - px, cz - pz) - yaw + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+      yaw += dy * w;                                                              // los de cerca miran al centro
+    }
+    const oculto = Math.hypot(px - tp.x, pz - tp.z) < 1.8;                   // se corren cuando pasa la tarima
     const b = Math.max(0, Math.sin(time * 12.6 * (.85 + .3 * (p.up % .1) * 10) + p.ph)) * .07 * energia;
-    q.setFromAxisAngle(Y, p.yaw); s.setScalar(oculto ? 0 : p.s);
-    m.compose(v.set(p.x, b, p.z), q, s);
+    q.setFromAxisAngle(Y, yaw); s.setScalar(oculto ? 0 : p.s);
+    m.compose(v.set(px, b, pz), q, s);
     set(P.legs, 2 * i, .1, .44, 0); set(P.legs, 2 * i + 1, -.1, .44, 0);
     set(P.torso, i, 0, 1.25, 0); set(P.head, i, 0, 1.74, 0);
     const arriba = p.up < .22 * energia * 2;                                     // ~10 % tranquilo · ~45 % con estrobos

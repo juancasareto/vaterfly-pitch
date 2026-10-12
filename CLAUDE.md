@@ -51,8 +51,10 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
   La foto de referencia **no** se sube al repo: el vestuario se modela en código.
 - **Público (capa):** checkbox *Público* + aforo (≈120 / 280 / 450). Figuras simples con instancias (`PUB`, `pubLayout()`,
   `pubTick()`), no `humano()`: cientos de personas sin trabar. Esquivan torres, truss de músicos, el paso de las puertas y los
-  seguidores; se corren cuando pasa la tarima; con estrobos saltan y levantan los brazos. Todavía no conocen las zonas a despejar
-  de cada mecanismo.
+  seguidores; se corren cuando pasa la tarima; con estrobos saltan y levantan los brazos.
+  **Coreografía por escena:** una escena define `PUB.despeje = { c: [x, z], R: t => radio }` y el público se corre de ese círculo
+  (se comprime en un anillo y los de cerca miran al centro). Se resetea al cambiar de escena. Hecho: Intro (`coreoIntro()`:
+  4 técnicos de piso abren y sostienen Ø ≈ 7,2 m bajo el Toroide). Las demás escenas, pendientes.
 - **Convención visual:** blanco = según plano / definido por producción · naranja = activo en la escena ·
   **violeta punteado = propuesta, a validar**. Los supuestos van en "Pendiente de definir" de cada ficha.
 
