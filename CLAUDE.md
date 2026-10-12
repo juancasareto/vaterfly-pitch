@@ -49,6 +49,10 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
   Altura sin dato = supuesto, marcado en la ficha. El movimiento va con acciones (`ACC`: poses clave alrededor de un
   contacto) y física real donde se nota (saltos y pelota con g = 9,81). Ejemplo: voleibolistas del Warm up (`pepper`).
   La foto de referencia **no** se sube al repo: el vestuario se modela en código.
+- **Público (capa):** checkbox *Público* + aforo (≈120 / 280 / 450). Figuras simples con instancias (`PUB`, `pubLayout()`,
+  `pubTick()`), no `humano()`: cientos de personas sin trabar. Esquivan torres, truss de músicos, el paso de las puertas y los
+  seguidores; se corren cuando pasa la tarima; con estrobos saltan y levantan los brazos. Todavía no conocen las zonas a despejar
+  de cada mecanismo.
 - **Convención visual:** blanco = según plano / definido por producción · naranja = activo en la escena ·
   **violeta punteado = propuesta, a validar**. Los supuestos van en "Pendiente de definir" de cada ficha.
 

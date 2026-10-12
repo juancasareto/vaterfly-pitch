@@ -119,6 +119,9 @@
   .chip{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:3px; background:var(--panel-2); border:1px solid var(--line); color:var(--ink)}
   .chip.el{border-color:rgba(255,107,61,.45); color:var(--orange); cursor:pointer}
   .pend li::before{background:var(--orange)}
+  .chk.pub label{display:inline-flex; align-items:center; gap:6px; cursor:pointer}
+  .chk.pub select{background:transparent; color:var(--ink); border:0; border-left:1px solid var(--line); font:inherit; padding:0 0 0 6px; cursor:pointer}
+  .pubn{color:var(--sub); font-variant-numeric:tabular-nums}
   .tabs{display:flex; gap:4px; padding:12px 8px 8px; position:sticky; top:0; background:var(--bg); z-index:1}
   .tabs button{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:7px 6px; cursor:pointer;
                font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--sub)}
@@ -268,6 +271,7 @@
       <label class="chk"><input type="checkbox" id="lyLights" checked> Luces</label>
       <label class="chk"><input type="checkbox" id="lyProj" checked> Proyección</label>
       <label class="chk"><input type="checkbox" id="lyTecho" checked> Techo</label>
+      <span class="chk pub"><label for="lyPublico"><input type="checkbox" id="lyPublico"> Público <span id="pubN" class="pubn"></span></label><select id="pubAforo" aria-label="Cantidad de público"><option value="bajo">≈ 120</option><option value="medio" selected>≈ 280</option><option value="lleno">≈ 450</option></select></span>
       <span class="spacer"></span>
       <button class="tbtn" id="btnHQ" aria-pressed="true">Vista técnica</button>
       <button class="tbtn" id="btnShow" aria-pressed="false">Modo show</button>
@@ -3816,6 +3820,8 @@ bindLayer('lyLabels', v => vp.classList.toggle('hide-labels', !v));
 bindLayer('lyLights', v => { lightGroup.visible = v; if (!v) strobeFlash.intensity = 0; });
 bindLayer('lyProj', v => { projOn = v; });
 bindLayer('lyTecho', v => { techo.group.visible = v; });
+bindLayer('lyPublico', v => { PUB.g.visible = v; if (v) pubLayout(); else document.getElementById('pubN').textContent = ''; });
+document.getElementById('pubAforo').addEventListener('change', () => { if (PUB.g.visible) pubLayout(); });
 let showMode = false;
 const btnShow = document.getElementById('btnShow');
 btnShow.addEventListener('click', () => { showMode = !showMode; btnShow.setAttribute('aria-pressed', showMode); setActive(SCENES[current].el); });
@@ -3894,7 +3900,7 @@ renderer.setAnimationLoop(() => {
     if (k >= 1) camTween = null;
   }
   controls.update();
-  hqTick(); composer.render(); labelR.render(scene, camera);
+  pubTick(t); hqTick(); composer.render(); labelR.render(scene, camera);
 });
 
 /* ═════════ Calidad visual (HQ): caños y truss reales, materiales con textura, luces reales y render ═════════
@@ -4044,6 +4050,80 @@ function hqTick() {
 hqSombras(scene);
 document.getElementById('btnHQ').addEventListener('click', () => hqSet(!HQ.on));
 { let pref = '1'; try { pref = localStorage.getItem('vaterflyHQ') ?? '1'; } catch (e) {} hqSet(pref !== '0'); }
+
+/* ───────── Público (capa): gente en la pista, liviana (instancias), mirando al escenario ───────── */
+var PUB = null;
+{
+  const g = new THREE.Group(); g.visible = false; root.add(g);
+  const MAXN = 520, mat = new THREE.MeshStandardMaterial({ roughness: .82, metalness: 0 });
+  const mk = (geo, n) => { const m = new THREE.InstancedMesh(geo, mat, n); m.count = 0; m.castShadow = m.receiveShadow = true; m.frustumCulled = false; g.add(m); return m; };
+  PUB = {
+    g, people: [],
+    legs: mk(new THREE.CapsuleGeometry(.075, .72, 3, 8), MAXN * 2),     // piernas: 0,87 m
+    torso: mk(new THREE.CapsuleGeometry(.17, .42, 4, 10), MAXN),         // torso: 0,76 m
+    head: mk(new THREE.SphereGeometry(.105, 12, 10), MAXN),
+    arms: mk(new THREE.CapsuleGeometry(.048, .5, 3, 8), MAXN * 2),
+    remeras: [0x111114, 0x1d1d22, 0xe8e8ea, 0x8a8fff, 0xff6b3d, 0x3fd8ff, 0xff3fa4, 0x2a3a5a, 0x6b2a2a, 0x2f5a3a, 0xd8c27a, 0x444448, 0x0f0f12, 0x26262c],
+    pantalones: [0x15161c, 0x1f2a44, 0x2b2b30, 0x3a3226, 0x0d0d10, 0x3b4a66],
+    pieles: [0xf1c9a5, 0xe0ac82, 0xc68e64, 0x9c6a45, 0x6e4a32, 0x4a3222],
+    m: new THREE.Matrix4(), mp: new THREE.Matrix4(), q: new THREE.Quaternion(), qa: new THREE.Quaternion(), v: new THREE.Vector3(), s: new THREE.Vector3(),
+    tArm: new THREE.Matrix4().makeTranslation(0, -.32, 0), Y: new THREE.Vector3(0, 1, 0), Zx: new THREE.Vector3(0, 0, 1), c: new THREE.Color(),
+  };
+}
+const AFORO = { bajo: 120, medio: 280, lleno: 450 };
+function pubLayout() {
+  const P = PUB, n = AFORO[document.getElementById('pubAforo').value] ?? 280;
+  // obstáculos fijos (en coordenadas de mundo): torres, truss de músicos, y el paso de las puertas
+  const boxes = [];
+  for (const [id, m] of [['torreA', .45], ['torreB', .45], ['torreC', .45], ['trussMusicos', .45], ['accesos', 1.6]]) {
+    const el = EL[id]; if (!el) continue; const b = new THREE.Box3().setFromObject(el.group); if (!b.isEmpty()) boxes.push(b.expandByScalar(m)); }
+  const libres = [[19.3, .7, 1.0], [19.3, D - .7, 1.0]];                       // seguidores en las esquinas
+  const x0 = SXE + .9, x1 = W - .45, z0 = .45, z1 = D - .45, dmin = n > 350 ? .5 : .56, w = new THREE.Vector3();
+  const pts = [];
+  for (let k = 0; k < n * 200 && pts.length < n; k++) {
+    const x = x0 + Math.random() * (x1 - x0), z = z0 + Math.random() * (z1 - z0);
+    if (Math.random() > 1 - .5 * (x - x0) / (x1 - x0)) continue;                 // más gente cerca del escenario
+    if (libres.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r)) continue;
+    root.localToWorld(w.set(x, .9, z)); if (boxes.some(b => b.containsPoint(w))) continue;
+    if (pts.some(p => Math.abs(p.x - x) < dmin && Math.hypot(p.x - x, p.z - z) < dmin)) continue;
+    const h = 1.55 + Math.random() * .4, dx = SX + 1 - x, dz = D / 2 - z;
+    pts.push({ x, z, s: h / 1.84, yaw: Math.atan2(dx, dz) + (Math.random() - .5) * (Math.random() < .15 ? 3 : .7),
+      ph: Math.random() * 6.28, up: Math.random(), mangas: Math.random() < .5 });
+  }
+  P.people = pts;
+  P.legs.count = P.arms.count = pts.length * 2; P.torso.count = P.head.count = pts.length;
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  pts.forEach((p, i) => {
+    const rem = pick(P.remeras), pan = pick(P.pantalones), piel = pick(P.pieles);
+    P.torso.setColorAt(i, P.c.setHex(rem)); P.head.setColorAt(i, P.c.setHex(piel));
+    for (const j of [0, 1]) { P.legs.setColorAt(2 * i + j, P.c.setHex(pan)); P.arms.setColorAt(2 * i + j, P.c.setHex(p.mangas ? rem : piel)); }
+  });
+  for (const m of [P.legs, P.torso, P.head, P.arms]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  const out = document.getElementById('pubN'); if (out) out.textContent = pts.length;
+  pubTick(t);
+}
+function pubTick(time) {
+  const P = PUB; if (!P.g.visible || !P.people.length) return;
+  const energia = strobeMode !== 'off' ? 1 : .45, tp = tar.group.position;   // con estrobos, el público salta y levanta los brazos
+  const { m, mp, q, qa, v, s, Y, Zx } = P;
+  const set = (mesh, i, x, y, z) => mesh.setMatrixAt(i, mp.makeTranslation(x, y, z).premultiply(m));
+  P.people.forEach((p, i) => {
+    const oculto = Math.hypot(p.x - tp.x, p.z - tp.z) < 1.8;                   // se corren cuando pasa la tarima
+    const b = Math.max(0, Math.sin(time * 12.6 * (.85 + .3 * (p.up % .1) * 10) + p.ph)) * .07 * energia;
+    q.setFromAxisAngle(Y, p.yaw); s.setScalar(oculto ? 0 : p.s);
+    m.compose(v.set(p.x, b, p.z), q, s);
+    set(P.legs, 2 * i, .1, .44, 0); set(P.legs, 2 * i + 1, -.1, .44, 0);
+    set(P.torso, i, 0, 1.25, 0); set(P.head, i, 0, 1.74, 0);
+    const arriba = p.up < .22 * energia * 2;                                     // ~10 % tranquilo · ~45 % con estrobos
+    for (const sg of [1, -1]) {
+      const ang = arriba ? sg * (Math.PI - .35 + .25 * Math.sin(time * 4 + p.ph)) : sg * .12;
+      qa.setFromAxisAngle(Zx, ang);
+      mp.compose(v.set(sg * .23, 1.5, 0), qa, s.setScalar(1)).multiply(P.tArm);
+      P.arms.setMatrixAt(2 * i + (sg > 0 ? 0 : 1), mp.premultiply(m));
+    }
+  });
+  for (const mesh of [P.legs, P.torso, P.head, P.arms]) mesh.instanceMatrix.needsUpdate = true;
+}
 
 // Arranque (admite #escena-N en el link)
 const m = location.hash.match(/escena-(\d+)/), mm = location.hash.match(/mec-([\w-]+)/);
