@@ -54,7 +54,12 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
   seguidores; se corren cuando pasa la tarima; con estrobos saltan y levantan los brazos.
   **Coreografía por escena:** una escena define `PUB.despeje = { c: [x, z], R: t => radio }` y el público se corre de ese círculo
   (se comprime en un anillo y los de cerca miran al centro). Se resetea al cambiar de escena. Hecho: Intro (`coreoIntro()`:
-  4 técnicos de piso abren y sostienen Ø ≈ 7,2 m bajo el Toroide). Las demás escenas, pendientes.
+  4 técnicos de piso abren y sostienen Ø ≈ 7,2 m bajo el Toroide; público concentrado). Otras herramientas:
+  `PUB.animo = 'atento'` (quietos, sin bailar, mirando `PUB.mira`), la tarima siempre abre a la gente al pasar, y
+  `pubCoreo({ asignar(people), persona(p, i, t, o) })` para roles por persona (filas, juegos, agacharse `o.crouch`,
+  celular `o.cel`, brazos `o.arms`). Hecho: Intro, Monja (despejan el revoleo), MOSH (`coreoMosh`: filas del mosh y del
+  tobogán, limbo, se agachan bajo las performers aéreas, filman). Las demás escenas, pendientes.
+- **Luz blanca:** `blanca(color)` baja a la mitad la luz con poco color (haces, charcos, lentes y reflectores HQ).
 - **Convención visual:** blanco = según plano / definido por producción · naranja = activo en la escena ·
   **violeta punteado = propuesta, a validar**. Los supuestos van en "Pendiente de definir" de cada ficha.
 

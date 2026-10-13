@@ -350,7 +350,7 @@ const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(8, 20, -
 // Post: bloom solo sobre lo que pasa de 1.0 (lentes, núcleo de los haces, estrobos). Las líneas del plano no brillan.
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.55, 1.0);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.6, 0.5, 1.0);
 composer.addPass(bloom); composer.addPass(new OutputPass());
 
 // El plano está dibujado con el eje del ancho espejado respecto de three.js: invertimos z para que la sala se lea igual que el isométrico.
@@ -1185,6 +1185,8 @@ function escenaMonja() {
     if (u < T_BAJA) return RMAX - (RMAX - R0) * sm(u / T_BAJA); return R0 * (1 - sm((u - T_BAJA) / 2.5)); };
   const omAt = t => t < T_GRAB || t > T_FIN ? 0 : t < T_CON ? omEq(R0) * sm((t - T_GRAB) / 2.5) : t < T_CON_END ? omEq(rAt(t)) : omEq(R0) * (1 - sm((t - T_CON_END) / 2.5));
   const PH0 = Math.atan2(-perp.z * LADO, -perp.x * LADO);   // la empuja hacia el lado contrario a donde está la Monja
+  PUB.despeje = { c: [TOR.x, TOR.z], R: t => { const r = rAt(((t % TOTAL) + TOTAL) % TOTAL); return r > .05 ? r + .9 : 0; } };   // público: fuera del revoleo
+  PUB.mira = [TOR.x, TOR.z];
   const DT2 = 1 / 120, N2 = Math.ceil((TOTAL - T_GRAB) / DT2) + 2, PH = new Float32Array(N2);
   for (let i = 1; i < N2; i++) PH[i] = PH[i - 1] + omAt(T_GRAB + (i - .5) * DT2) * DT2;
   const phAt = t => { const x = Math.min(N2 - 1.001, Math.max(0, (t - T_GRAB) / DT2)), i = x | 0; return PH0 + PH[i] + (PH[i + 1] - PH[i]) * (x - i); };
@@ -2113,6 +2115,7 @@ function escenaMosh() {
     const T0 = 1 / f, tau = ((t + s) % T0), vu = Math.sqrt(2 * GRAV * .25), tv = 2 * vu / GRAV, y = tau < tv ? vu * tau - .5 * GRAV * tau * tau : 0;
     parado(X, x, y, z, C0.x - x, C0.z - z); quietas(X); poner(X, P_({ drop: tau < tv ? .02 : .14 * Math.sin(Math.PI * (tau - tv) / (T0 - tv)), lean: 6, aL: [165, 20, 10], aR: [y > .1 ? 175 : 120, 20, 30], tuck: y > .05 ? .08 : 0 })); });
 
+  coreoMosh({ C0, tx, tz, T_, SLOT1, LIMBO, VL, LB, SURF, COR });   // público: filas, limbo, alrededor de la acción, celulares
   anims.push(t => {
     const tt = ((t % T_) + T_) % T_;
     persecucion(tt);
@@ -2618,6 +2621,8 @@ function applyLook(look) {
   (byGrp.strobe || []).forEach(fx => { fx.tColor.set(0xffffff); fx.tInt = strobeMode === 'off' ? 0 : .15; });
 }
 let strobeMode = 'off';
+// luz blanca (poco color): a la mitad; las de color quedan igual. chroma = máx − mín del RGB
+const blanca = c => { const ch = Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b); return 1 - .5 * Math.max(0, 1 - ch * 3); };
 function updateLights(dt, t) {
   if (!lightGroup.visible) return;
   const k = Math.min(1, dt * 3), reduce = paused;
@@ -2626,25 +2631,25 @@ function updateLights(dt, t) {
     fx.color.lerp(fx.tColor, k); fx.int += (fx.tInt - fx.int) * k;
     if (fx.type === 'strobe') {
       const on = strobeMode !== 'off' && !reduce && ((t * 2.5 + fx.idx * .37) % 1) < .07;
-      fx.glow.material.color.copy(fx.color).multiplyScalar(on ? 9 : fx.int * 3); fx.glow.scale.setScalar(on ? 2.2 : .9);
+      fx.glow.material.color.copy(fx.color).multiplyScalar(on ? 5 : fx.int * 3); fx.glow.scale.setScalar(on ? 1.8 : .9);
       if (on) flashAt = fx.lens; continue;
     }
-    if (fx.glow) fx.glow.material.color.copy(fx.color).multiplyScalar(fx.int * (fx.type === 'blinder' ? 5 : 3));
+    if (fx.glow) fx.glow.material.color.copy(fx.color).multiplyScalar(fx.int * (fx.type === 'blinder' ? 5 : 3) * blanca(fx.color));
     if (!fx.beam) continue;
     const vis = fx.int > .01; fx.beam.visible = fx.pool.visible = vis; if (!vis) continue;
     if (fx.aimFn) fx.aimFn(t, fx.target);
     _v.copy(fx.target).sub(fx.lens); const dist = Math.max(.5, _v.length());
     fx.aim.quaternion.setFromUnitVectors(Z, _v.normalize()); fx.beam.scale.setScalar(dist);
-    fx.uni.uInt.value = fx.int * fx.T.beamGain;
+    fx.uni.uInt.value = fx.int * fx.T.beamGain * blanca(fx.color);
     const r = dist * Math.tan(fx.T.angle * Math.PI / 180) * 1.35 + .15, tg = fx.target;
     const onTela = Math.abs(tg.x - TEL.xPegado - .04) < .12;
     fx.pool.visible = tg.y < .05 || (tg.x > SX - .05 && tg.x < SXE + .05 && Math.abs(tg.y - 1) < .05) || onTela;
     fx.pool.position.copy(tg); fx.pool.scale.setScalar(r);
     if (onTela) { fx.pool.rotation.set(0, Math.PI / 2, 0); fx.pool.position.x = TEL.xPegado + .06; } else { fx.pool.rotation.set(-Math.PI / 2, 0, 0); fx.pool.position.y += .02; }
-    fx.pool.material.color.copy(fx.color).multiplyScalar(fx.int * fx.T.poolGain);
+    fx.pool.material.color.copy(fx.color).multiplyScalar(fx.int * fx.T.poolGain * blanca(fx.color));
   }
   telFabricMat.opacity = .1 + contraFx.int * .55;
-  strobeFlash.intensity = flashAt ? 420 : 0; if (flashAt) strobeFlash.position.copy(flashAt);
+  strobeFlash.intensity = flashAt ? 220 : 0; if (flashAt) strobeFlash.position.copy(flashAt);
 }
 function showFxInfo(idx) {
   const fx = FX[idx], same = FX.filter(f => f.type === fx.type).length;
@@ -3685,7 +3690,7 @@ function goScene(i, { moveCam = true } = {}) {
   mode = 'guion';
   current = Math.max(0, Math.min(SCENES.length - 1, i));
   const s = SCENES[current];
-  clearScene(); if (PUB) PUB.despeje = null; s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {}); projMode = s.proj ?? 'on';
+  clearScene(); if (PUB) pubReset(); s.build(); setActive(s.el); applyLook(LOOKS[s.n] ?? {}); projMode = s.proj ?? 'on';
   const tp = s.tarima ?? TARIMA_HOME; tarTarget.set(tp[0], 0, tp[1]);
   const [bg, hc] = LUZ[s.luz ?? 'normal']; renderer.setClearColor(bg); hemi.color.set(hc);
   if (paused) anims.forEach(f => f(t));
@@ -3696,7 +3701,7 @@ function goScene(i, { moveCam = true } = {}) {
 function goMec(i, { moveCam = true } = {}) {
   const m = MECS[i]; if (!m || m.soon) return;
   mode = 'mec'; curMec = i;
-  clearScene(); if (PUB) PUB.despeje = null; m.build(); setActive(m.el); applyLook(m.look ?? {}); projMode = m.proj ?? 'on';
+  clearScene(); if (PUB) pubReset(); m.build(); setActive(m.el); applyLook(m.look ?? {}); projMode = m.proj ?? 'on';
   tarTarget.set(TARIMA_HOME[0], 0, TARIMA_HOME[1]);
   renderer.setClearColor(LUZ.normal[0]); hemi.color.set(LUZ.normal[1]);
   if (paused) anims.forEach(f => f(t));
@@ -4026,7 +4031,7 @@ function hqSombras(root3) {        // lo que se crea en cada escena (personajes,
 }
 function hqSet(on) {
   HQ.on = on;
-  renderer.toneMapping = on ? THREE.AgXToneMapping : THREE.NoToneMapping; renderer.toneMappingExposure = on ? 1.2 : 1;
+  renderer.toneMapping = on ? THREE.AgXToneMapping : THREE.NoToneMapping; renderer.toneMappingExposure = on ? 1.05 : 1;
   renderer.shadowMap.enabled = on; if (on) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   scene.environment = on ? HQ.envTex : null; scene.environmentIntensity = .28; scene.fog = on ? HQ.fog : null;
   hemi.intensity = on ? .28 : 1.6; sun.intensity = on ? 0 : 1.4;
@@ -4047,7 +4052,7 @@ function hqTick() {
   if (!HQ.on) return;
   for (const [fx, sl, k] of HQ.spots) {
     sl.visible = lightGroup.visible && fx.int > .01; if (!sl.visible) continue;
-    sl.color.copy(fx.color); sl.intensity = fx.int * k; sl.target.position.copy(fx.target);
+    sl.color.copy(fx.color); sl.intensity = fx.int * k * blanca(fx.color); sl.target.position.copy(fx.target);
   }
   if (HQ.frame++ % 15 === 0) hqSombras(sceneGroup);
 }
@@ -4067,6 +4072,9 @@ var PUB = null;
     torso: mk(new THREE.CapsuleGeometry(.17, .42, 4, 10), MAXN),         // torso: 0,76 m
     head: mk(new THREE.SphereGeometry(.105, 12, 10), MAXN),
     arms: mk(new THREE.CapsuleGeometry(.048, .5, 3, 8), MAXN * 2),
+    phones: (() => { const ph = new THREE.InstancedMesh(new THREE.BoxGeometry(.075, .14, .012), new THREE.MeshBasicMaterial({ color: new THREE.Color(.78, .86, 1), toneMapped: false }), MAXN);
+      ph.count = 0; ph.frustumCulled = false; g.add(ph); return ph; })(),   // celulares filmando (pantalla encendida)
+    o: {}, Xx: new THREE.Vector3(1, 0, 0), tCel: new THREE.Matrix4().makeTranslation(0, -.33, .02), cero: new THREE.Matrix4().makeScale(0, 0, 0),
     remeras: [0x111114, 0x1d1d22, 0xe8e8ea, 0x8a8fff, 0xff6b3d, 0x3fd8ff, 0xff3fa4, 0x2a3a5a, 0x6b2a2a, 0x2f5a3a, 0xd8c27a, 0x444448, 0x0f0f12, 0x26262c],
     pantalones: [0x15161c, 0x1f2a44, 0x2b2b30, 0x3a3226, 0x0d0d10, 0x3b4a66],
     pieles: [0xf1c9a5, 0xe0ac82, 0xc68e64, 0x9c6a45, 0x6e4a32, 0x4a3222],
@@ -4085,7 +4093,7 @@ function coreoIntro() {
   const recorrido = tt => tt < 2.5 ? 6 - rT(tt) : tt < 6 ? 5.2 + rT(tt) - .8 : tt < 62 ? 4.4 + R : 4.4 + rT(tt);
   const Rc = tt => tt < 2.5 ? 0 : tt < 6 ? Math.max(0, rT(tt) - .35) : tt < 62 ? R - .35 : (R - .35) * (1 - sm((tt - 63) / 6));
   const loop = t => ((t % TT.TOTAL) + TT.TOTAL) % TT.TOTAL;
-  PUB.despeje = { c: [cx, cz], R: t => Rc(loop(t)) };
+  PUB.despeje = { c: [cx, cz], R: t => Rc(loop(t)) }; PUB.animo = 'atento'; PUB.mira = [cx, cz];   // concentrados, mirando al Toroide
   ring([cx, cz], R, ORANGE, .035);
   { const o = new THREE.Object3D(); o.position.set(cx + R * .72, .4, cz + R * .72); sceneGroup.add(o); label(`Zona despejada · Ø ${f1(2 * R)} m`, 'fig', o); }
   const baston = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff7a2a).multiplyScalar(2.2), toneMapped: false });
@@ -4128,7 +4136,7 @@ function pubLayout() {
       ph: Math.random() * 6.28, up: Math.random(), mangas: Math.random() < .5 });
   }
   P.people = pts;
-  P.legs.count = P.arms.count = pts.length * 2; P.torso.count = P.head.count = pts.length;
+  P.legs.count = P.arms.count = pts.length * 2; P.torso.count = P.head.count = P.phones.count = pts.length;
   const pick = a => a[Math.floor(Math.random() * a.length)];
   pts.forEach((p, i) => {
     const rem = pick(P.remeras), pan = pick(P.pantalones), piel = pick(P.pieles);
@@ -4136,40 +4144,105 @@ function pubLayout() {
     for (const j of [0, 1]) { P.legs.setColorAt(2 * i + j, P.c.setHex(pan)); P.arms.setColorAt(2 * i + j, P.c.setHex(p.mangas ? rem : piel)); }
   });
   for (const m of [P.legs, P.torso, P.head, P.arms]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  P.coreo?.asignar?.(pts);
   const out = document.getElementById('pubN'); if (out) out.textContent = pts.length;
   pubTick(t);
 }
+function pubReset() { PUB.despeje = null; PUB.coreo = null; PUB.animo = null; PUB.mira = null; }
+function pubCoreo(c) { PUB.coreo = c; if (PUB.people.length) c.asignar?.(PUB.people); }
+// empuja a quien esté dentro del círculo (c, Rc) hacia afuera, comprimiéndose en una banda (sin atravesarse)
+function pubComprime(o, cx, cz, Rc, banda = 2.6) {
+  if (Rc <= .01) return 1e9;
+  const dx = o.x - cx, dz = o.z - cz, d = Math.hypot(dx, dz) || .001, R2 = Rc + .35 + banda;
+  if (d >= R2) return d;
+  const f = Rc + .35 + d / R2 * banda; o.x = cx + dx / d * f; o.z = cz + dz / d * f; return f;
+}
+const pubGira = (o, tx, tz, w) => { const dy = ((Math.atan2(tx - o.x, tz - o.z) - o.yaw + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; o.yaw += dy * w; };
 function pubTick(time) {
   const P = PUB; if (!P.g.visible || !P.people.length) return;
-  const energia = strobeMode !== 'off' ? 1 : .45, tp = tar.group.position;   // con estrobos, el público salta y levanta los brazos
-  const { m, mp, q, qa, v, s, Y, Zx } = P;
+  const atento = P.animo === 'atento', energia = atento ? 0 : strobeMode !== 'off' ? 1 : .45, tp = tar.group.position;
+  const DS = P.despeje, Rc = DS ? DS.R(time) : 0, o = P.o;
+  const { m, mp, q, qa, v, s, Y, Zx, Xx } = P;
   const set = (mesh, i, x, y, z) => mesh.setMatrixAt(i, mp.makeTranslation(x, y, z).premultiply(m));
-  const DS = P.despeje, Rc = DS ? DS.R(time) : 0, cx = DS?.c[0], cz = DS?.c[1];
   P.people.forEach((p, i) => {
-    let px = p.x, pz = p.z, yaw = p.yaw;
-    if (DS) {                                                                     // se corren del círculo comprimiéndose en un anillo de 2,6 m
-      const dx = p.x - cx, dz = p.z - cz, d = Math.hypot(dx, dz) || .001, R2 = Rc + 2.95;
-      const f = Rc > .01 && d < R2 ? Rc + .35 + d / R2 * 2.6 : d;
-      px = Math.min(W - .4, Math.max(SXE + .6, cx + dx / d * f)); pz = Math.min(D - .4, Math.max(.4, cz + dz / d * f));
-      const w = Math.max(0, 1 - (f - Rc) / 6) * .85, dy = ((Math.atan2(cx - px, cz - pz) - yaw + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-      yaw += dy * w;                                                              // los de cerca miran al centro
+    o.x = p.x; o.z = p.z; o.yaw = p.yaw; o.cel = false; o.crouch = 0; o.esc = 1; o.arms = null; o.rol = false; o.salta = 1;
+    if (P.coreo) P.coreo.persona(p, i, time, o);
+    if (!o.rol) {
+      if (DS) { const f = pubComprime(o, DS.c[0], DS.c[1], Rc); if (!atento) pubGira(o, DS.c[0], DS.c[1], Math.max(0, 1 - (f - Rc) / 6) * .85); }
+      pubComprime(o, tp.x, tp.z, 1.45, 1.4);                                     // se abren cuando pasa la tarima
+      if (atento && (P.mira || DS)) { const c = P.mira ?? DS.c; pubGira(o, c[0], c[1], 1); }   // concentrados: todos miran la escena
+      o.x = Math.min(W - .4, Math.max(SXE + .6, o.x)); o.z = Math.min(D - .4, Math.max(.4, o.z));
     }
-    const oculto = Math.hypot(px - tp.x, pz - tp.z) < 1.8;                   // se corren cuando pasa la tarima
-    const b = Math.max(0, Math.sin(time * 12.6 * (.85 + .3 * (p.up % .1) * 10) + p.ph)) * .07 * energia;
-    q.setFromAxisAngle(Y, yaw); s.setScalar(oculto ? 0 : p.s);
-    m.compose(v.set(px, b, pz), q, s);
+    const b = atento ? .006 * Math.sin(time * .9 + p.ph) + .006 : Math.max(0, Math.sin(time * 12.6 * (.85 + .3 * (p.up % .1) * 10) + p.ph)) * .07 * energia * o.salta;
+    const sc = p.s * o.esc;
+    q.setFromAxisAngle(Y, o.yaw); s.set(sc, sc * (1 - .38 * o.crouch), sc);
+    m.compose(v.set(o.x, b, o.z), q, s);
     set(P.legs, 2 * i, .1, .44, 0); set(P.legs, 2 * i + 1, -.1, .44, 0);
     set(P.torso, i, 0, 1.25, 0); set(P.head, i, 0, 1.74, 0);
-    const arriba = p.up < .22 * energia * 2;                                     // ~10 % tranquilo · ~45 % con estrobos
+    const arriba = o.arms === 'up' || (o.arms == null && !atento && !o.cel && p.up < .22 * energia * 2);
     for (const sg of [1, -1]) {
-      const ang = arriba ? sg * (Math.PI - .35 + .25 * Math.sin(time * 4 + p.ph)) : sg * .12;
-      qa.setFromAxisAngle(Zx, ang);
-      mp.compose(v.set(sg * .23, 1.5, 0), qa, s.setScalar(1)).multiply(P.tArm);
-      P.arms.setMatrixAt(2 * i + (sg > 0 ? 0 : 1), mp.premultiply(m));
+      if (o.cel && sg < 0) qa.setFromAxisAngle(Xx, -2.0);                        // brazo hacia adelante y arriba, con el celular
+      else qa.setFromAxisAngle(Zx, arriba ? sg * (Math.PI - .35 + .25 * Math.sin(time * 4 + p.ph)) : sg * (atento ? .06 : .12));
+      mp.compose(v.set(sg * .23, 1.5, 0), qa, s.set(1, 1, 1)).multiply(P.tArm).premultiply(m);
+      P.arms.setMatrixAt(2 * i + (sg > 0 ? 0 : 1), mp);
+      if (sg < 0) { if (o.cel) { mp.multiply(P.tCel); P.phones.setMatrixAt(i, mp); } else P.phones.setMatrixAt(i, P.cero); }
     }
   });
-  for (const mesh of [P.legs, P.torso, P.head, P.arms]) mesh.instanceMatrix.needsUpdate = true;
+  for (const mesh of [P.legs, P.torso, P.head, P.arms, P.phones]) mesh.instanceMatrix.needsUpdate = true;
 }
+
+/* MOSH: filas para el mosh y el tobogán, gente que juega al limbo, y el resto alrededor de la acción:
+   se agachan cuando pasan bajo las performers aéreas y muchos filman con el celular. */
+function coreoMosh({ C0, tx, tz, T_, SLOT1, LIMBO, VL, LB, SURF, COR }) {
+  const sm = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u), loop = t => ((t % T_) + T_) % T_;
+  PUB.despeje = { c: [C0.x, C0.z], R: () => MOSH.r0 + .05 };                    // anillo libre de la persecución
+  const cajas = [[7.5, 6.6, 8.9, 12.95], [6.5, 1.45, 11.0, 5.2]];                 // tobogán (rampa, frenado y escalera) · limbo
+  const surf = Array.from({ length: 80 }, (_, k) => SURF.c.getPointAt(k / 79));
+  const FILAS = {
+    mosh: { n: 7, per: 20, off: 2, mira: [tx, tz], slot: j => j === 0 ? [SLOT1[0] - .4, SLOT1[2] + .55] : [17.85 - .55 * j, 9.3] },
+    tobo: { n: 7, per: 8, off: 0, mira: [8.2, 12.65], slot: j => [9.05, 12.2 - .55 * j] },
+  };
+  const ATR = [[C0.x, C0.z, 1], [tx, tz, .75], [8.2, 10.2, .6], [8.6, 3.4, .6]];   // persecución, tarima, tobogán, limbo
+  const LOFF = [1 / 6, 1 / 2, 5 / 6], v = new THREE.Vector3(), tg = new THREE.Vector3();
+  pubCoreo({
+    asignar(people) {
+      const libres = new Set(people.map((_, i) => i)), toma = (x, z) => { let best = -1, bd = 1e9;
+        for (const i of libres) { const d = Math.hypot(people[i].x - x, people[i].z - z); if (d < bd) { bd = d; best = i; } } libres.delete(best); return best; };
+      people.forEach(p => { p.rol = null; });
+      for (const [nom, F] of Object.entries(FILAS)) for (let k = 0; k < F.n; k++) { const [x, z] = F.slot(k), i = toma(x, z); if (i >= 0) people[i].rol = { tipo: 'fila', F, k }; }
+      LOFF.forEach((off, k) => { const p0 = LIMBO.c.getPointAt(off), i = toma(p0.x, p0.z); if (i >= 0) people[i].rol = { tipo: 'limbo', off }; });
+      for (const i of libres) { const p = people[i]; let a = 0, bd = 1e9; ATR.forEach(([x, z, w], k) => { const d = Math.hypot(p.x - x, p.z - z) / w; if (d < bd) { bd = d; a = k; } });
+        p.rol = { tipo: 'mira', a, cel: Math.random() < .33 }; }
+    },
+    persona(p, i, time, o) {
+      const r = p.rol; if (!r) return; const tt = loop(time);
+      if (r.tipo === 'fila') {
+        const F = r.F, qq = (tt - F.off) / F.per, n = Math.floor(qq), u = sm((qq - n) * F.per / 1.2), j = (((r.k - n) % F.n) + F.n) % F.n;
+        const [x1, z1] = F.slot(j), [x0, z0] = j === F.n - 1 ? F.slot(j) : F.slot(j + 1);
+        o.x = x0 + (x1 - x0) * u; o.z = z0 + (z1 - z0) * u; if (j === F.n - 1) o.esc = u;   // el que sale de adelante reaparece al final
+        o.yaw = Math.atan2(F.mira[0] - o.x, F.mira[1] - o.z); o.rol = true; o.salta = .5; o.cel = p.up > .8; return;
+      }
+      if (r.tipo === 'limbo') {
+        const sL = (tt * VL / LIMBO.L + r.off) % 1; LIMBO.c.getPointAt(sL, v); LIMBO.c.getTangentAt(sL, tg);
+        o.x = v.x; o.z = v.z; o.yaw = Math.atan2(tg.x, tg.z); o.rol = true; o.salta = 0;
+        const vuelta = Math.floor(tt / 20), alto = [1.35, 1.2, 1.05][vuelta % 3], d = Math.hypot(o.x - 9.1, o.z - LB.a[1]);
+        o.crouch = sm(1 - d / .75) * (1.75 - alto) / .7; o.arms = 'up'; return;
+      }
+      // alrededor de la acción: fuera del tobogán, del limbo y del recorrido del que nada sobre la gente
+      for (const [x0, z0, x1, z1] of cajas) if (o.x > x0 && o.x < x1 && o.z > z0 && o.z < z1) {
+        const e = [[o.x - x0, x0 - .25, null], [x1 - o.x, x1 + .25, null], [o.z - z0, null, z0 - .25], [z1 - o.z, null, z1 + .25]].sort((a, b) => a[0] - b[0])[0];
+        if (e[1] != null) o.x = e[1]; else o.z = e[2]; }
+      let ds = 1e9, nx = 0, nz = 0; for (const q of surf) { const d = Math.hypot(o.x - q.x, o.z - q.z); if (d < ds) { ds = d; nx = q.x; nz = q.z; } }
+      if (ds < .85) { const k = .85 / (ds || .01); o.x = nx + (o.x - nx) * k; o.z = nz + (o.z - nz) * k; }
+      const [ax, az] = ATR[r.a]; o.yaw = Math.atan2(ax - o.x, az - o.z) + (p.yaw - Math.atan2(SX + 1 - p.x, D / 2 - p.z)) * .25;
+      o.cel = r.cel; if (ds < 1.7) { o.arms = 'up'; o.cel = false; }             // al que pasa nadando le ponen las manos
+      for (const X of COR) { const h = X.W.position; if (h.y > 3.4) continue;     // las performers aéreas pasan cerca y bajo: se agachan
+        const d = Math.hypot(o.x - h.x, o.z - h.z); o.crouch = Math.max(o.crouch, sm(1 - d / 1.7) * sm((3.4 - h.y) / 1.2)); }
+      if (o.crouch > .2) { o.cel = false; o.arms = 'down'; }
+    }
+  });
+}
+
 
 // Arranque (admite #escena-N en el link)
 const m = location.hash.match(/escena-(\d+)/), mm = location.hash.match(/mec-([\w-]+)/);
