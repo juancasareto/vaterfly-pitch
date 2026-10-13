@@ -13,6 +13,12 @@ Este repo es **público** y se publica solo con GitHub Pages en `deck.vaterfly.c
 4. Para dejarle un mensaje a la otra persona: agregá una entrada arriba de todo en `NOVEDADES.md`
    (fecha · de quién · para quién) y subila junto con los cambios.
 
+## Al cerrar la sesión (siempre)
+
+Cuando el usuario dice que cierra la sesión (o termina el día), **antes de despedirte preguntale qué mensaje quiere
+dejarle a la otra persona** (Juan ↔ Bruno). Si da uno, agregalo arriba de todo en `NOVEDADES.md` tal cual lo escribió
+(`## fecha · de X para Y · mensaje`), hacé commit y push. Si no quiere dejar mensaje, no agregues nada.
+
 ## Qué hay
 
 | Ruta | Qué es | URL |
