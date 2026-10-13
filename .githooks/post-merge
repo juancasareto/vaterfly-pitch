@@ -1,0 +1,10 @@
+#!/bin/sh
+# Después de un git pull: si NOVEDADES.md cambió, muestra las líneas nuevas.
+# Se activa una sola vez por compu con:  git config core.hooksPath .githooks
+if git diff --name-only ORIG_HEAD HEAD 2>/dev/null | grep -qx 'NOVEDADES.md'; then
+  echo ""
+  echo "════════════════ NOVEDADES DEL VISOR ════════════════"
+  git diff ORIG_HEAD HEAD -- NOVEDADES.md | grep '^+' | grep -v '^+++' | sed 's/^+//'
+  echo "═════════════════════════════════════════════════════"
+  echo ""
+fi

@@ -3,6 +3,16 @@
 Lo trabajan Juan y Bruno (producción). Responder en castellano rioplatense.
 Este repo es **público** y se publica solo con GitHub Pages en `deck.vaterfly.com`.
 
+## Al empezar a trabajar (siempre)
+
+1. `git pull`.
+2. Si `NOVEDADES.md` cambió con ese pull (`git diff ORIG_HEAD HEAD -- NOVEDADES.md`), **mostrale al usuario las
+   entradas nuevas tal cual, antes de cualquier otra cosa**. Si no hay entradas nuevas, no digas nada de esto.
+3. Si `git config core.hooksPath` no devuelve `.githooks`, corré `git config core.hooksPath .githooks` (una sola vez
+   por compu): así el aviso de novedades sale también cuando se hace pull desde la terminal.
+4. Para dejarle un mensaje a la otra persona: agregá una entrada arriba de todo en `NOVEDADES.md`
+   (fecha · de quién · para quién) y subila junto con los cambios.
+
 ## Qué hay
 
 | Ruta | Qué es | URL |
