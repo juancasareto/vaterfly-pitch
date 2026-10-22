@@ -70,7 +70,7 @@ Un solo HTML con Three.js 0.180 desde jsDelivr (importmap). Sin build.
   seguidores; se corren cuando pasa la tarima; con estrobos saltan y levantan los brazos.
   **Coreografía por escena:** una escena define `PUB.despeje = { c: [x, z], R: t => radio }` y el público se corre de ese círculo
   (se comprime en un anillo y los de cerca miran al centro). Se resetea al cambiar de escena. Hecho: Intro (`coreoIntro()`:
-  4 técnicos de piso abren y sostienen Ø ≈ 7,2 m bajo el Toroide; público concentrado). Otras herramientas:
+  el público se queda debajo del Toroide, quieto y mirando hacia arriba; los técnicos no lo mueven). Otras herramientas:
   `PUB.animo = 'atento'` (quietos, sin bailar, mirando `PUB.mira`), la tarima siempre abre a la gente al pasar, y
   `pubCoreo({ asignar(people), persona(p, i, t, o) })` para roles por persona (filas, juegos, agacharse `o.crouch`,
   celular `o.cel`, brazos `o.arms`). Hecho: Intro, Monja (despejan el revoleo), MOSH (`coreoMosh`: filas del mosh y del
