@@ -11,7 +11,7 @@ window.VF_DICT = {
     "gate.enter": "Enter",
     "gate.error": "Incorrect password",
 
-    "hero.line1": "A HIGH-IMPACT THEATRICAL PARTY,",
+    "hero.line1": "A HIGH-IMPACT THEATRICAL SHOW,",
     "hero.line2": "AERIAL PERFORMANCE AND ADRENALINE.",
     "hero.scroll": "Scroll ↓",
 
@@ -22,7 +22,7 @@ window.VF_DICT = {
     "about.path2": "The result was the certainty that there is an audience eager to get involved in this kind of experience.",
 
     "project.title": "The project",
-    "project.lead": "Vaterfly is an immersive theatrical party: a night-time experience built from high-impact scenes and performances, with aerial moments and real audience participation, where the audience has no seat, but a place within the action.",
+    "project.lead": "Vaterfly is an immersive theatre show. A playful experience with high-impact scenes, aerial performance and moments where the audience moves within the action.",
     "project.pillars": "The three pillars of the experience",
     "p1.title": "Aerial performance",
     "p1.body": "Suspended scenes of real physical action, with professional technical direction for rigging and safety. The characters clash with one another, and the elements and structures become obstacles to their goals.",
@@ -41,7 +41,7 @@ window.VF_DICT = {
     "expC.title": "Aerial climax",
     "expC.body": "The moment of greatest visual impact of the night, with the audience right around the action. Surprise and adrenaline.",
     "expD.title": "Collective finale",
-    "expD.body": "The party opens up completely and the boundary between cast and audience finally dissolves into an energetic, shared celebration.",
+    "expD.body": "The show opens up completely and the boundary between cast and audience finally dissolves into an energetic, collective party.",
 
     "id.title": "Visual identity",
     "id.lead": "Vaterfly relies on powerful images, embodied by disruptive characters who face each other from opposing forces: good and evil. The scenes are charged with aerial bodies, raw light, party textures and dreamlike imagery.",
@@ -106,7 +106,7 @@ window.VF_DICT = {
     "gate.enter": "Entrar",
     "gate.error": "Senha incorreta",
 
-    "hero.line1": "UMA FESTA CÊNICA DE ALTO IMPACTO,",
+    "hero.line1": "UM SHOW CÊNICO DE ALTO IMPACTO,",
     "hero.line2": "PERFORMANCE AÉREA E ADRENALINA.",
     "hero.scroll": "Role ↓",
 
@@ -117,7 +117,7 @@ window.VF_DICT = {
     "about.path2": "O resultado foi a certeza de que existe um público buscando se envolver nesse tipo de experiência.",
 
     "project.title": "O projeto",
-    "project.lead": "Vaterfly é uma festa cênica e imersiva: uma experiência noturna estruturada em cenas e performances de alto impacto, com intervenção aérea e momentos de participação real, onde o público não tem poltrona, tem um lugar dentro da ação.",
+    "project.lead": "Vaterfly é um espetáculo teatral imersivo. Uma experiência lúdica com cenas de alto impacto, intervenção aérea e momentos em que o público se move dentro da ação.",
     "project.pillars": "Os três pilares da experiência",
     "p1.title": "Performance aérea",
     "p1.body": "Cenas suspensas e de ação física real, com direção técnica profissional de rigging e segurança. Os personagens entram em conflito entre si, e os elementos e estruturas funcionam como obstáculos para seus objetivos.",
@@ -136,7 +136,7 @@ window.VF_DICT = {
     "expC.title": "Clímax aéreo",
     "expC.body": "O ponto de maior impacto visual da noite, com o público diretamente ao redor da ação. A surpresa e a adrenalina.",
     "expD.title": "Encerramento coletivo",
-    "expD.body": "A festa se abre por completo e a fronteira entre elenco e público termina de se dissolver em uma celebração enérgica e coletiva.",
+    "expD.body": "O espetáculo se abre por completo e a fronteira entre o elenco e o público termina de se dissolver em uma festa enérgica e coletiva.",
 
     "id.title": "Identidade visual",
     "id.lead": "Vaterfly se apoia em imagens potentes, representadas por personagens disruptivos que se enfrentam a partir de forças opostas: o bem e o mal. As cenas estão carregadas de corpos aéreos, luz crua, texturas de festa e imagens oníricas.",
@@ -201,7 +201,7 @@ window.VF_DICT = {
     "gate.enter": "입장",
     "gate.error": "비밀번호가 올바르지 않습니다",
 
-    "hero.line1": "강렬한 임팩트의 무대 파티,",
+    "hero.line1": "강렬한 임팩트의 무대 쇼,",
     "hero.line2": "공중 퍼포먼스와 아드레날린.",
     "hero.scroll": "스크롤 ↓",
 
@@ -212,7 +212,7 @@ window.VF_DICT = {
     "about.path2": "그 결과, 이런 경험에 직접 참여하고 싶어 하는 관객이 존재한다는 확신을 얻었습니다.",
 
     "project.title": "프로젝트",
-    "project.lead": "Vaterfly는 몰입형 무대 파티입니다. 강렬한 장면과 퍼포먼스로 구성된 야간 경험으로, 공중 퍼포먼스와 실제 관객 참여의 순간이 어우러집니다. 관객에게는 좌석이 아니라 무대 안의 자리가 주어집니다.",
+    "project.lead": "Vaterfly는 몰입형 연극 공연입니다. 강렬한 장면과 공중 퍼포먼스, 그리고 관객이 무대 안에서 함께 움직이는 순간들로 이루어진 놀이 같은 경험입니다.",
     "project.pillars": "체험의 세 가지 기둥",
     "p1.title": "공중 퍼포먼스",
     "p1.body": "실제 신체 액션이 펼쳐지는 공중 장면으로, 전문 리깅 및 안전 기술 감독이 함께합니다. 캐릭터들은 서로 충돌하고, 요소와 구조물은 그들의 목표를 가로막는 장애물이 됩니다.",
@@ -231,7 +231,7 @@ window.VF_DICT = {
     "expC.title": "공중 클라이맥스",
     "expC.body": "관객이 바로 곁에서 지켜보는, 그날 밤 가장 강렬한 시각적 순간. 놀라움과 아드레날린.",
     "expD.title": "모두의 피날레",
-    "expD.body": "파티가 완전히 열리고, 출연진과 관객 사이의 경계가 활기찬 공동의 축제 속에서 완전히 사라집니다.",
+    "expD.body": "공연이 완전히 열리고, 출연진과 관객 사이의 경계가 활기찬 공동의 파티 속에서 완전히 사라집니다.",
 
     "id.title": "비주얼 아이덴티티",
     "id.lead": "Vaterfly는 강렬한 이미지 위에 세워져 있습니다. 선과 악이라는 대립하는 힘으로 맞서는 파격적인 캐릭터들이 그 이미지를 구현합니다. 장면들은 공중의 몸, 날것의 빛, 파티의 질감, 몽환적인 이미지로 가득합니다.",
