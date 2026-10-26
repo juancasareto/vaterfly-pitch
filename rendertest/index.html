@@ -215,21 +215,29 @@
 </div>
 <script>
 (function(){
-  var GATE_KEY = 'vaterflyRenderAuth';
-  var PASSWORD = 'toroide2027';
+  var GATE_KEY = 'vaterflyRenderAuth2';
+  // Solo el SHA-256 de la clave (en minúsculas): la clave no figura en el código.
+  var PASS_HASH = '9c21c605cf0f09c421c32605327d76bfe35c75c8fcc2b04575e5cbda111efd22';
   var gate = document.getElementById('pwGate'), form = document.getElementById('pwForm');
   var input = document.getElementById('pwInput'), error = document.getElementById('pwError');
   function unlock(){ gate.classList.add('hidden'); document.documentElement.classList.remove('pw-locked'); }
-  try { if (sessionStorage.getItem(GATE_KEY) === '1') unlock(); else document.documentElement.classList.add('pw-locked'); }
+  try { if (sessionStorage.getItem(GATE_KEY) === PASS_HASH) unlock(); else document.documentElement.classList.add('pw-locked'); }
   catch(e){ document.documentElement.classList.add('pw-locked'); }
+  function sha256(txt){
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
   form.addEventListener('submit', function(e){
     e.preventDefault();
-    if ((input.value || '').trim().toLowerCase() === PASSWORD) {
-      try { sessionStorage.setItem(GATE_KEY, '1'); } catch(e){}
-      document.documentElement.classList.remove('pw-locked');
-      gate.classList.add('fade-out');
-      setTimeout(function(){ gate.classList.add('hidden'); window.dispatchEvent(new Event('resize')); }, 900);
-    } else { error.style.display = 'block'; input.value = ''; input.focus(); }
+    sha256((input.value || '').trim().toLowerCase()).then(function(h){
+      if (h === PASS_HASH) {
+        try { sessionStorage.setItem(GATE_KEY, PASS_HASH); } catch(e){}
+        document.documentElement.classList.remove('pw-locked');
+        gate.classList.add('fade-out');
+        setTimeout(function(){ gate.classList.add('hidden'); window.dispatchEvent(new Event('resize')); }, 900);
+      } else { error.style.display = 'block'; input.value = ''; input.focus(); }
+    });
   });
 })();
 </script>

@@ -26,7 +26,8 @@ dejarle a la otra persona** (Juan ↔ Bruno). Si da uno, agregalo arriba de todo
 | `index.html` + `assets/` | Pitch deck (ver README.md) | https://deck.vaterfly.com |
 | `rendertest/index.html` | **Visor 3D técnico** del escenario: planta, escenas del guion, luces y mecanismos | https://deck.vaterfly.com/rendertest/ |
 
-Las dos páginas tienen una barrera de contraseña **cosmética** (está en el código, el repo es público).
+Las dos páginas tienen una barrera de contraseña **cosmética** (el repo es público). La del visor guarda solo el
+SHA-256 de la clave (`PASS_HASH`): **nunca escribir la clave en el repo**. Para cambiarla, reemplazar el hash.
 
 ## Fuentes de verdad
 
