@@ -275,7 +275,7 @@
       <label class="chk"><input type="checkbox" id="lyStruct" checked> Estructura</label>
       <label class="chk"><input type="checkbox" id="lyScene" checked> Escena</label>
       <label class="chk"><input type="checkbox" id="lyCotas" checked> Cotas</label>
-      <label class="chk"><input type="checkbox" id="lyLabels" checked> Etiquetas</label>
+      <label class="chk"><input type="checkbox" id="lyLabels"> Etiquetas</label>
       <label class="chk"><input type="checkbox" id="lyLights" checked> Luces</label>
       <label class="chk"><input type="checkbox" id="lyProj" checked> Proyección</label>
       <label class="chk"><input type="checkbox" id="lyTecho" checked> Techo</label>
@@ -3940,6 +3940,7 @@ bindLayer('lyStruct', v => { for (const el of Object.values(EL)) if (el.id !== '
 bindLayer('lyScene', v => sceneGroup.visible = v);
 bindLayer('lyCotas', v => cotaGroup.visible = v);
 bindLayer('lyLabels', v => vp.classList.toggle('hide-labels', !v));
+vp.classList.toggle('hide-labels', !document.getElementById('lyLabels').checked); // arranca sin etiquetas
 bindLayer('lyLights', v => { lightGroup.visible = v; if (!v) strobeFlash.intensity = 0; });
 bindLayer('lyProj', v => { projOn = v; });
 bindLayer('lyTecho', v => { techo.group.visible = v; });
